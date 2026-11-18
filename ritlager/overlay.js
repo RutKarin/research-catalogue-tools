@@ -1777,8 +1777,12 @@
     var cnt={}; hs.forEach(function(h){ var g=GROUP[h._t]||'More'; cnt[g]=(cnt[g]||0)+1; });
     hs.forEach(function(h){ if(cnt[GROUP[h._t]||'More']===1||GROUP[h._t]==='Text'){ h._flat=true; h._open=true; } });
     hs.forEach(applySec); gs.forEach(applyGrp);
-    var allBtn=btn('⇕',function(){ var anyOpen=gs.some(function(g){ return g._open; })||hs.some(function(h){ return h._open&&!h._hidden&&!h._flat; }); gs.forEach(function(g){ g._open=!anyOpen; st['grp:'+g._t]=g._open?1:0; applyGrp(g); }); hs.forEach(function(h){ if(h._flat) return; h._open=!anyOpen; st[h._t]=h._open?1:0; applySec(h); }); saveSt(); },'Collapse / expand all menus');
-    hg.insertBefore(allBtn,hg.firstChild);
+    var allBtn=el('button','display:block;width:100%;height:16px;line-height:14px;border:0;border-radius:6px;background:#efefef;color:#777;font:300 10.5px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;padding:0;margin-top:2px;','Collapse all menus'); allBtn.type='button';
+    function anyOpenNow(){ return gs.some(function(g){ return g._open; }); }
+    function allLabel(){ allBtn.textContent=anyOpenNow()?'Collapse all menus':'Expand all menus'; }
+    allBtn.addEventListener('click',function(){ var anyOpen=anyOpenNow(); gs.forEach(function(g){ g._open=!anyOpen; st['grp:'+g._t]=g._open?1:0; applyGrp(g); }); hs.forEach(function(h){ if(h._flat) return; h._open=!anyOpen; st[h._t]=h._open?1:0; applySec(h); }); saveSt(); allLabel(); });
+    bar.addEventListener('click',function(){ setTimeout(allLabel,0); });
+    allLabel(); r1.parentNode.insertBefore(allBtn,r1.nextSibling);
   })();
   (function(){
     var REPO='https://github.com/RutKarin/research-catalogue-tools';
