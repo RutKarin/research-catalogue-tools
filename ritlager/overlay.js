@@ -1202,6 +1202,7 @@
 
   // ---- Animate: frames -> preview -> GIF / video ----
   sec('Animate');
+  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','How to make an animation: 1) Press “Replay my drawing” to get frames that show your drawing being made. Or draw something, press “+ Add current drawing as frame”, change the drawing and add again. 2) Press ▶ Preview to watch it. 3) Save GIF or Save video. You need at least 2 frames for anything to move.'));
   var frames=[], aSel=-1, aPlay=0, aTimer=0;
   var rA1=row(); lab(rA1,'Frames'); var aN=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;width:52px;'); aN.type='number'; aN.min=2; aN.max=200; aN.value=24; aN.title='How many frames the replay should have'; rA1.appendChild(aN);
   rA1.appendChild(btn('Replay my drawing',function(){ aReplay(); },'Makes frames that show the drawing being drawn, stroke by stroke')); bar.appendChild(rA1);
