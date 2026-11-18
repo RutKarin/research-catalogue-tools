@@ -31,8 +31,6 @@ Features:
 
 Source: `ritlager/overlay.js` (readable) and `ritlager/overlay.min.js` (what the bookmark contains).
 
-Tested in a simulated browser only; real-world reports from Chrome, Edge and Firefox with a tablet are very welcome as issues.
-
 ## License
 
 MIT, see `LICENSE`. Use, modify and share freely.
