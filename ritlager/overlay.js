@@ -735,9 +735,12 @@
     for(var i=layers.length-1;i>=0;i--) (function(L,idx){
       var d=el('div','border:1px solid #d4d4d4;border-radius:7px;padding:4px 5px;display:flex;flex-direction:column;gap:4px;background:#fff;'); d.setAttribute('data-id',L.id);
       var r1=row(); r1.style.flexWrap='nowrap';
+      var more=el('div','display:'+(L.open?'flex':'none')+';flex-direction:column;gap:4px;');
+      var tg=btn(L.open?'▾':'▸',function(){ L.open=!L.open; more.style.display=L.open?'flex':'none'; tg.textContent=L.open?'▾':'▸'; },'Show or hide this layer’s opacity, blend mode and order'); tg.style.padding='3px 6px';
+      var sumEl=el('span','font-size:10.5px;color:#888;white-space:nowrap;'); function sumUp(){ var bn=''; BLENDS.forEach(function(o){ if(o[0]===(L.bm||'source-over')) bn=o[1]; }); sumEl.textContent=L.op+'% · '+bn; }
       var nm=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:5px;padding:3px 6px;flex:1;min-width:0;box-sizing:border-box;'); nm.type='text'; nm.value=L.name; nm.maxLength=30;
       nm.addEventListener('focus',function(){ act=L.id; markLayers(); }); nm.addEventListener('input',function(){ L.name=nm.value; persist(); });
-      var eye=chk(r1,'Show',L.vis); r1.insertBefore(nm,r1.firstChild);
+      var eye=chk(r1,'Show',L.vis); r1.insertBefore(nm,r1.firstChild); r1.insertBefore(tg,r1.firstChild);
       eye.addEventListener('change',function(){ L.vis=eye.checked; rebuild(); });
       r1.appendChild(btn('✕',function(){
         if(layers.length<2){ msg('At least one layer is needed'); return; }
@@ -746,14 +749,14 @@
       },'Delete this layer and its strokes'));
       var r2=row(); r2.style.flexWrap='nowrap'; lab(r2,'Opacity'); var op=slider(r2,0,100,L.op,70); op.title='Opacity of the whole layer';
       var opv=el('span','font-size:11px;color:#666;width:30px;',L.op+'%'); r2.appendChild(opv);
-      op.addEventListener('input',function(){ L.op=+op.value; opv.textContent=L.op+'%'; lRebuild(); });
+      op.addEventListener('input',function(){ L.op=+op.value; opv.textContent=L.op+'%'; sumUp(); lRebuild(); });
       r2.appendChild(btn('↑',function(){ var k=layers.indexOf(L); if(k<layers.length-1){ layers.splice(k,1); layers.splice(k+1,0,L); drawLayerUI(); rebuild(); } },'Move layer up (in front)'));
       r2.appendChild(btn('↓',function(){ var k=layers.indexOf(L); if(k>0){ layers.splice(k,1); layers.splice(k-1,0,L); drawLayerUI(); rebuild(); } },'Move layer down (behind)'));
       var r3=row(); r3.style.flexWrap='nowrap'; lab(r3,'Blend');
       var bmS=el('select',BTN+'padding:3px 6px;flex:1;min-width:0;'); bmS.title='How this layer mixes with the layers below it (and with a screenshot background when exporting)';
       BLENDS.forEach(function(o){ var op2=el('option',null,o[1]); op2.value=o[0]; bmS.appendChild(op2); }); bmS.value=L.bm||'source-over';
-      bmS.addEventListener('change',function(){ L.bm=bmS.value; rebuild(); }); r3.appendChild(bmS);
-      d.appendChild(r1); d.appendChild(r2); d.appendChild(r3);
+      bmS.addEventListener('change',function(){ L.bm=bmS.value; sumUp(); rebuild(); }); r3.appendChild(bmS);
+      more.appendChild(r2); more.appendChild(r3); sumUp(); d.appendChild(r1); d.appendChild(sumEl); d.appendChild(more);
       d.addEventListener('pointerdown',function(e){ if(e.target.tagName==='BUTTON') return; act=L.id; markLayers(); });
       layerBox.appendChild(d);
     })(layers[i],i);
