@@ -236,7 +236,7 @@
         else { mpoly=[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}]; sel=strokes.filter(function(st){ return st.tool!=='image'&&inScope(st)&&selPts(st).some(function(p){ return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1; }); }); }
       }
       if(mpoly) sel=sel.concat(selectImageParts(mpoly));
-      var t1=sel.filter(function(st){ return st.tool==='text'; })[0]; if(t1) setControls(t1);
+      setSelUI();
       selBox=sel.length?boxOf(sel):null; msg(sel.length?sel.length+' stroke'+(sel.length>1?'s':'')+' selected':'Nothing selected (scope: '+(selScope==='all'?'all visible layers':'active layer')+')'); refresh(); return;
     }
     if(d.moved){ ulog.push({t:'s',prev:selOrig}); redo=[]; sel=selCur; selBox=boxOf(sel); persist(); }
@@ -735,7 +735,8 @@
   var r2=row();
   var bPen=btn('Pen',function(){setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){setTool('brush');},'Brush (P)'),
       bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bTxt=btn('Text tool (T)',function(){setTool('text');},'Text (T): click where the text should go');
-  var bAir=btn('Airbrush',function(){setTool('air');},'Airbrush (A): soft spray that builds up. Hardness sets how soft the edge is, Opacity how strong it can get'); r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bAir); r2.appendChild(bLine); r2.appendChild(bEr); bar.appendChild(r2);
+  var bSel0=btn('↖ Select',function(){ setTool('select'); },'Select, move and change strokes (S or V). Opacity, Colour and Thickness then change the selected strokes'); 
+  var bAir=btn('Airbrush',function(){setTool('air');},'Airbrush (A): soft spray that builds up. Hardness sets how soft the edge is, Opacity how strong it can get'); r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bAir); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bSel0); bar.appendChild(r2);
 
   sec('Colour');
   var r3=row(), sw=[];
@@ -787,7 +788,7 @@
     if(!d||d[3]===0){ msg('Nothing to pick there. In this browser, first press “Capture screenshot” (under Export) to use the pipette on the page.',5500); return; }
     var c='#'+hex2(d[0])+hex2(d[1])+hex2(d[2]); setColor(c); msg('Picked '+c.toUpperCase());
   }
-  var r3b=row(); lab(r3b,'Opacity'); var ink=slider(r3b,5,100,100,100); liveVal(ink); ink.title='How dark/dense the colour is. 100 = full black';
+  var r3b=row(); lab(r3b,'Opacity'); var ink=slider(r3b,5,100,100,100); liveVal(ink); ink.addEventListener('change',function(){ changeSel('ink'); }); ink.title='How dark/dense the colour is. 100 = full black';
   bar.appendChild(r3b);
   var rC=row(); lab(rC,'Contrast'); var ctr=slider(rC,0,100,0,110); liveVal(ctr);
   ctr.title='Redraws strokes several times so light and thin strokes get darker. High = thin strokes turn fully black. Applies to all strokes, including already drawn ones. It only changes strokes that are thin or less than fully opaque – solid thick strokes at 100% opacity look the same. It does not affect Brush, Airbrush, text or pictures.';
@@ -801,8 +802,9 @@
   var SMIN=0.2, SMAX=1000, LR=Math.log(SMAX/SMIN);
   sz.min=0; sz.max=100; sz.step=0.25;
   function showSize(){ szv.textContent = (size<10 ? size.toFixed(1) : String(Math.round(size)))+' px'; if(szn&&document.activeElement!==szn) szn.value=size<10?size.toFixed(1):Math.round(size); }
-  function setSize2(v){ size=Math.max(SMIN,Math.min(SMAX,v)); sz.value=100*Math.log(size/SMIN)/LR; showSize(); }
+  function setSize2(v){ size=Math.max(SMIN,Math.min(SMAX,v)); sz.value=100*Math.log(size/SMIN)/LR; showSize(); changeSel('size'); }
   sz.addEventListener('input',function(){ size=SMIN*Math.exp(LR*(+sz.value)/100); showSize(); });
+  sz.addEventListener('change',function(){ changeSel('size'); });
   var szn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:56px;box-sizing:border-box;'); szn.type='number'; szn.min=0.2; szn.max=1000; szn.step=1; szn.title='Type an exact size in px (up to 1000)';
   szn.addEventListener('input',function(){ var v=+szn.value; if(v>=SMIN) setSize2(v); });
   r4.appendChild(sz); r4.appendChild(szv); r4.appendChild(szn); bar.appendChild(r4); showSize();
@@ -960,8 +962,26 @@
   var rSm3=row();
   rSm3.appendChild(btn('Cut',function(){ selCut(); },'Cut (Ctrl+X)')); rSm3.appendChild(btn('Copy',function(){ selCopy(); },'Copy (Ctrl+C)')); rSm3.appendChild(btn('Paste',function(){ selPaste(); },'Paste (Ctrl+V)')); rSm3.appendChild(btn('Delete',function(){ selDelete(); },'Delete the selected strokes (Delete key)'));
   bar.appendChild(rSm3);
+  function selLast(){
+    var vis=function(st){ return getLayer(layerOf(st)).vis&&st.tool!=='cut'; }, i;
+    for(i=strokes.length-1;i>=0;i--) if(vis(strokes[i])&&(selScope==='all'||layerOf(strokes[i])===act)) break;
+    if(i<0){ msg('Nothing to select'); return; }
+    setTool('select'); sel=[strokes[i]]; selCur=sel; selBox=boxOf(sel); refresh(); setSelUI();
+    msg('Last stroke selected – change Opacity, Colour or Thickness to change it, or drag it');
+  }
+  function setSelUI(){ var t=sel.filter(function(st){ return st.tool==='text'; })[0]; if(t&&typeof setControls==='function') setControls(t); var a=sel.filter(function(st){ return st.tool!=='text'&&st.tool!=='image'&&st.tool!=='cut'; })[0]; if(a&&a.color&&a.color.length===7){ color=a.color; cp.value=a.color; hexIn.value=a.color; var n=parseInt(a.color.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; sw.forEach(function(q){ q[0].style.outline=q[1]===a.color?'2px solid #111':'none'; }); } if(sel[0]&&sel[0].ink!=null&&sel[0].tool!=='cut') ink.value=Math.round(sel[0].ink*100); if(a&&a.size&&a.tool!=='image'){ size=a.size; showSize(); } }
+  function changeSel(kind){
+    if(tool!=='select'||!sel||!sel.length) return false;
+    var ok=function(st){ if(st.tool==='cut') return false; if(kind==='color') return st.tool!=='image'&&st.tool!=='eraser'; if(kind==='size') return st.tool!=='image'&&st.tool!=='text'; return true; };
+    var targets=sel.filter(ok); if(!targets.length) return false;
+    var map=new Map();
+    opSnap(function(){ strokes=strokes.map(function(st){ if(targets.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; if(kind==='ink') n.ink=+ink.value/100; else if(kind==='color') n.color=color; else n.size=size; map.set(st,n); return n; }); });
+    sel=sel.map(function(st){ return map.get(st)||st; }); selCur=sel; selBox=boxOf(sel); refresh();
+    msg('Changed '+targets.length+' selected stroke'+(targets.length>1?'s':'')+' – Ctrl+Z undoes');
+    return true;
+  }
   var rSm4=row();
-  rSm4.appendChild(btn('Duplicate',function(){ selDup(); },'Duplicate (Ctrl+D)')); rSm4.appendChild(btn('Flip ↔',function(){ selFlip(true); },'Mirror the selection left–right')); rSm4.appendChild(btn('Flip ↕',function(){ selFlip(false); },'Mirror the selection top–bottom')); rSm4.appendChild(btn('Layer',function(){ selLayer(); },'Select the whole active layer, then resize or rotate it')); rSm4.appendChild(btn('All',function(){ setTool('select'); selAll(); },'Select everything in scope (Ctrl+A)'));
+  rSm4.appendChild(btn('Duplicate',function(){ selDup(); },'Duplicate (Ctrl+D)')); rSm4.appendChild(btn('Flip ↔',function(){ selFlip(true); },'Mirror the selection left–right')); rSm4.appendChild(btn('Flip ↕',function(){ selFlip(false); },'Mirror the selection top–bottom')); rSm4.appendChild(btn('Layer',function(){ selLayer(); },'Select the whole active layer, then resize or rotate it')); rSm4.appendChild(btn('All',function(){ setTool('select'); selAll(); },'Select everything in scope (Ctrl+A)')); rSm4.appendChild(btn('Last stroke',function(){ selLast(); },'Select the stroke you drew last, then change its opacity, colour or thickness'));
   bar.appendChild(rSm4);
   var rSm5=row(); lab(rSm5,'Scale'); var scIn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:52px;box-sizing:border-box;'); scIn.type='number'; scIn.value=100; scIn.min=5; scIn.max=1000; rSm5.appendChild(scIn); lab(rSm5,'%');
   lab(rSm5,'Rotate'); var roIn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:52px;box-sizing:border-box;'); roIn.type='number'; roIn.value=0; roIn.min=-360; roIn.max=360; rSm5.appendChild(roIn); lab(rSm5,'°');
@@ -1313,11 +1333,11 @@
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
     tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut') lastDraw=t;
-    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
+    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bSel0,t==='select'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'); show(rAir2,t==='air'); show(rArrow, t==='line');
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
-  function setColor(c){ color=c; if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
+  function setColor(c){ color=c; changeSel('color'); if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
   function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click in RC'); }
   setTool('pen'); setColor('#111111'); setSize2(3);
 
