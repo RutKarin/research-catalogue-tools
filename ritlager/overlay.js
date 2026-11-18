@@ -1449,7 +1449,7 @@
   fmtUpdate();
   r8.appendChild(btn('Show image',function(){ showDialog(lastBlob,lastName); },'Shows the latest export with its own download link, in case the download does not work'));
   bar.appendChild(r8);
-  bar.appendChild(el('div','font-size:11px;color:#888;line-height:1.4;margin-top:4px;','Ritlager is made by Rut Karin Zettergren for working with websites and Research Catalogue – a lighter, simpler take on drawing over a page.'));
+  bar.appendChild(el('div','font-size:11px;color:#888;line-height:1.4;margin-top:4px;','Ritlager is a browser tool for drawing over web pages, designed by Rut Karin Zettergren for creating free drawings and visuals that can be exported for use on websites and in Research Catalogue expositions.'));
 
   sec('Underlay (old PNG)');
   var rU=row();
