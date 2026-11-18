@@ -1045,13 +1045,6 @@
   syncVis();
   sec('Fonts and convert'); [rT8,rT12].forEach(function(r){ bar.appendChild(r); });
 
-  sec('Undo and canvas');
-  var r7=row();
-  r7.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
-  r7.appendChild(btn('↷',function(){ redoFn(); },'Redo (Ctrl+Y)'));
-  r7.appendChild(btn('Clear',function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Cleared – ↶ undoes'); } }));
-  r7.appendChild(btn('Re-measure',function(){ rescan(); msg('Canvas is now '+W+' × '+H+' px'+(SC?' (inside the page’s scroll area)':'')); },'Resize the canvas if the page has grown longer'));
-  bar.appendChild(r7);
 
   sec('Select tool');
   var rSm1=row();
@@ -1387,6 +1380,7 @@
   [['1','1× (as on screen)'],['1.5','1.5×'],['2','2× (sharp on retina screens)'],['3','3×'],['4','4×'],['6','6×']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; rsSel.appendChild(op); });
   rRs.appendChild(rsSel); bar.appendChild(rRs);
   var rsInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(rsInfo);
+  var rRm=row(); rRm.appendChild(btn('Re-measure',function(){ rescan(); fmtUpdate(); msg('Canvas is now '+W+' × '+H+' px'+(SC?' (inside the page’s scroll area)':'')); },'Use this if the page has become longer since you opened Ritlager, so the image covers the whole page')); bar.appendChild(rRm);
   function expBox(){ var b={w:W,h:H}; if(csel.value==='crop'){ try{ var t=bounds(); if(t) b={w:Math.min(W,Math.ceil(t.w+16)),h:Math.min(H,Math.ceil(t.h+16))}; }catch(e){} } return b; }
   function fmtUpdate(){ var k=+rsSel.value, b=expBox(); rQ.style.display=fmSel.value==='jpg'?'flex':'none';
     var w=Math.round(b.w*k), h=Math.round(b.h*k); rsInfo.textContent='The image will be about '+w+' × '+h+' px'+(fmSel.value!=='jpg'||true?' (at '+(+dpiEl.value||300)+' DPI = '+(w/(+dpiEl.value||300)*2.54).toFixed(1)+' × '+(h/(+dpiEl.value||300)*2.54).toFixed(1)+' cm)':'')+(fmSel.value==='jpg'&&bgSel.value==='none'?'. JPG cannot be transparent, so the background becomes white unless you choose another.':'.')+(w*h>1e8?' That is very large – the browser may refuse; choose a lower resolution.':'')+(isShot()?' (With Screenshot background the resolution is the screenshot\'s own.)':'');
@@ -1727,7 +1721,7 @@
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
@@ -1764,7 +1758,7 @@
       ['## Draw','Pick a tool under Drawing tools (Pen, Brush, Airbrush, Line, Eraser) and draw on the page. Set colour, thickness and look. With a pen tablet, pressure changes the line. Presets save your favourite pen settings. Press D to switch between drawing and clicking on the page.'],
       ['Colour','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'],
       ['## Text','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'],
-      ['## Edit','Undo and redo, Clear, and the tools for changing what you have already put on the page: Select, Cut out and Import images.'],
+      ['## Edit','The tools for changing what you have already put on the page: Select, Cut out and Import images. Undo, redo and Erase all are at the top.'],
       ['Select tool','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'],
       ['Cut out','Pick Rectangle or Lasso, then draw the shape on the page. The cut applies to the active layer (pictures, drawing and text) and can be undone. To move a cut-out together with its picture later, use Layer in the Select tool.'],
       ['Import images','Press Import image…, or drop an image file onto the page or paste a copied image with Ctrl+V. The picture lands on the active layer and works like any object: move, resize and rotate with the Select tool, rub out with the Eraser, or use Cut out. Keep pictures small: under about 1500 px on the long side and under 500 KB (JPG is smaller than PNG). Large files can fill the browser storage and stop autosave, because pictures are saved in your browser together with the drawing. Export a PNG or project file for anything important.'],
@@ -1774,7 +1768,7 @@
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
       ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
-      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
+      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. Re-measure makes the image cover the whole page if the page has grown longer since you opened Ritlager. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
     ];
     var man=el('div','margin-top:4px;display:none;');
     var kb=el('div','margin-bottom:6px;','Shortcuts: D draw/click, B pen, P brush, L line, E eraser, T text, A airbrush, S or V select, I pipette, [ ] thickness, Ctrl+Z undo, Ctrl+Y redo.');
