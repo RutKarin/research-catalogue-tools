@@ -805,6 +805,7 @@
   var BTN = 'font:inherit;font-size:12.5px;color:#111;background:#fff;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;cursor:pointer;margin:0;';
   function el(t,css,txt){ var x=document.createElement(t); if(css) x.style.cssText=css; if(txt!=null) x.textContent=txt; return x; }
   function row(){ return el('div','display:flex;gap:5px;align-items:center;flex-wrap:wrap;'); }
+  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.gap='5px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','14'); sv.setAttribute('height','14'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.appendChild(document.createTextNode(txt)); return b; }
   function btn(txt,fn,title){ var b=el('button',BTN,txt); b.type='button'; if(title) b.title=title; b.addEventListener('click',fn); return b; }
   function mark(b,on){ b.style.background=on?'#111':'#fff'; b.style.color=on?'#fff':'#111'; b.style.borderColor=on?'#111':'#c9c9c9'; }
 
@@ -830,9 +831,9 @@
 
   var r1=row(); var bDraw=btn('Draw',function(){setDrawing(true);},'Draw on the page (D)'), bPass=btn('Click',function(){setDrawing(false);},'Click through to the page (D)');
   r1.appendChild(bDraw); r1.appendChild(bPass);
-  r1.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
-  r1.appendChild(btn('↷',function(){ redoFn(); },'Redo (Ctrl+Y)'));
-  r1.appendChild(btn('Erase all',function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – ↶ undoes'); } else msg('Nothing to erase'); },'Careful: erases everything you have drawn on all layers (↶ undoes)'));
+  r1.appendChild(iconBtn('Undo',['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],function(){ undo(); },'Undo (Ctrl+Z)'));
+  r1.appendChild(iconBtn('Redo',['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],function(){ redoFn(); },'Redo (Ctrl+Y)'));
+  r1.appendChild(btn('Erase all',function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – Undo brings it back'); } else msg('Nothing to erase'); },'Careful: erases everything you have drawn on all layers (Undo brings it back)'));
   bar.appendChild(r1);
 
   sec('Drawing tools');
