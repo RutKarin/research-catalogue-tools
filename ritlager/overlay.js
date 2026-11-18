@@ -42,7 +42,7 @@
     rebuild();
   }
 
-  var ref=null, rscale=1, under=null, moveUnder=false, contrast=0, tool='pen', color='#111111', size=6, drawing=true, visible=true;
+  var ref=null, rscale=1, under=null, moveUnder=false, contrast=0, tool='pen', color='#000000', size=4, drawing=true, visible=true;
   var strokes=[], redo=[], ulog=[], cur=null, lastBlob=null;
   var cutMode='rect', selMode='rect', selScope='active', sel=[], selCur=[], selBox=null, selDrag=null, selOrig=null, marq=null, clip=[], pasteN=0;
   function undo(){
@@ -1707,6 +1707,7 @@
   bar.addEventListener('input',saveSettings); bar.addEventListener('change',saveSettings); bar.addEventListener('click',saveSettings); head.addEventListener('pointerup',saveSettings);
   try{ applySettings(JSON.parse(localStorage.getItem(STK))); }catch(e){}
   try{ fmSel.value='png'; dpiEl.value=72; dpiTouched=false; fmtUpdate(); }catch(e){}
+  quietChg=true; try{ setTool('pen'); setColor('#000000'); setSize2(4); }catch(e){} quietChg=false;
   var PK='ritlager-presets';
   var DEFPRE=[{n:'Thin black',s:{tool:'pen',color:'#111111',size:0.4,nib:'round',soft:0,ink:100,thin:'black'}},{n:'Pencil',s:{tool:'pen',color:'#222222',size:3,nib:'pencil',soft:0,ink:100}},{n:'Marker',s:{tool:'pen',color:'#f2c200',size:24,nib:'marker',soft:0,ink:100}},{n:'Watercolour',s:{tool:'pen',color:'#1f5fd1',size:30,nib:'water',soft:0,ink:100}}];
   function loadPre(){ try{ var a=JSON.parse(localStorage.getItem(PK)); if(a&&a.length!=null) return a; }catch(e){} return DEFPRE.slice(); }
