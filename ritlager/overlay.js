@@ -105,6 +105,7 @@
     ta.style.color=P.color; ta.style.font=textFont(P); ta.style.lineHeight=String(P.lh||1.25); ta.style.letterSpacing=(P.ls||0)+'px'; ta.style.textAlign=P.al||'left';
     ta.style.whiteSpace=P.bw>0?'pre-wrap':'pre'; ta.style.width=P.bw>0?P.bw+'px':''; ta.style.webkitTextFillColor=(P.fa!=null&&P.fa<50)?'transparent':''; ta.style.webkitTextStroke=P.ol>0?Math.min(P.ol,3)+'px '+(P.olc||'#e0245e')+'':''; ta.style.background=P.bx?(P.bxc||'#fff'):'rgba(255,255,255,.35)';
   }
+  function backFromText(){ if(tool==='text') setTool(lastDraw&&lastDraw!=='text'?lastDraw:'pen'); }
   function openText(x,y,orig){
     commitText();
     var P=Object.assign({},orig?orig:curProps()), P0=P; if(orig) setControls(orig);
@@ -114,7 +115,7 @@
     function fit(){ var P=tEd?tEd.P:P0; ta.style.height='auto'; ta.style.height=Math.max(P.size*1.25,ta.scrollHeight)+'px'; if(!(P.bw>0)){ ta.style.width='auto'; ta.style.width=Math.max(140,ta.scrollWidth+8)+'px'; } }
     ta.addEventListener('input',fit);
     ta.addEventListener('keydown',function(e){ e.stopPropagation(); if(e.key==='Escape'){ if(tEd) tEd.cancel=true; ta.blur(); } else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); ta.blur(); } },true);
-    ta.addEventListener('blur',function(){ setTimeout(function(){ if(tEd&&tEd.ta===ta&&bar.contains(document.activeElement)) return; if(tEd&&tEd.ta===ta) commitText(); },0); });
+    ta.addEventListener('blur',function(){ setTimeout(function(){ if(tEd&&tEd.ta===ta&&bar.contains(document.activeElement)) return; if(tEd&&tEd.ta===ta){ commitText(); backFromText(); } },0); });
     (cv.parentNode||de).appendChild(ta);
     tEd={ta:ta,x:x,y:y,orig:orig,P:P,cancel:false,prev:null}; ta.style.height='';
     if(orig){ tEd.prev=strokes; strokes=strokes.filter(function(st){ return st!==orig; }); rebuild(); }
@@ -135,6 +136,7 @@
     if(tEd&&tEd.ta&&e.target===tEd.ta) return;
     var hit=textHit(q);
     if(hit&&(layerOf(hit)===act||selScope==='all')){ openText(hit.pts[0].x,hit.pts[0].y,hit); return; }
+    if(tEd){ commitText(); backFromText(); return; }
     if(!getLayer(act).vis){ msg('This layer is hidden – show it to add text'); return; }
     openText(Math.round(q.x),Math.round(q.y),null);
   }
