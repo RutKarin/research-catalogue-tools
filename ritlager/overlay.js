@@ -32,7 +32,7 @@
     saveT=setTimeout(function(){
       try{
         if(strokes.length||under) localStorage.setItem(KEY,JSON.stringify(pack())); else localStorage.removeItem(KEY);
-      }catch(e){ if(!warned){ warned=true; msg('Kunde inte spara automatiskt (för stort eller blockerat) – spara PNG ofta'); } }
+      }catch(e){ if(!warned){ warned=true; msg('Could not autosave (too large or blocked) – export PNG often'); } }
     },300);
   }
   var SKEY='ritlager-versioner:'+location.origin+location.pathname+location.search;
@@ -49,7 +49,7 @@
     rebuild(); return strokes.length;
   }
   function getVers(){ try{ return JSON.parse(localStorage.getItem(SKEY))||{}; }catch(e){ return {}; } }
-  function putVers(o){ try{ localStorage.setItem(SKEY,JSON.stringify(o)); return true; }catch(e){ msg('Kunde inte spara versionen (för stort eller blockerat) – använd Spara fil'); return false; } }
+  function putVers(o){ try{ localStorage.setItem(SKEY,JSON.stringify(o)); return true; }catch(e){ msg('Could not save the version (too large or blocked) – use Save project file'); return false; } }
   function restore(){
     try{
       var raw=localStorage.getItem(KEY); if(!raw) return 0;
@@ -274,7 +274,7 @@
   });
   cv.addEventListener('pointermove', function(e){
     if(ug){ under.x=Math.round(ug.x+e.pageX-ug.px); under.y=Math.round(ug.y+e.pageY-ug.py); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild); return; }
-    dbg.textContent='Enhet: '+e.pointerType+' · tryck '+(e.pressure||0).toFixed(2)+(cur?(cur.usedSpeed?' · styr tjocklek med: fart':' · styr tjocklek med: pennans tryck'):'');
+    dbg.textContent='Device: '+e.pointerType+' · pressure '+(e.pressure||0).toFixed(2)+(cur?(cur.usedSpeed?' · thickness from: speed':' · thickness from: pen pressure'):'');
     if(!cur) return;
     var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     if(!evs.length) evs=[e];
@@ -314,8 +314,8 @@
 
   var head = row(); head.style.justifyContent='space-between'; head.style.cursor='move'; head.style.cssText+='position:sticky;top:-8px;z-index:2;background:#fafafa;padding:6px 0;margin-top:-8px;border-bottom:1px solid #e4e4e4;';
   head.appendChild(el('span','font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:400;','Ritlager'));
-  var hide = btn('Dölj', function(){ api.toggle(); }, 'Dölj/visa (D växlar rita/klicka)');
-  var hg=row(); var quick=btn('Exportera PNG',function(){ exportPng('save'); },'Exportera ritningen som PNG (bakgrund och storlek väljer du under Exportera)'); quick.style.background='#111'; quick.style.color='#fff'; quick.style.borderColor='#111';
+  var hide = btn('Hide', function(){ api.toggle(); }, 'Hide/show (D toggles draw/click)');
+  var hg=row(); var quick=btn('Export PNG',function(){ exportPng('save'); },'Export the drawing as PNG (choose background and size under Export)'); quick.style.background='#111'; quick.style.color='#fff'; quick.style.borderColor='#111';
   hg.appendChild(quick); hg.appendChild(hide); head.appendChild(hg);
   bar.appendChild(head);
 
@@ -324,16 +324,16 @@
   function slider(r,min,max,val,w){ var i=el('input','width:'+w+'px;accent-color:#111;'); i.type='range'; i.min=min; i.max=max; i.value=val; r.appendChild(i); return i; }
   function chk(r,txt,on,tip){ var l=el('label','font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;'); var i=el('input'); i.type='checkbox'; i.checked=on; l.appendChild(i); l.appendChild(document.createTextNode(txt)); if(tip) l.title=tip; r.appendChild(l); return i; }
 
-  var r1=row(); var bDraw=btn('Rita',function(){setDrawing(true);},'Rita på sidan (D)'), bPass=btn('Klicka',function(){setDrawing(false);},'Klicka igenom till RC (D)');
+  var r1=row(); var bDraw=btn('Draw',function(){setDrawing(true);},'Draw on the page (D)'), bPass=btn('Click',function(){setDrawing(false);},'Click through to the page (D)');
   r1.appendChild(bDraw); r1.appendChild(bPass); bar.appendChild(r1);
 
-  sec('Verktyg');
+  sec('Tool');
   var r2=row();
-  var bPen=btn('Penna',function(){setTool('pen');},'Penna (B)'), bBrush=btn('Pensel',function(){setTool('brush');},'Pensel (P)'),
-      bLine=btn('Linje',function(){setTool('line');},'Rak linje (L)'), bEr=btn('Sudd',function(){setTool('eraser');},'Sudd (E)');
+  var bPen=btn('Pen',function(){setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){setTool('brush');},'Brush (P)'),
+      bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)');
   r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bLine); r2.appendChild(bEr); bar.appendChild(r2);
 
-  sec('Färg');
+  sec('Colour');
   var r3=row(), sw=[];
   ['#111111','#ffffff','#d6282b','#1f5fd1','#2a9d4a','#f2c200','#e66ab3'].forEach(function(c){
     var b=el('button','width:20px;height:20px;border-radius:50%;border:1px solid #888;padding:0;cursor:pointer;margin:0;background:'+c);
@@ -342,14 +342,14 @@
   var cp=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); cp.type='color'; cp.value='#111111';
   cp.addEventListener('input',function(){setColor(cp.value);}); r3.appendChild(cp);
   bar.appendChild(r3);
-  var r3b=row(); lab(r3b,'Svärta'); var ink=slider(r3b,5,100,100,100); ink.title='Hur mörk/tät färgen är. 100 = full svärta';
+  var r3b=row(); lab(r3b,'Opacity'); var ink=slider(r3b,5,100,100,100); ink.title='How dark/dense the colour is. 100 = full black';
   bar.appendChild(r3b);
-  var rC=row(); lab(rC,'Kontrast'); var ctr=slider(rC,0,100,0,110);
-  ctr.title='Ritar om strecken flera gånger så ljusa och tunna streck blir mörkare. Högt = tunna streck blir helt svarta. Gäller alla dina streck, även redan ritade (inte penseln).';
+  var rC=row(); lab(rC,'Contrast'); var ctr=slider(rC,0,100,0,110);
+  ctr.title='Redraws strokes several times so light and thin strokes get darker. High = thin strokes turn fully black. Applies to all strokes, including already drawn ones (not the brush).';
   var ctrRaf=0; ctr.addEventListener('input',function(){ contrast=+ctr.value; cancelAnimationFrame(ctrRaf); ctrRaf=requestAnimationFrame(rebuild); });
   bar.appendChild(rC);
 
-  sec('Tjocklek');
+  sec('Thickness');
   var r4=row();
   var sz=el('input','width:150px;accent-color:#111;'); sz.type='range';
   var szv=el('span','font-size:12px;width:46px;','3.0');
@@ -367,64 +367,64 @@
     b.appendChild(d); b.addEventListener('click',function(){setSize2(n);}); rp.appendChild(b);
   });
   bar.appendChild(rp);
-  var rThin=row(); lab(rThin,'Tunna streck');
+  var rThin=row(); lab(rThin,'Thin lines');
   var thinSel=el('select',BTN+'padding:3px 6px;');
-  [['smooth','Jämna (aldrig brutna)'],['black','Svarta hårfina']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; thinSel.appendChild(op); });
-  thinSel.title='Jämna: linjen blir aldrig tunnare än 1 px, så den håller ihop. Svarta hårfina: riktigt tunna svarta streck under 1 px, men tryckvariationen syns mindre.';
+  [['smooth','Smooth (never broken)'],['black','Black hairlines']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; thinSel.appendChild(op); });
+  thinSel.title='Smooth: the line is never thinner than 1 px, so it stays unbroken. Black hairlines: truly thin black strokes under 1 px, but pressure variation is less visible.';
   rThin.appendChild(thinSel); bar.appendChild(rThin);
   var hair={ get checked(){ return thinSel.value==='black'; } };
 
-  var secLook=sec('Utseende');
-  var rNib=row(); lab(rNib,'Pennstil');
+  var secLook=sec('Look');
+  var rNib=row(); lab(rNib,'Pen style');
   var nibSel=el('select',BTN+'padding:3px 6px;');
-  [['round','Rund'],['square','Fyrkantig'],['flat','Platt (kalligrafi)'],['pencil','Blyerts'],['marker','Marker'],['ink','Bläck'],['water','Akvarell']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; nibSel.appendChild(op); });
-  nibSel.title='Rund: mjuk rund spets. Fyrkantig: spets med hörn. Platt: kalligrafispets, tunn åt ena hållet. Blyerts: kornig, som penna på papper. Marker: genomskinlig överstrykningspenna. Bläck: mjuk bläckpenna med droppar och avsmalnande ändar. Akvarell: genomskinlig färgtvätt med mörkare kanter och pigmentkorn.';
+  [['round','Round'],['square','Square'],['flat','Flat (calligraphy)'],['pencil','Pencil'],['marker','Marker'],['ink','Ink'],['water','Watercolour']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; nibSel.appendChild(op); });
+  nibSel.title='Round: soft round tip. Square: tip with corners. Flat: calligraphy nib, thin in one direction. Pencil: grainy, like pencil on paper. Marker: transparent highlighter. Ink: soft ink pen with drops and tapering ends. Watercolour: transparent wash with darker edges and pigment grain.';
   rNib.appendChild(nibSel); bar.appendChild(rNib);
-  var rSoft=row(); lab(rSoft,'Skarp'); var soft=slider(rSoft,0,100,0,100); lab(rSoft,'Suddig'); bar.appendChild(rSoft);
-  var rDry=row(); lab(rDry,'Penselns torrhet'); var dry=slider(rDry,0,100,30,90); bar.appendChild(rDry);
-  var rArrow=row(); var ar=chk(rArrow,'Pilspets på linjer',false,'Lägger en pilspets i slutet av raka linjer du drar med Linje-verktyget.'); bar.appendChild(rArrow);
+  var rSoft=row(); lab(rSoft,'Sharp'); var soft=slider(rSoft,0,100,0,100); lab(rSoft,'Soft'); bar.appendChild(rSoft);
+  var rDry=row(); lab(rDry,'Brush dryness'); var dry=slider(rDry,0,100,30,90); bar.appendChild(rDry);
+  var rArrow=row(); var ar=chk(rArrow,'Arrowhead on lines',false,'Adds an arrowhead at the end of straight lines drawn with the Line tool.'); bar.appendChild(rArrow);
 
-  var secPress=sec('Tryck och stabilitet');
-  var rPr=row(); var pr=chk(rPr,'Tryckkänslig',true); bar.appendChild(rPr);
-  var rSens=row(); lab(rSens,'Känslighet'); var sens=slider(rSens,0,150,100,110); sens.title='100 = normalläge (mycket tryckkänslig). Högre = ännu mer, lägre = mindre'; bar.appendChild(rSens);
-  var rPm=row(); lab(rPm,'Tryck från');
+  var secPress=sec('Pressure and stabilising');
+  var rPr=row(); var pr=chk(rPr,'Pressure sensitive',true); bar.appendChild(rPr);
+  var rSens=row(); lab(rSens,'Sensitivity'); var sens=slider(rSens,0,150,100,110); sens.title='100 = normal (very pressure sensitive). Higher = even more, lower = less'; bar.appendChild(rSens);
+  var rPm=row(); lab(rPm,'Pressure from');
   var pm=el('select',BTN+'padding:3px 6px;');
-  [['auto','Auto'],['pen','Pennans tryck'],['speed','Fart (snabbt = tunt)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; pm.appendChild(op); });
+  [['auto','Auto'],['pen','Pen pressure'],['speed','Speed (fast = thin)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; pm.appendChild(op); });
   rPm.appendChild(pm); bar.appendChild(rPm);
-  var rSm=row(); lab(rSm,'Stabilisera'); var sm=slider(rSm,0,90,35,100); sm.title='Jämnar ut darriga streck'; bar.appendChild(rSm);
+  var rSm=row(); lab(rSm,'Stabilise'); var sm=slider(rSm,0,90,35,100); sm.title='Smooths out shaky strokes'; bar.appendChild(rSm);
 
-  sec('Ångra och yta');
+  sec('Undo and canvas');
   var r7=row();
-  r7.appendChild(btn('↶',function(){ if(strokes.length){redo.push(strokes.pop()); rebuild();} },'Ångra (Ctrl+Z)'));
-  r7.appendChild(btn('↷',function(){ if(redo.length){strokes.push(redo.pop()); rebuild();} },'Gör om'));
-  r7.appendChild(btn('Rensa',function(){ if(strokes.length){redo=strokes.slice().reverse(); strokes=[]; rebuild(); msg('Rensat – ↶ ångrar');} }));
-  r7.appendChild(btn('Mät om',function(){ measure(); setSize(); msg('Ytan är nu '+W+' × '+H+' px'); },'Anpassa ritytan om sidan blivit längre'));
+  r7.appendChild(btn('↶',function(){ if(strokes.length){redo.push(strokes.pop()); rebuild();} },'Undo (Ctrl+Z)'));
+  r7.appendChild(btn('↷',function(){ if(redo.length){strokes.push(redo.pop()); rebuild();} },'Redo'));
+  r7.appendChild(btn('Clear',function(){ if(strokes.length){redo=strokes.slice().reverse(); strokes=[]; rebuild(); msg('Cleared – ↶ undoes');} }));
+  r7.appendChild(btn('Re-measure',function(){ measure(); setSize(); msg('Canvas is now '+W+' × '+H+' px'); },'Resize the canvas if the page has grown longer'));
   bar.appendChild(r7);
 
-  sec('Exportera (bild till RC)');
-  var rSz=row(); lab(rSz,'Bildstorlek');
+  sec('Export (image for RC)');
+  var rSz=row(); lab(rSz,'Image size');
   var csel=el('select',BTN+'padding:3px 6px;');
-  [['full','Hela sidan'],['crop','Bara strecken']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; csel.appendChild(op); });
+  [['full','Whole page'],['crop','Strokes only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; csel.appendChild(op); });
   rSz.appendChild(csel); bar.appendChild(rSz);
   var cr={ get checked(){ return csel.value==='crop'; } };
   var szHint=el('div','font-size:11px;color:#777;line-height:1.35;');
-  function hint(){ szHint.textContent = csel.value==='crop' ? 'Bara strecken: bilden klipps till området runt dina streck. Mindre fil, men du måste placera den själv i RC.' : 'Hela sidan: bilden är lika stor som sidan. Lägg den i sidans övre vänstra hörn i RC så passar strecken exakt.'; }
+  function hint(){ szHint.textContent = csel.value==='crop' ? 'Strokes only: the image is cropped to the area around your strokes. Smaller file, but you have to place it yourself in RC.' : 'Whole page: the image is as large as the page. Place it at the page top-left in RC and the strokes line up exactly.'; }
   csel.addEventListener('change',hint); hint(); bar.appendChild(szHint);
-  var rBg=row(); lab(rBg,'Bakgrund');
+  var rBg=row(); lab(rBg,'Background');
   var bgSel=el('select',BTN+'padding:3px 6px;');
-  [['none','Genomskinlig'],['white','Vit'],['color','Egen färg'],['shot','Skärmbild (referens)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; bgSel.appendChild(op); });
+  [['none','Transparent'],['white','White'],['color','Custom colour'],['shot','Screenshot (reference)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; bgSel.appendChild(op); });
   var bgCol=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;display:none;'); bgCol.type='color'; bgCol.value='#f4efe6';
   bgSel.addEventListener('change',function(){ bgCol.style.display = bgSel.value==='color' ? 'inline-block' : 'none'; });
   rBg.appendChild(bgSel); rBg.appendChild(bgCol); bar.appendChild(rBg);
   var rRef=row();
-  rRef.appendChild(btn('Fånga skärmbild',function(){ captureRef(); },'Tar en skärmbild av sidan som den ser ut just nu (utan verktygsrutan och ritlagret). Webbläsaren frågar om du vill dela fliken.'));
-  rRef.appendChild(btn('Spara referensbild',function(){ if(!ref){ msg('Fånga en skärmbild först'); return; } ref.c.toBlob(function(bl){ if(!bl){ msg('Kunde inte skapa bilden'); return; } saveBlob(bl,fname('referensbild-'+ref.c.width+'x'+ref.c.height,'.png','-referens'),'Referensbilden är sparad.'); },'image/png'); },'Sparar skärmbilden för sig, utan dina streck'));
+  rRef.appendChild(btn('Capture screenshot',function(){ captureRef(); },'Takes a screenshot of the page as it looks now (without the toolbar and the drawing layer). The browser asks whether to share the tab.'));
+  rRef.appendChild(btn('Save reference image',function(){ if(!ref){ msg('Capture a screenshot first'); return; } ref.c.toBlob(function(bl){ if(!bl){ msg('Could not create the image'); return; } saveBlob(bl,fname('reference-'+ref.c.width+'x'+ref.c.height,'.png','-reference'),'The reference image is saved.'); },'image/png'); },'Saves the screenshot on its own, without your strokes'));
   bar.appendChild(rRef);
   var refInfoEl=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(refInfoEl);
-  function updateRefInfo(){ refInfoEl.textContent = ref ? 'Referensbild: '+ref.c.width+' × '+ref.c.height+' px (sidan vid scroll '+Math.round(ref.sx)+', '+Math.round(ref.sy)+'). Välj Bakgrund: Skärmbild för att exportera ritningen ovanpå den. Då gäller bildens område, inte Bildstorlek.' : 'Ingen referensbild. Fånga en skärmbild för att kunna exportera ritningen ovanpå sidan. Fungerar bäst i Chrome/Edge. Scrolla till rätt ställe först.'; }
+  function updateRefInfo(){ refInfoEl.textContent = ref ? 'Reference image: '+ref.c.width+' × '+ref.c.height+' px (page at scroll '+Math.round(ref.sx)+', '+Math.round(ref.sy)+'). Choose Background: Screenshot to export the drawing on top of it. The image area then applies, not Image size.' : 'No reference image. Capture a screenshot to export the drawing on top of the page. Works best in Chrome/Edge. Scroll to the right place first.'; }
   updateRefInfo();
   function captureRef(){
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){ msg('Din webbläsare kan inte fånga skärmen här'); return; }
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){ msg('Your browser cannot capture the screen here'); return; }
     navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser'},audio:false,preferCurrentTab:true,selfBrowserSurface:'include'}).then(function(stream){
       var v=document.createElement('video'); v.muted=true; v.srcObject=stream;
       var stop=function(){ stream.getTracks().forEach(function(t){t.stop();}); };
@@ -435,87 +435,87 @@
           var c=document.createElement('canvas'); c.width=fw; c.height=fh; c.getContext('2d').drawImage(v,0,0);
           stop(); hid.forEach(function(x){ x.style.visibility=''; });
           var kx=fw/iw, ky=fh/ih;
-          if(!fw||Math.abs(kx/ky-1)>0.03){ msg('Skärmbilden verkar innehålla webbläsarens ram. Välj fliken, inte hela fönstret.'); return; }
+          if(!fw||Math.abs(kx/ky-1)>0.03){ msg('The screenshot seems to include the browser frame. Choose the tab, not the whole window.'); return; }
           ref={c:c,sx:window.scrollX,sy:window.scrollY,w:iw,h:ih,k:kx}; updateRefInfo(); bgSel.value='shot'; bgCol.style.display='none';
-          msg('Referensbild fångad ('+fw+' × '+fh+' px). Bakgrund är nu satt till Skärmbild.');
+          msg('Reference image captured ('+fw+' × '+fh+' px). Background is now set to Screenshot.');
         },350);
       }); };
-    }).catch(function(){ msg('Skärmfångst avbröts eller nekades'); });
+    }).catch(function(){ msg('Screen capture was cancelled or denied'); });
   }
   function bgValue(){ return bgSel.value==='white' ? '#ffffff' : bgSel.value==='color' ? bgCol.value : null; }
-  var rFn=row(); lab(rFn,'Filnamn'); var fileNameEl=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;flex:1;min-width:0;box-sizing:border-box;'); fileNameEl.type='text'; fileNameEl.placeholder='valfritt, t.ex. figur-1'; fileNameEl.title='Gäller exporterad PNG, referensbild och projektfil'; rFn.appendChild(fileNameEl); bar.appendChild(rFn);
+  var rFn=row(); lab(rFn,'File name'); var fileNameEl=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;flex:1;min-width:0;box-sizing:border-box;'); fileNameEl.type='text'; fileNameEl.placeholder='optional, e.g. figure-1'; fileNameEl.title='Applies to exported PNG, reference image and project file'; rFn.appendChild(fileNameEl); bar.appendChild(rFn);
   var rDir=row(); var dirInfo=el('div','font-size:11.5px;color:#444;line-height:1.35;flex:1;min-width:120px;');
-  function updateDirInfo(){ dirInfo.textContent = window.showDirectoryPicker ? (dirH ? 'Sparar i mappen: '+dirH.name : 'Ingen mapp vald: filerna sparas i Hämtade filer (Downloads).') : 'Din webbläsare låter inte sidor välja mapp. Använd Chrome eller Edge, annars hamnar filerna i Hämtade filer.'; }
+  function updateDirInfo(){ dirInfo.textContent = window.showDirectoryPicker ? (dirH ? 'Saving to folder: '+dirH.name : 'No folder chosen: files are saved to Downloads.') : 'Your browser does not let pages choose a folder. Use Chrome or Edge; otherwise files go to Downloads.'; }
   rDir.appendChild(dirInfo);
   if(window.showDirectoryPicker){
-    rDir.appendChild(btn('Välj mapp…',function(){
-      window.showDirectoryPicker({mode:'readwrite'}).then(function(h){ dirH=h; idbSet('dir',h); updateDirInfo(); msg('Sparar nu i mappen "'+h.name+'". Samma namn skrivs aldrig över, de får -2, -3 osv.',5000); })
-        .catch(function(e){ if(e&&e.name!=='AbortError') msg('Mappen kunde inte väljas här ('+(e.message||e)+'). Skapa en egen undermapp och välj den. Chrome tillåter inte t.ex. Hämtade filer eller hemmappen.',7000); });
-    },'Välj en mapp på din dator. Chrome tillåter inte vissa mappar (Hämtade filer, hemmappen); skapa en egen undermapp, t.ex. Ritlager.'));
-    rDir.appendChild(btn('Glöm',function(){ dirH=null; idbSet('dir',null); updateDirInfo(); msg('Mappen glömd'); }));
+    rDir.appendChild(btn('Choose folder…',function(){
+      window.showDirectoryPicker({mode:'readwrite'}).then(function(h){ dirH=h; idbSet('dir',h); updateDirInfo(); msg('Now saving to the folder "'+h.name+'". Same names are never overwritten; they get -2, -3 etc.',5000); })
+        .catch(function(e){ if(e&&e.name!=='AbortError') msg('The folder could not be chosen here ('+(e.message||e)+'). Create your own subfolder and choose that. Chrome does not allow e.g. Downloads or the home folder.',7000); });
+    },'Choose a folder on your computer. Chrome does not allow some folders (Downloads, home); create your own subfolder, e.g. Ritlager.'));
+    rDir.appendChild(btn('Forget',function(){ dirH=null; idbSet('dir',null); updateDirInfo(); msg('Folder forgotten'); }));
   }
   bar.appendChild(rDir);
-  var rAsk=row(); var askEl=chk(rAsk,'Fråga var varje fil ska sparas',false,'Visar en spara-ruta varje gång (Chrome/Edge) i stället för att spara direkt i vald mapp eller Hämtade filer.'); bar.appendChild(rAsk);
+  var rAsk=row(); var askEl=chk(rAsk,'Ask where to save each file',false,'Shows a save dialog every time (Chrome/Edge) instead of saving directly to the chosen folder or Downloads.'); bar.appendChild(rAsk);
   updateDirInfo();
   idbGet('dir',function(h){ if(h&&h.kind==='directory'){ dirH=h; updateDirInfo(); } });
   var r8=row();
-  var bSave=btn('Exportera PNG',function(){ exportPng('save'); },'Bilden till RC: PNG med den bakgrund och storlek du valt'); bSave.style.background='#111'; bSave.style.color='#fff'; bSave.style.borderColor='#111';
+  var bSave=btn('Export PNG',function(){ exportPng('save'); },'The image for RC: PNG with the background and size you chose'); bSave.style.background='#111'; bSave.style.color='#fff'; bSave.style.borderColor='#111';
   r8.appendChild(bSave);
-  r8.appendChild(btn('Kopiera bild',function(){ exportPng('copy'); }));
-  r8.appendChild(btn('Visa bild',function(){ showDialog(lastBlob,lastName); },'Visar senaste exporten med en egen nedladdningslänk, om nedladdningen inte fungerar'));
+  r8.appendChild(btn('Copy image',function(){ exportPng('copy'); }));
+  r8.appendChild(btn('Show image',function(){ showDialog(lastBlob,lastName); },'Shows the latest export with its own download link, in case the download does not work'));
   bar.appendChild(r8);
 
-  sec('Underlag (gammal PNG)');
+  sec('Underlay (old PNG)');
   var rU=row();
   var uf=el('input'); uf.type='file'; uf.accept='image/*'; uf.style.display='none';
   uf.addEventListener('change',function(){ var f=uf.files[0]; if(!f) return; var r=new FileReader();
-    r.onload=function(){ var im=new Image(); im.onload=function(){ backupCurrent(); under={img:im,x:0,y:0,src:r.result}; rebuild(); msg('Underlag inlagt ('+im.width+' × '+im.height+' px) i sidans övre vänstra hörn. Flytta det vid behov.'); }; im.onerror=function(){ msg('Kunde inte läsa bilden'); }; im.src=r.result; };
+    r.onload=function(){ var im=new Image(); im.onload=function(){ backupCurrent(); under={img:im,x:0,y:0,src:r.result}; rebuild(); msg('Underlay placed ('+im.width+' × '+im.height+' px) at the page top-left. Move it if needed.'); }; im.onerror=function(){ msg('Could not read the image'); }; im.src=r.result; };
     r.readAsDataURL(f); uf.value=''; });
   rU.appendChild(uf);
-  rU.appendChild(btn('Öppna PNG…',function(){ uf.click(); },'Läs in en gammal bild och rita vidare ovanpå den. Bilden blir fast bakgrund, och ingår när du sparar PNG.'));
-  var bMove=btn('Flytta',function(){ if(!under){ msg('Öppna en PNG först'); return; } moveUnder=!moveUnder; mark(bMove,moveUnder); cv.style.cursor=moveUnder?'move':'crosshair'; msg(moveUnder?'Dra på sidan för att flytta underlaget':'Flytta av'); },'Dra underlaget med pennan för att placera det');
+  rU.appendChild(btn('Open PNG…',function(){ uf.click(); },'Load an old image and keep drawing on top of it. The image becomes a fixed background and is included when you export PNG.'));
+  var bMove=btn('Move',function(){ if(!under){ msg('Open a PNG first'); return; } moveUnder=!moveUnder; mark(bMove,moveUnder); cv.style.cursor=moveUnder?'move':'crosshair'; msg(moveUnder?'Drag on the page to move the underlay':'Move off'); },'Drag the underlay with the pen to place it');
   rU.appendChild(bMove);
-  rU.appendChild(btn('Ta bort',function(){ if(!under) return; backupCurrent(); under=null; moveUnder=false; mark(bMove,false); cv.style.cursor='crosshair'; rebuild(); msg('Underlaget borttaget'); }));
+  rU.appendChild(btn('Delete',function(){ if(!under) return; backupCurrent(); under=null; moveUnder=false; mark(bMove,false); cv.style.cursor='crosshair'; rebuild(); msg('Underlay removed'); }));
   bar.appendChild(rU);
 
-  sec('Spara och öppna (redigerbart)');
+  sec('Save and open (editable)');
   var rV1=row(); var verSel=el('select',BTN+'padding:3px 6px;max-width:150px;'); rV1.appendChild(verSel);
   function fillVers(sel){
     var v=getVers(), names=Object.keys(v); verSel.innerHTML='';
-    var o0=el('option',null,names.length?'– välj version –':'(inga sparade versioner)'); o0.value=''; verSel.appendChild(o0);
-    names.forEach(function(n){ var o=el('option',null,n+' ('+v[n].strokes.length+' streck)'); o.value=n; verSel.appendChild(o); });
+    var o0=el('option',null,names.length?'– choose version –':'(no saved versions)'); o0.value=''; verSel.appendChild(o0);
+    names.forEach(function(n){ var o=el('option',null,n+' ('+v[n].strokes.length+' strokes)'); o.value=n; verSel.appendChild(o); });
     if(sel&&v[sel]) verSel.value=sel;
   }
-  function backupCurrent(){ if(!strokes.length&&!under) return; var v=getVers(); v['Förra (auto)']=pack(); putVers(v); }
-  rV1.appendChild(btn('Öppna',function(){
-    var n=verSel.value; if(!n){ msg('Välj en version först'); return; }
-    var v=getVers(); if(!v[n]) return; backupCurrent(); unpack(JSON.parse(JSON.stringify(v[n]))); fillVers(n); msg('Öppnade "'+n+'" (din förra ritning finns som "Förra (auto)")');
-  },'Ersätter det du ritat nu. Det du hade sparas först som "Förra (auto)".'));
+  function backupCurrent(){ if(!strokes.length&&!under) return; var v=getVers(); v['Previous (auto)']=pack(); putVers(v); }
+  rV1.appendChild(btn('Open',function(){
+    var n=verSel.value; if(!n){ msg('Choose a version first'); return; }
+    var v=getVers(); if(!v[n]) return; backupCurrent(); unpack(JSON.parse(JSON.stringify(v[n]))); fillVers(n); msg('Opened "'+n+'" (your previous drawing is saved as "Previous (auto)")');
+  },'Replaces what you have drawn now. It is first saved as "Previous (auto)".'));
   bar.appendChild(rV1);
-  var rVn=row(); var verName=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;width:100%;box-sizing:border-box;'); verName.type='text'; verName.placeholder='Namn på ny version, t.ex. Variant A'; rVn.appendChild(verName); bar.appendChild(rVn);
-  rVn.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Skriv ett namn och tryck Spara som ny. Versionerna sparas i den här webbläsaren, för den här sidan, och syns i listan nedan. Vill du ha en fil på en plats du väljer själv: Spara projektfil.'));
+  var rVn=row(); var verName=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;width:100%;box-sizing:border-box;'); verName.type='text'; verName.placeholder='Name of new version, e.g. Variant A'; rVn.appendChild(verName); bar.appendChild(rVn);
+  rVn.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Type a name and press Save as new. Versions are stored in this browser, for this page, and appear in the list above. For a file in a place of your choosing: Save project file.'));
   var rV2=row();
-  rV2.appendChild(btn('Spara som ny',function(){
+  rV2.appendChild(btn('Save as new',function(){
     var v=getVers(), n=(verName.value||'').trim().slice(0,40) || 'Version '+(Object.keys(v).length+1);
-    var over=!!v[n]; v[n]=pack(); if(putVers(v)){ fillVers(n); verName.value=''; msg((over?'Skrev över "':'Sparade "')+n+'"'); }
-  },'Sparar det du ritat nu som en egen version med namnet du skrivit ovan'));
-  rV2.appendChild(btn('Uppdatera',function(){ var n=verSel.value; if(!n){ msg('Välj vilken version som ska uppdateras'); return; } var v=getVers(); v[n]=pack(); if(putVers(v)){ fillVers(n); msg('Uppdaterade "'+n+'"'); } },'Skriver över den valda versionen med det du ritat nu'));
-  rV2.appendChild(btn('Ny tom',function(){ backupCurrent(); strokes=[]; redo=[]; rebuild(); fillVers(); msg('Tom duk (din förra ritning finns som "Förra (auto)")'); }));
-  rV2.appendChild(btn('Ta bort',function(){ var n=verSel.value; if(!n) return; var v=getVers(); v['Borttagen (auto)']=v[n]; delete v[n]; putVers(v); fillVers(); msg('Tog bort "'+n+'"'); }));
+    var over=!!v[n]; v[n]=pack(); if(putVers(v)){ fillVers(n); verName.value=''; msg((over?'Overwrote "':'Saved "')+n+'"'); }
+  },'Saves what you have drawn as its own version with the name typed above'));
+  rV2.appendChild(btn('Update',function(){ var n=verSel.value; if(!n){ msg('Choose which version to update'); return; } var v=getVers(); v[n]=pack(); if(putVers(v)){ fillVers(n); msg('Updated "'+n+'"'); } },'Overwrites the chosen version with what you have drawn now'));
+  rV2.appendChild(btn('New blank',function(){ backupCurrent(); strokes=[]; redo=[]; rebuild(); fillVers(); msg('Blank canvas (your previous drawing is saved as "Previous (auto)")'); }));
+  rV2.appendChild(btn('Delete',function(){ var n=verSel.value; if(!n) return; var v=getVers(); v['Deleted (auto)']=v[n]; delete v[n]; putVers(v); fillVers(); msg('Deleted "'+n+'"'); }));
   bar.appendChild(rV2);
   var rV3=row();
-  rV3.appendChild(btn('Spara projektfil',function(){
+  rV3.appendChild(btn('Save project file',function(){
     var bl=new Blob([JSON.stringify(pack(true))],{type:'application/json'});
-    saveBlob(bl,fname('ritlager-projekt','.json'),'Projektfilen är redigerbar och kan öppnas igen, även på en annan dator.');
-  },'Hela ritningen som en redigerbar fil (.json)'));
+    saveBlob(bl,fname('ritlager-project','.json'),'The project file is editable and can be reopened, even on another computer.');
+  },'The whole drawing as an editable file (.json)'));
   var pf=el('input'); pf.type='file'; pf.accept='.json,application/json'; pf.style.display='none';
-  pf.addEventListener('change',function(){ var f=pf.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ backupCurrent(); var n=unpack(JSON.parse(r.result)); msg(n<0?'Filen ser inte ut som en Ritlager-fil':'Öppnade projektfilen ('+n+' streck)'); }catch(e){ msg('Kunde inte läsa filen'); } }; r.readAsText(f); pf.value=''; });
-  rV3.appendChild(pf); rV3.appendChild(btn('Öppna projektfil',function(){ pf.click(); },'Öppna en projektfil du sparat tidigare'));
+  pf.addEventListener('change',function(){ var f=pf.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ backupCurrent(); var n=unpack(JSON.parse(r.result)); msg(n<0?'The file does not look like a Ritlager file':'Opened the project file ('+n+' strokes)'); }catch(e){ msg('Could not read the file'); } }; r.readAsText(f); pf.value=''; });
+  rV3.appendChild(pf); rV3.appendChild(btn('Open project file',function(){ pf.click(); },'Open a project file you saved earlier'));
   bar.appendChild(rV3);
   fillVers();
 
-  var dbg=el('div','font-size:11px;color:#888;','Enhet: –'); bar.appendChild(dbg);
-  var info=el('div','font-size:11px;color:#777;line-height:1.35;','Ritningen autosparas för den här sidan i webbläsaren. Exportera PNG ger bilden till RC. Spara projektfil eller version om du vill kunna redigera strecken senare.');
+  var dbg=el('div','font-size:11px;color:#888;','Device: –'); bar.appendChild(dbg);
+  var info=el('div','font-size:11px;color:#777;line-height:1.35;','The drawing is autosaved for this page in the browser. Export PNG gives you the image for RC. Save a project file or a version if you want to edit the strokes later.');
   bar.appendChild(info);
 
   var note=el('div','position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:'+(Z+2)+';background:#111;color:#fff;padding:7px 13px;border-radius:8px;font:300 13px '+FONT+';opacity:0;transition:opacity .25s;pointer-events:none;');
@@ -530,7 +530,7 @@
     var pressOK = t!=='line'; secPress.style.display=pressOK?'block':'none'; show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
   function setColor(c){ color=c; if(c.length===7) cp.value=c; sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
-  function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Ritläge':'Klickläge – du kan klicka i RC'); }
+  function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click in RC'); }
   setTool('pen'); setColor('#111111'); setSize2(3);
 
   // dra verktygsfältet
@@ -547,14 +547,14 @@
   }
   var lastName='ritlager.png';
   function showDialog(bl,name){
-    if(!bl){ msg('Ingen bild att visa än – tryck Exportera PNG först'); return; }
+    if(!bl){ msg('No image to show yet – press Export PNG first'); return; }
     var url=URL.createObjectURL(bl), ov=el('div','position:fixed;inset:0;z-index:'+(Z+5)+';background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px;');
     var box=el('div','background:#fff;color:#111;border-radius:12px;padding:14px;max-width:92vw;max-height:92vh;display:flex;flex-direction:column;gap:10px;font:300 14px/1.4 '+FONT+';overflow:auto;');
     box.appendChild(el('div','font-weight:400;',name));
     if(/^image\//.test(bl.type)){ var im=el('img','max-width:80vw;max-height:55vh;object-fit:contain;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/16px 16px;'); im.src=url; box.appendChild(im); }
-    var a=el('a','color:#000;font-weight:400;','Ladda ner '+name); a.href=url; a.download=name; box.appendChild(a);
-    box.appendChild(el('div','font-size:12px;color:#666;','Fungerar inte nedladdningen? Högerklicka på bilden (eller håll in) och välj Spara bild.'));
-    var cl=btn('Stäng',function(){ ov.remove(); }); box.appendChild(cl); ov.appendChild(box); ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+    var a=el('a','color:#000;font-weight:400;','Download '+name); a.href=url; a.download=name; box.appendChild(a);
+    box.appendChild(el('div','font-size:12px;color:#666;','Download not working? Right-click the image (or long-press) and choose Save image.'));
+    var cl=btn('Close',function(){ ov.remove(); }); box.appendChild(cl); ov.appendChild(box); ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
     de.appendChild(ov);
   }
   // ---- vald mapp (Chrome/Edge): minns mappen mellan besök ----
@@ -576,35 +576,35 @@
       try{
         var a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=name; a.style.display='none';
         (document.body||de).appendChild(a); a.click(); setTimeout(function(){ a.remove(); },500);
-        msg('Sparad som "'+name+'" i webbläsarens nedladdningsmapp (Hämtade filer / Downloads). '+okMsg+' Hittar du den inte: tryck Visa bild.',7000);
+        msg('Saved as "'+name+'" in the browser download folder (Downloads). '+okMsg+' Cannot find it? Press Show image.',7000);
         if(!saveBlob.shown){ saveBlob.shown=true; showDialog(bl,name); }
-      }catch(e){ msg('Nedladdningen blockerades – visar filen så du kan spara den för hand',6000); showDialog(bl,name); }
+      }catch(e){ msg('The download was blocked – showing the file so you can save it by hand',6000); showDialog(bl,name); }
     }
     function viaPicker(){
       if(!window.showSaveFilePicker){ viaDownload(); return; }
       var ext=(name.match(/\.[a-z0-9]+$/i)||['.bin'])[0], acc={}; acc[bl.type||'application/octet-stream']=[ext];
-      var opt={suggestedName:name,types:[{description:ext.slice(1).toUpperCase()+'-fil',accept:acc}]}; if(dirH) opt.startIn=dirH;
+      var opt={suggestedName:name,types:[{description:ext.slice(1).toUpperCase()+' file',accept:acc}]}; if(dirH) opt.startIn=dirH;
       window.showSaveFilePicker(opt)
-        .then(function(h){ return h.createWritable().then(function(w){ return w.write(bl).then(function(){ return w.close(); }); }).then(function(){ msg('Sparad som "'+h.name+'" på den plats du valde. '+okMsg,6000); }); })
-        .catch(function(e){ if(e&&e.name==='AbortError') msg('Sparandet avbröts'); else viaDownload(); });
+        .then(function(h){ return h.createWritable().then(function(w){ return w.write(bl).then(function(){ return w.close(); }); }).then(function(){ msg('Saved as "'+h.name+'" where you chose. '+okMsg,6000); }); })
+        .catch(function(e){ if(e&&e.name==='AbortError') msg('Saving was cancelled'); else viaDownload(); });
     }
     if(dirH){
       var perm = dirH.queryPermission ? dirH.queryPermission({mode:'readwrite'}) : Promise.resolve('granted');
       perm.then(function(p){ return p==='granted' ? p : dirH.requestPermission({mode:'readwrite'}); })
-        .then(function(p){ if(p!=='granted') throw new Error('behörighet nekades'); return uniqueName(dirH,name); })
-        .then(function(nm){ return dirH.getFileHandle(nm,{create:true}).then(function(fh){ return fh.createWritable(); }).then(function(w){ return w.write(bl).then(function(){ return w.close(); }); }).then(function(){ msg('Sparad i mappen "'+dirH.name+'" som "'+nm+'". '+okMsg,6000); }); })
-        .catch(function(e){ msg('Kunde inte spara i den valda mappen ('+(e&&e.message?e.message:e)+'). Sparar i Hämtade filer i stället.',5000); viaDownload(); });
+        .then(function(p){ if(p!=='granted') throw new Error('permission denied'); return uniqueName(dirH,name); })
+        .then(function(nm){ return dirH.getFileHandle(nm,{create:true}).then(function(fh){ return fh.createWritable(); }).then(function(w){ return w.write(bl).then(function(){ return w.close(); }); }).then(function(){ msg('Saved in the folder "'+dirH.name+'" as "'+nm+'". '+okMsg,6000); }); })
+        .catch(function(e){ msg('Could not save in the chosen folder ('+(e&&e.message?e.message:e)+'). Saving to Downloads instead.',5000); viaDownload(); });
       return;
     }
     if(window.showSaveFilePicker && askEl.checked) viaPicker(); else viaDownload();
   }
   function exportPng(mode){
-    try{ exportPng2(mode); }catch(e){ msg('Export misslyckades: '+(e&&e.message?e.message:e)+'. Prova Bildstorlek: Bara strecken.'); }
+    try{ exportPng2(mode); }catch(e){ msg('Export failed: '+(e&&e.message?e.message:e)+'. Try Image size: Strokes only.'); }
   }
   function exportPng2(mode){
     var b, out, oc;
     if(bgSel.value==='shot'){
-      if(!ref){ msg('Fånga en skärmbild först (Fånga skärmbild)'); return; }
+      if(!ref){ msg('Capture a screenshot first (Capture screenshot)'); return; }
       out=document.createElement('canvas'); out.width=ref.c.width; out.height=ref.c.height; oc=out.getContext('2d');
       oc.drawImage(ref.c,0,0);
       oc.save(); oc.scale(ref.k,ref.k); oc.translate(-ref.sx,-ref.sy); rscale=ref.k;
@@ -612,7 +612,7 @@
       strokes.forEach(function(st){ render(oc,st); }); rscale=1; oc.restore();
       b={x:ref.sx,y:ref.sy,w:out.width,h:out.height};
     } else {
-      if(!strokes.length&&!under){ msg('Rita något först'); return; }
+      if(!strokes.length&&!under){ msg('Draw something first'); return; }
       b={x:0,y:0,w:W,h:H};
       if(cr.checked){ var t=bounds(); if(t){ var pad=8,x=Math.max(0,t.x-pad),y=Math.max(0,t.y-pad); b={x:x,y:y,w:Math.min(W,t.x+t.w+pad)-x,h:Math.min(H,t.y+t.h+pad)-y}; } }
       out=document.createElement('canvas'); out.width=b.w; out.height=b.h;
@@ -620,13 +620,13 @@
       oc.drawImage(base,b.x,b.y,b.w,b.h,0,0,b.w,b.h);
     }
     out.toBlob(function(bl){
-      if(!bl){ msg('Bilden blev för stor för webbläsaren. Välj Bildstorlek: Bara strecken.'); return; }
+      if(!bl){ msg('The image became too large for the browser. Choose Image size: Strokes only.'); return; }
       lastBlob=bl; lastName=fname('ritlager-'+b.w+'x'+b.h,'.png');
       if(mode==='copy'){
-        try{ navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(function(){msg('Bilden kopierad');},function(){msg('Kopiering nekades – använd Exportera PNG');}); }
-        catch(e){ msg('Kopiering stöds inte här – använd Exportera PNG'); }
+        try{ navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(function(){msg('Image copied');},function(){msg('Copying was denied – use Export PNG');}); }
+        catch(e){ msg('Copying is not supported here – use Export PNG'); }
       } else {
-        saveBlob(bl,lastName,'('+b.w+' × '+b.h+' px'+(bgSel.value==='shot'?', med skärmbild':bgValue()?'':', genomskinlig')+')');
+        saveBlob(bl,lastName,'('+b.w+' × '+b.h+' px'+(bgSel.value==='shot'?', with screenshot':bgValue()?'':', transparent')+')');
       }
     },'image/png');
   }
@@ -648,7 +648,7 @@
   document.addEventListener('keydown', onKey, true);
 
   var api={
-    toggle:function(){ visible=!visible; cv.style.display=bar.style.display=visible?(bar.style.display==='none'?'flex':''):'none'; cv.style.display=visible?'block':'none'; bar.style.display=visible?'flex':'none'; if(visible) msg('Ritlager på'); },
+    toggle:function(){ visible=!visible; cv.style.display=bar.style.display=visible?(bar.style.display==='none'?'flex':''):'none'; cv.style.display=visible?'block':'none'; bar.style.display=visible?'flex':'none'; if(visible) msg('Ritlager on'); },
     destroy:function(){ document.removeEventListener('keydown',onKey,true); cv.remove(); bar.remove(); note.remove(); delete window.__ritlager; }
   };
   window.__ritlager=api;
@@ -658,5 +658,5 @@
   var nRest=restore();
   if(nRest){ rebuild(); }
   ready=true;
-  msg(nRest ? 'Ritlager på – återställde din tidigare ritning ('+nRest+' streck)' : 'Ritlager på – rita direkt på sidan. D växlar rita/klicka.');
+  msg(nRest ? 'Ritlager on – restored your earlier drawing ('+nRest+' strokes)' : 'Ritlager on – draw right on the page. D toggles draw/click.');
 })();

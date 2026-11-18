@@ -1,30 +1,25 @@
 # Research Catalogue tools
 
-Små, fria verktyg för att arbeta med expositioner i [Research Catalogue](https://www.researchcatalogue.net/).
-Small, free tools for working with Research Catalogue expositions.
+Small, free tools for working with expositions in [Research Catalogue](https://www.researchcatalogue.net/) (RC), made by artist-researcher Rut Karin Zettergren. Everything runs locally in your browser; nothing is sent anywhere.
 
-## Ritlager / Draw layer
+## Ritlager (“drawing layer”)
 
-Ett bokmärke som lägger en genomskinlig ritduk över en RC-sida, så att du kan rita med ritplatta och
-exportera teckningen som PNG att lägga in i expositionen.
-*A bookmarklet that puts a transparent drawing layer over a Research Catalogue page, so you can draw with a
-tablet and export the drawing as a PNG to place back into the exposition.*
+A bookmarklet that puts a transparent drawing layer over a Research Catalogue page, so you can draw by hand with a pen tablet and export the drawing as a PNG to place back into the exposition, over or under other objects.
 
-**Installera / Install:** öppna `index.html` på GitHub Pages (se nedan) och dra knappen till bokmärkesfältet.
-*Open `index.html` via GitHub Pages and drag the button to your bookmarks bar.*
+**Install:** open the install page (`index.html`, served via GitHub Pages) and drag the button to your bookmarks bar. Then click the bookmark on any RC page.
 
-Funktioner / Features:
+Features:
 
-- penna, pensel, linje, sudd; pennstilar: rund, fyrkantig, platt, blyerts, marker, bläck, akvarell
-- tryckkänslighet med ritplatta, stabilisering, skarp–suddig, kontrast
-- exportera PNG med genomskinlig, vit eller egen bakgrund, eller ovanpå en skärmbild av sidan
-- autospara, namngivna versioner, redigerbara projektfiler, öppna gammal PNG som underlag
-- spara i vald mapp (Chrome/Edge)
+- Pen, brush, line (with arrowhead) and eraser; pen styles: round, square, flat, pencil, marker, ink, watercolour
+- Pressure sensitivity with a pen tablet, stabilising, sharp–soft, contrast, thin-line modes
+- Export PNG with transparent, white or custom background, or on top of a screenshot of the page
+- Autosave, named versions, editable project files, open an old PNG as underlay
+- Save into a chosen folder (Chrome/Edge)
 
-Allt körs lokalt i din webbläsare. Inget skickas någonstans. / Everything runs locally in your browser; nothing is sent anywhere.
+Source: `ritlager/overlay.js` (readable) and `ritlager/overlay.min.js` (what the bookmark contains).
 
-`ritlager/overlay.js` är källkoden i läsbar form. / is the readable source.
+Tested in a simulated browser only; real-world reports from Chrome, Edge and Firefox with a tablet are very welcome as issues.
 
-## Licens / License
+## License
 
-MIT, se `LICENSE`. Använd, ändra och dela fritt. / Use, modify and share freely.
+MIT, see `LICENSE`. Use, modify and share freely.
