@@ -8,12 +8,16 @@
   "scripts": {
     "icons": "node scripts/make-icons.mjs",
     "build:extension": "node scripts/build-extension.mjs",
-    "test:extension": "node --test test/extension.test.mjs"
+    "test:extension": "node --test test/extension.test.mjs",
+    "minify": "terser ritlager/overlay.js -c -m -o ritlager/overlay.min.js",
+    "build:install": "node scripts/build-install.cjs",
+    "build": "npm run minify && npm run build:install && npm run build:extension"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "fflate": "^0.8.2",
     "playwright-core": "^1.49.0",
-    "web-ext": "^10.8.0"
+    "web-ext": "^10.8.0",
+    "terser": "^5.31.0"
   }
 }
