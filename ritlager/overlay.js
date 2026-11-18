@@ -1398,6 +1398,7 @@
   rBg.appendChild(bgSel); rBg.appendChild(bgCol); bar.appendChild(rBg);
   function saveRef(){ if(!ref){ msg('Take a screenshot first: choose it under Background'); return; } ref.c.toBlob(function(bl){ if(!bl){ msg('Could not create the image'); return; } saveBlob(bl,fname('reference-'+ref.c.width+'x'+ref.c.height,'.png','-reference'),'The reference image is saved.'); },'image/png'); }
   var refInfoEl=el('div','font-size:11px;color:#777;line-height:1.35;display:none;'); var refTxt=el('span'); var refNew=el('span','color:#111;text-decoration:underline;cursor:pointer;margin-left:6px;','Take a new one'); refNew.addEventListener('click',function(){ captureRef(); }); refInfoEl.appendChild(refTxt); refInfoEl.appendChild(refNew); bar.appendChild(refInfoEl);
+  bar.insertBefore(rBg,rFm); bar.insertBefore(refInfoEl,rFm);
   function updateRefInfo(){ refTxt.textContent = ref ? 'Screenshot taken: '+ref.c.width+' × '+ref.c.height+' px.' : 'Waiting for a screenshot…'; refInfoEl.style.display = isShot() ? 'block' : 'none'; }
   updateRefInfo();
   function captureRef(){
