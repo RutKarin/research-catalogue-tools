@@ -29,7 +29,7 @@ Features:
 - Autosave, named versions, editable project files, open an old PNG as underlay
 - Save into a chosen folder (Chrome/Edge)
 
-**How saving works:** your drawing, named versions, settings and saved colours are stored in your own browser (in the site storage of the page you drew on), for each page separately. Nothing is saved online, and nothing follows you to another browser or computer. Clearing browser data or site data for that page removes them, so export a PNG or a project file for anything you want to keep. Exported images and files go to your Downloads folder, or a folder you choose (Chrome/Edge).
+**How saving works:** your drawing, named versions, settings and saved colours are stored in your own browser (in the site storage of the page you drew on), for each page separately. Nothing is saved online, and nothing follows you to another browser or computer. Clearing browser data or site data for that page removes them, so export a PNG or a project file for anything you want to keep. Imported pictures are saved with the drawing, so very large photos can fill the storage and stop autosave. Recommended: under about 1500 px on the long side and under 500 KB each (JPG is smaller than PNG). Exported images and files go to your Downloads folder, or a folder you choose (Chrome/Edge).
 
 Source: `ritlager/overlay.js` (readable) and `ritlager/overlay.min.js` (what the bookmark contains).
 

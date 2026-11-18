@@ -1116,7 +1116,7 @@
   bar.appendChild(rIm);
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','You can also drop an image file onto the page or paste a copied image with Ctrl+V. The picture lands on the active layer and works like any object: move, resize and rotate with the Select tool, rub out with the Eraser, or use Cut out.'));
 
-  sec('Dodge and burn');
+  sec('Dodge and burn Imported pictures are saved in your browser together with the drawing, so large photos can fill the storage and stop autosave. Recommended: keep each picture under about 1500 px on the long side and under 500 KB (JPG is smaller than PNG). Export a PNG or project file for anything important.');
   var rDb=row(); var bDodge=btn('Dodge (lighter)',function(){ setTool('dodge'); },'Paint over your drawing to make it lighter'), bBurn=btn('Burn (darker)',function(){ setTool('burn'); },'Paint over your drawing to make it darker'); rDb.appendChild(bDodge); rDb.appendChild(bBurn); bar.appendChild(rDb);
   var rDe=row(); lab(rDe,'Exposure'); var fxExp=slider(rDe,2,100,25,110); liveVal(fxExp); fxExp.title='How strong each stroke is'; bar.appendChild(rDe);
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Paint over what you have drawn on the active layer: Dodge lightens it, Burn darkens it. It only changes drawn pixels, never the page behind. Size comes from Thickness; softness and build-up from the Airbrush sliders that appear when the tool is chosen.'));
