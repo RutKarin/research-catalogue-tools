@@ -1294,14 +1294,29 @@
   [['all','All in one image'],['each','Each layer as its own PNG'],['active','Active layer only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; lySel.appendChild(op); });
   lySel.title='Use “Each layer” to get one PNG per layer, e.g. one to place over objects in RC and one under.';
   rLy.appendChild(lySel); bar.appendChild(rLy);
+  var rFm=row(); lab(rFm,'File type');
+  var fmSel=el('select',BTN+'padding:3px 6px;');
+  [['png','PNG (sharp, can be transparent)'],['jpg','JPG (small file, no transparency)'],['tif','TIFF (for print and archive)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; fmSel.appendChild(op); });
+  rFm.appendChild(fmSel); bar.appendChild(rFm);
+  var rQ=row(); lab(rQ,'JPG quality'); var jq=slider(rQ,10,100,92,110); liveVal(jq); rQ.style.display='none'; bar.appendChild(rQ);
+  var rRs=row(); lab(rRs,'Resolution');
+  var rsSel=el('select',BTN+'padding:3px 6px;');
+  [['1','1× (as on screen)'],['1.5','1.5×'],['2','2×'],['3','3×'],['4','4×'],['6','6×']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; rsSel.appendChild(op); });
+  rRs.appendChild(rsSel); bar.appendChild(rRs);
+  var rsInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(rsInfo);
+  function expBox(){ var b={w:W,h:H}; if(csel.value==='crop'){ try{ var t=bounds(); if(t) b={w:Math.min(W,Math.ceil(t.w+16)),h:Math.min(H,Math.ceil(t.h+16))}; }catch(e){} } return b; }
+  function fmtUpdate(){ var k=+rsSel.value, b=expBox(); rQ.style.display=fmSel.value==='jpg'?'flex':'none';
+    var w=Math.round(b.w*k), h=Math.round(b.h*k); rsInfo.textContent='The image will be about '+w+' × '+h+' px'+(fmSel.value==='jpg'&&bgSel.value==='none'?'. JPG cannot be transparent, so the background becomes white unless you choose another.':'.')+(w*h>1e8?' That is very large – the browser may refuse; choose a lower resolution.':'')+(bgSel.value==='shot'?' (With Screenshot background the resolution is the screenshot\'s own.)':'');
+    var L={png:'PNG',jpg:'JPG',tif:'TIFF'}[fmSel.value]; if(typeof bSave!=='undefined'&&bSave) bSave.textContent='Export '+L; if(typeof quick!=='undefined'&&quick) quick.textContent='Export '+L; }
   var szHint=el('div','font-size:11px;color:#777;line-height:1.35;');
   function hint(){ szHint.textContent = csel.value==='crop' ? 'Strokes only: the image is cropped to the area around your strokes. Smaller file, but you have to place it yourself in RC.' : 'Whole page: the image is as large as the page. Place it at the page top-left in RC and the strokes line up exactly.'; }
   csel.addEventListener('change',hint); hint(); bar.appendChild(szHint);
+  [fmSel,rsSel,csel].forEach(function(x){ x.addEventListener('change',fmtUpdate); });
   var rBg=row(); lab(rBg,'Background');
   var bgSel=el('select',BTN+'padding:3px 6px;');
   [['none','Transparent'],['white','White'],['color','Custom colour'],['shot','Screenshot (reference)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; bgSel.appendChild(op); });
   var bgCol=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;display:none;'); bgCol.type='color'; bgCol.value='#f4efe6';
-  bgSel.addEventListener('change',function(){ bgCol.style.display = bgSel.value==='color' ? 'inline-block' : 'none'; });
+  bgSel.addEventListener('change',function(){ if(typeof fmtUpdate==='function') fmtUpdate(); bgCol.style.display = bgSel.value==='color' ? 'inline-block' : 'none'; });
   rBg.appendChild(bgSel); rBg.appendChild(bgCol); bar.appendChild(rBg);
   var rRef=row();
   rRef.appendChild(btn('Capture screenshot',function(){ captureRef(); },'Takes a screenshot of the page as it looks now (without the toolbar and the drawing layer). The browser asks whether to share the tab.'));
@@ -1348,7 +1363,8 @@
   var r8=row();
   var bSave=btn('Export PNG',function(){ exportPng('save'); },'The image for RC: PNG with the background and size you chose'); bSave.style.background='#111'; bSave.style.color='#fff'; bSave.style.borderColor='#111';
   r8.appendChild(bSave);
-  r8.appendChild(btn('Copy image',function(){ exportPng('copy'); }));
+  r8.appendChild(btn('Copy image',function(){ exportPng('copy'); },'Copies a PNG to the clipboard'));
+  fmtUpdate();
   r8.appendChild(btn('Show image',function(){ showDialog(lastBlob,lastName); },'Shows the latest export with its own download link, in case the download does not work'));
   bar.appendChild(r8);
 
@@ -1499,8 +1515,19 @@
       exportPng2(mode, lySel.value==='active' ? act : null);
     }catch(e){ msg('Export failed: '+(e&&e.message?e.message:e)+'. Try Image size: Strokes only.'); }
   }
+  function encodeTiff(c,dpi){
+    var w=c.width,h=c.height,d=c.getContext('2d').getImageData(0,0,w,h).data, n=w*h*4, off=206, buf=new ArrayBuffer(off+n), v=new DataView(buf), u=new Uint8Array(buf), p=8, i;
+    u[0]=0x49; u[1]=0x49; v.setUint16(2,42,true); v.setUint32(4,8,true);
+    v.setUint16(p,14,true); p+=2;
+    function E(tag,type,cnt,val){ v.setUint16(p,tag,true); v.setUint16(p+2,type,true); v.setUint32(p+4,cnt,true); if(type===3&&cnt===1) v.setUint16(p+8,val,true); else v.setUint32(p+8,val,true); p+=12; }
+    E(256,4,1,w); E(257,4,1,h); E(258,3,4,182); E(259,3,1,1); E(262,3,1,2); E(273,4,1,off); E(277,3,1,4); E(278,4,1,h); E(279,4,1,n); E(282,5,1,190); E(283,5,1,198); E(284,3,1,1); E(296,3,1,2); E(338,3,1,2);
+    v.setUint32(p,0,true);
+    for(i=0;i<4;i++) v.setUint16(182+i*2,8,true);
+    v.setUint32(190,dpi,true); v.setUint32(194,1,true); v.setUint32(198,dpi,true); v.setUint32(202,1,true);
+    u.set(d,off); return new Blob([buf],{type:'image/tiff'});
+  }
   function exportPng2(mode,only,label){
-    var b, out, oc;
+    var b, out, oc, kk=(mode==='copy'||bgSel.value==='shot')?1:(+rsSel.value||1);
     if(bgSel.value==='shot'){
       if(!ref){ msg('Capture a screenshot first (Capture screenshot)'); return; }
       out=document.createElement('canvas'); out.width=ref.c.width; out.height=ref.c.height; oc=out.getContext('2d');
@@ -1511,21 +1538,25 @@
       if(!strokes.length&&!under){ msg('Draw something first'); return; }
       b={x:0,y:0,w:W,h:H};
       if(cr.checked){ var t=bounds(); if(t){ var pad=8,x=Math.max(0,t.x-pad),y=Math.max(0,t.y-pad); b={x:x,y:y,w:Math.min(W,t.x+t.w+pad)-x,h:Math.min(H,t.y+t.h+pad)-y}; } }
-      out=document.createElement('canvas'); out.width=b.w; out.height=b.h;
-      oc=out.getContext('2d'); var bgv=bgValue(); if(bgv){ oc.fillStyle=bgv; oc.fillRect(0,0,b.w,b.h); }
-      if(only==null&&plainLayers()) oc.drawImage(base,b.x,b.y,b.w,b.h,0,0,b.w,b.h);
-      else compose(oc,function(c){ c.translate(-b.x,-b.y); },only==null?null:only);
+      out=document.createElement('canvas'); out.width=Math.round(b.w*kk); out.height=Math.round(b.h*kk);
+      oc=out.getContext('2d'); var bgv=bgValue(); if(bgv){ oc.fillStyle=bgv; oc.fillRect(0,0,out.width,out.height); }
+      if(only==null&&plainLayers()&&kk===1) oc.drawImage(base,b.x,b.y,b.w,b.h,0,0,b.w,b.h);
+      else { rscale=kk; try{ compose(oc,function(c){ c.scale(kk,kk); c.translate(-b.x,-b.y); },only==null?null:only); }finally{ rscale=1; } }
     }
-    out.toBlob(function(bl){
+    var fmt=(mode==='copy')?'png':fmSel.value, mime=fmt==='jpg'?'image/jpeg':fmt==='tif'?'image/tiff':'image/png';
+    if(fmt==='jpg'&&!bgValue()&&bgSel.value!=='shot'){ var o2=document.createElement('canvas'); o2.width=out.width; o2.height=out.height; var c2=o2.getContext('2d'); c2.fillStyle='#ffffff'; c2.fillRect(0,0,o2.width,o2.height); c2.drawImage(out,0,0); out=o2; }
+    var finish=function(bl){
       if(!bl){ msg('The image became too large for the browser. Choose Image size: Strokes only.'); return; }
-      lastBlob=bl; var tag=label?'-'+String(label).replace(/[^\w-]+/g,'_'):''; lastName=fname('ritlager'+tag+'-'+b.w+'x'+b.h,'.png',tag);
+      lastBlob=bl; var tag=label?'-'+String(label).replace(/[^\w-]+/g,'_'):''; lastName=fname('ritlager'+tag+'-'+out.width+'x'+out.height,fmt==='jpg'?'.jpg':fmt==='tif'?'.tif':'.png',tag);
       if(mode==='copy'){
         try{ navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(function(){msg('Image copied');},function(){msg('Copying was denied – use Export PNG');}); }
         catch(e){ msg('Copying is not supported here – use Export PNG'); }
       } else {
-        saveBlob(bl,lastName,'('+b.w+' × '+b.h+' px'+(bgSel.value==='shot'?', with screenshot':bgValue()?'':', transparent')+')');
+        saveBlob(bl,lastName,'('+out.width+' × '+out.height+' px'+(bgSel.value==='shot'?', with screenshot':(bgValue()||fmt==='jpg')?'':', transparent')+')');
       }
-    },'image/png');
+    };
+    if(fmt==='tif'){ try{ finish(encodeTiff(out,Math.round(72*kk))); }catch(e){ msg('TIFF failed: '+(e&&e.message?e.message:e)+'. Try a lower resolution.'); } }
+    else out.toBlob(finish,mime,fmt==='jpg'?(+jq.value/100):undefined);
   }
 
   // ---- tangenter ----
