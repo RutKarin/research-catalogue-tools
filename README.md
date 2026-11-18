@@ -20,7 +20,7 @@ Features:
 - Effects menu: Dodge and Burn brushes; layer effects Blur, Glow and Drop shadow
 - Export as PNG, JPG or TIFF at 1×–6× resolution, with DPI
 - Retouch brushes: Blur, Sharpen, Smudge, Clone
-- Animate menu: replay or hand-made frames, preview, remove frames, save GIF or WebM video
+- Animate menu: build-up from your drawing or hand-made frames, preview, remove frames, save GIF or WebM video
 - Airbrush (soft spray with hardness, build-up and opacity)
 - Select tool (pick, rectangle, lasso): move, resize, flip, duplicate, cut, copy, paste (Ctrl+X/C/V), undo/redo
 - Layers with opacity and blend modes (multiply, screen, overlay …), export as one image or one PNG per layer

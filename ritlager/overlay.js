@@ -868,7 +868,6 @@
   rHex.appendChild(btn('Pipette',function(){ pickColour(); },'Pipette: pick a colour from the page or from your drawing (I)'));
   bar.appendChild(rHex);
   bar.appendChild(rgbEl);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Click the square or type a colour code.'));
   var pickMode=false;
   function hex2(n){ return ('0'+n.toString(16)).slice(-2); }
   function pickColour(){
@@ -1042,7 +1041,6 @@
   syncVis();
   sec('Fonts and convert'); [rT8,rT12].forEach(function(r){ bar.appendChild(r); });
 
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Click on the page and type.'));
   sec('Undo and canvas');
   var r7=row();
   r7.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
@@ -1097,7 +1095,6 @@
   lab(rSm5,'Rotate'); var roIn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:52px;box-sizing:border-box;'); roIn.type='number'; roIn.value=0; roIn.min=-360; roIn.max=360; rSm5.appendChild(roIn); lab(rSm5,'°');
   rSm5.appendChild(btn('Apply',function(){ var sc=(+scIn.value||100)/100, dg=+roIn.value||0; selXform(sc,dg); scIn.value=100; roIn.value=0; },'Scale and/or rotate the selection around its centre'));
   bar.appendChild(rSm5);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Drag around strokes, then move, resize or rotate.'));
 
   sec('Cut out');
   var rCt=row();
@@ -1106,7 +1103,6 @@
   var rCk=row(); lab(rCk,'Cut');
   var cutKeep=el('select',BTN+'padding:3px 6px;'); [['in','Erase inside'],['out','Erase outside (keep inside)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; cutKeep.appendChild(op); }); rCk.appendChild(cutKeep); bar.appendChild(rCk);
   var rCf=row(); lab(rCf,'Soft edge'); var cutFeather=slider(rCf,0,40,0,110); cutFeather.title='0 = hard edge; higher = feathered edge'; bar.appendChild(rCf);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Draw a shape on the page to cut the active layer.'));
 
   sec('Import images');
   var rIm=row();
@@ -1114,13 +1110,10 @@
   imf.addEventListener('change',function(){ var f=imf.files[0]; if(f) importImageFile(f); imf.value=''; });
   rIm.appendChild(imf); rIm.appendChild(btn('Import image…',function(){ imf.click(); },'Add a picture from your computer to the active layer'));
   bar.appendChild(rIm);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Or drop or paste (Ctrl+V) a picture.'));
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Keep pictures under about 1500 px and 500 KB.'));
 
   sec('Dodge and burn');
   var rDb=row(); var bDodge=btn('Dodge (lighter)',function(){ setTool('dodge'); },'Paint over your drawing to make it lighter'), bBurn=btn('Burn (darker)',function(){ setTool('burn'); },'Paint over your drawing to make it darker'); rDb.appendChild(bDodge); rDb.appendChild(bBurn); bar.appendChild(rDb);
   var rDe=row(); lab(rDe,'Exposure'); var fxExp=slider(rDe,2,100,25,110); liveVal(fxExp); fxExp.title='How strong each stroke is'; bar.appendChild(rDe);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Lightens or darkens your drawing only.'));
 
   sec('Retouch');
   var rRt=row(); var bBlurT=btn('Blur',function(){ setTool('blur'); },'Paint to blur what you have drawn on the active layer'), bSharpT=btn('Sharpen',function(){ setTool('sharpen'); },'Paint to make soft edges crisper'), bSmudgeT=btn('Smudge',function(){ setTool('smudge'); },'Drag the paint along, like a finger in wet paint'), bCloneT=btn('Clone',function(){ setTool('clone'); },'Copy one part of the layer to another. Alt+click the source first');
@@ -1132,7 +1125,6 @@
   var rP2=row(); lab(rP2,'Amount'); var pxAmt=slider(rP2,1,40,6,110); pxAmt.title='Blur: how far it spreads. Sharpen: how much crisper.'; bar.appendChild(rP2);
   var rP3=row(); lab(rP3,'Hardness'); var pxHard=slider(rP3,0,100,30,110); liveVal(pxHard); bar.appendChild(rP3);
   var rP4=row(); rP4.appendChild(btn('Set clone source',function(){ cloneSet=true; setTool('clone'); msg('Now click on the spot you want to copy from'); },'Or hold Alt and click with the Clone tool')); bar.appendChild(rP4);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Works on your drawing only. Clone: Alt+click the source.'));
 
   sec('Layer effects');
   var fxName=el('div','font-size:12px;color:#444;','');
@@ -1146,7 +1138,6 @@
   var rFs2=row(); lab(rFs2,'Right'); var fxShx=slider(rFs2,-80,80,6,110); liveVal(fxShx,' px'); bar.appendChild(rFs2);
   var rFs3=row(); lab(rFs3,'Down'); var fxShy=slider(rFs3,-80,80,6,110); liveVal(fxShy,' px'); bar.appendChild(rFs3);
   var rFs4=row(); lab(rFs4,'Strength'); var fxSha=slider(rFs4,5,100,60,110); liveVal(fxSha); bar.appendChild(rFs4);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Applies to the whole active layer.'));
   function fxShow(){ [rFg1,rFg2].forEach(function(r){ r.style.display=fxGlow.checked?'flex':'none'; }); [rFs1,rFs2,rFs3,rFs4].forEach(function(r){ r.style.display=fxSh.checked?'flex':'none'; }); }
   function fxUpdate(){
     var L=getLayer(act), f=fxOf(L); fxName.textContent='Active layer: '+L.name;
@@ -1198,15 +1189,15 @@
   var rLa=row();
   rLa.appendChild(btn('+ Add layer',function(){ var L={id:nextLid++,name:'Layer '+(layers.length+1),vis:true,op:100}; layers.push(L); act=L.id; drawLayerUI(); persist(); }));
   bar.appendChild(rLa);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Draws on the highlighted layer.'));
   drawLayerUI();
 
   // ---- Animate: frames -> preview -> GIF / video ----
   sec('Animate');
+  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','Make frames: “Build-up from my drawing” (the drawing grows stroke by stroke) or “+ Add this frame” (one picture at a time, change the drawing between). Then ▶ Preview and Save. At least 2 frames are needed.'));
   var frames=[], aSel=-1, aPlay=0, aTimer=0;
   var rA1=row(); lab(rA1,'Frames'); var aN=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;width:52px;'); aN.type='number'; aN.min=2; aN.max=200; aN.value=24; aN.title='How many frames the replay should have'; rA1.appendChild(aN);
-  rA1.appendChild(btn('Replay my drawing',function(){ aReplay(); },'Makes frames that show the drawing being drawn, stroke by stroke')); bar.appendChild(rA1);
-  var rA2=row(); rA2.appendChild(btn('+ Add current drawing as frame',function(){ aAdd(strokes); },'Takes a picture of the drawing as it is now – draw, add, change, add… for hand-made animation')); bar.appendChild(rA2);
+  rA1.appendChild(btn('Build-up from my drawing',function(){ aReplay(); },'Makes frames that show the drawing being drawn, stroke by stroke')); bar.appendChild(rA1);
+  var rA2=row(); rA2.appendChild(btn('+ Add this frame',function(){ aAdd(strokes); },'Takes a picture of the drawing as it is now – draw, add, change, add… for hand-made animation')); bar.appendChild(rA2);
   var rA3=row(); lab(rA3,'Size'); var aW=el('select',BTN+'padding:3px 6px;'); [[320,'320 px wide'],[480,'480 px wide'],[640,'640 px wide'],[800,'800 px wide'],[1000,'1000 px wide']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aW.appendChild(op); }); aW.value=640; rA3.appendChild(aW);
   var aCrop=chk(rA3,'Drawn area only',true,'Cut away empty space around the drawing'); bar.appendChild(rA3);
   var rA4=row(); lab(rA4,'Background'); var aBg=el('select',BTN+'padding:3px 6px;'); [['white','White'],['transparent','Transparent'],['color','Colour']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aBg.appendChild(op); }); rA4.appendChild(aBg);
@@ -1217,12 +1208,11 @@
   var rA6=row(); lab(rA6,'Pause at end'); var aEnd=slider(rA6,0,3000,600,90); liveVal(aEnd,' ms'); var aLoop=chk(rA6,'Loop',true); bar.appendChild(rA6);
   var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bar.appendChild(rAf);
   var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bar.appendChild(rAg);
-  var rA7=row(); var bPlay=btn('▶ Preview',function(){ if(!aPlay&&!frames.length){ if(!strokes.length){ msg('Nothing to preview yet – draw something first'); return; } aReplay(); } if(!aPlay&&frames.length===1&&strokes.length>1) msg('Only 1 frame, so nothing moves. Press “Replay my drawing” to make many frames, or change the drawing and press “+ Add current drawing as frame” again.',7000); aPreview(!aPlay); try{ aPrev.scrollIntoView({block:'nearest'}); }catch(e){} },'Play the animation here. With no frames yet, it makes them from your drawing first.'); rA7.appendChild(bPlay);
+  var rA7=row(); var bPlay=btn('▶ Preview',function(){ if(!aPlay&&!frames.length){ if(!strokes.length){ msg('Nothing to preview yet – draw something first'); return; } aReplay(); } if(!aPlay&&frames.length===1&&strokes.length>1) msg('Only 1 frame, so nothing moves. Press “Build-up from my drawing” to make many frames, or change the drawing and press “+ Add current drawing as frame” again.',7000); aPreview(!aPlay); try{ aPrev.scrollIntoView({block:'nearest'}); }catch(e){} },'Play the animation here. With no frames yet, it makes them from your drawing first.'); rA7.appendChild(bPlay);
   rA7.appendChild(btn('Keep every 2nd',function(){ if(frames.length<3) return; frames=frames.filter(function(f,i){ return i%2===0; }); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Halves the number of frames (smaller file)'));
   rA7.appendChild(btn('Clear all',function(){ aPreview(false); frames=[]; aSel=-1; aDraw(); },'Remove all frames')); bar.appendChild(rA7);
   var aPrev=document.createElement('canvas'); aPrev.width=240; aPrev.height=160; aPrev.style.cssText='width:100%;border:1px solid #ddd;border-radius:6px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/14px 14px;display:none;'; bar.appendChild(aPrev);
   var rA8=row(); rA8.appendChild(btn('Save GIF',function(){ aGif(); },'Animated GIF – works almost everywhere, max 256 colours')); rA8.appendChild(btn('Save video (WebM)',function(){ aWebm(); },'Smoother and smaller, Chrome/Edge/Firefox')); bar.appendChild(rA8);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Replay, or draw and press + Add for each frame.'));
   function aBgVal(){ return aBg.value==='white'?'#ffffff':(aBg.value==='color'?aBgc.value:null); }
   var aBox=null;
   function aBounds(){ if(!aCrop.checked) return {x:0,y:0,w:W,h:H}; var vis=strokes.filter(function(st){ return st.tool!=='eraser'&&st.tool!=='cut'&&getLayer(layerOf(st)).vis; }); var t=vis.length?boxOf(vis):null; if(!t) return {x:0,y:0,w:W,h:H}; var pad=10,x=Math.max(0,Math.floor(t.x0-pad)),y=Math.max(0,Math.floor(t.y0-pad)); return {x:x,y:y,w:Math.max(8,Math.min(W,Math.ceil(t.x1+pad))-x),h:Math.max(8,Math.min(H,Math.ceil(t.y1+pad))-y)}; }
@@ -1366,7 +1356,6 @@
     var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
     (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(seq[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=seq.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
   }
-  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','1) Replay my drawing (or add frames by hand). 2) ▶ Preview. 3) Save GIF or video. At least 2 frames are needed.'));
 
   sec('Export (image for RC)');
   var rSz=row(); lab(rSz,'Image size');
@@ -1483,7 +1472,6 @@
   },'Replaces what you have drawn now. It is first saved as "Previous (auto)".'));
   bar.appendChild(rV1);
   var rVn=row(); var verName=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;width:100%;box-sizing:border-box;'); verName.type='text'; verName.placeholder='Name of new version, e.g. Variant A'; rVn.appendChild(verName); bar.appendChild(rVn);
-  rVn.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Versions are stored in this browser, for this page.'));
   var rV2=row();
   rV2.appendChild(btn('Save as new',function(){
     var v=getVers(), n=(verName.value||'').trim().slice(0,40) || 'Version '+(Object.keys(v).length+1);
@@ -1775,7 +1763,7 @@
       ['Retouch','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'],
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed in RC cannot blend with the page itself.'],
-      ['Animate','Replay my drawing shows the strokes being drawn one after another. Or draw, press + Add, change the drawing, press + Add again, and so on. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
+      ['Animate','Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
       ['Saving','The drawing is autosaved for this page in the browser. Export PNG gives you the image for RC. Save a project file or a version if you want to edit the strokes later.']
     ];
     var man=el('div','margin-top:4px;display:none;');
