@@ -1733,7 +1733,7 @@
         var gn=GROUP[k._t]||'More';
         if(!curG||curG._t!==gn){
           curG=el('div','font-size:12px;letter-spacing:.07em;text-transform:uppercase;font-weight:400;color:#111;margin-top:6px;padding:6px 8px;background:#efefef;border-radius:7px;cursor:pointer;user-select:none;',gn); curG._t=gn;
-          curG._open = st['grp:'+gn]!=null ? !!st['grp:'+gn] : true;
+          curG._open = false;
           gw=el('div','display:flex;flex-direction:column;gap:7px;padding-left:8px;border-left:2px solid #e4e4e4;'); curG._wrap=gw; gs.push(curG);
           bar.appendChild(curG); bar.appendChild(gw);
           (function(g){ g.addEventListener('click',function(){ g._open=!g._open; st['grp:'+g._t]=g._open?1:0; saveSt(); applyGrp(g); }); })(curG);
