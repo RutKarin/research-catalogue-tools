@@ -805,7 +805,7 @@
   var BTN = 'font:inherit;font-size:12.5px;color:#111;background:#fff;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;cursor:pointer;margin:0;';
   function el(t,css,txt){ var x=document.createElement(t); if(css) x.style.cssText=css; if(txt!=null) x.textContent=txt; return x; }
   function row(){ return el('div','display:flex;gap:5px;align-items:center;flex-wrap:wrap;'); }
-  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.gap='5px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt); return b; }
+  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.padding='5px 6px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt); return b; }
   function btn(txt,fn,title){ var b=el('button',BTN,txt); b.type='button'; if(title) b.title=title; b.addEventListener('click',fn); return b; }
   function mark(b,on){ b.style.background=on?'#111':'#fff'; b.style.color=on?'#fff':'#111'; b.style.borderColor=on?'#111':'#c9c9c9'; }
 
@@ -829,11 +829,13 @@
   }
   function chk(r,txt,on,tip){ var l=el('label','font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;'); var i=el('input'); i.type='checkbox'; i.checked=on; l.appendChild(i); l.appendChild(document.createTextNode(txt)); if(tip) l.title=tip; r.appendChild(l); return i; }
 
-  var r1=row(); var bDraw=iconBtn('Draw',['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z','m15 5 4 4'],function(){setDrawing(true);},'Draw (D)'), bPass=iconBtn('Click',['M22 14a8 8 0 0 1-8 8','M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1','M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10','M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],function(){setDrawing(false);},'Click on page (D)');
-  r1.appendChild(bDraw); r1.appendChild(bPass);
+  var r1=row(); r1.style.flexWrap='nowrap'; r1.style.gap='4px'; var bDraw=iconBtn('Draw',['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z','m15 5 4 4'],function(){setDrawing(true);},'Draw (D) – pen and other drawing tools'), bPass=iconBtn('Click',['M22 14a8 8 0 0 1-8 8','M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1','M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10','M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],function(){setDrawing(false);},'Click on page (D)');
+  var bMove=iconBtn('Select',['M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z'],function(){ setDrawing(true); setTool('select'); },'Select and move (S or V)');
+  function markTop(){ var m=drawing&&tool==='select'; mark(bDraw,drawing&&!m); mark(bMove,m); mark(bPass,!drawing); }
+  r1.appendChild(bDraw); r1.appendChild(bMove); r1.appendChild(bPass);
   r1.appendChild(iconBtn('Undo',['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],function(){ undo(); },'Undo (Ctrl+Z)'));
   r1.appendChild(iconBtn('Redo',['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],function(){ redoFn(); },'Redo (Ctrl+Y)'));
-  r1.appendChild(btn('Erase all',function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – Undo brings it back'); } else msg('Nothing to erase'); },'Careful: erases everything you have drawn on all layers (Undo brings it back)'));
+  r1.appendChild(iconBtn('Erase all',['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6','M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'],function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – Undo brings it back'); } else msg('Nothing to erase'); },'Erase all – careful: erases everything you have drawn on all layers (Undo brings it back)'));
   bar.appendChild(r1);
 
   sec('Drawing tools');
@@ -1512,12 +1514,12 @@
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
     tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone') lastDraw=t;
-    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bBlurT,t==='blur'); mark(bSharpT,t==='sharpen'); mark(bSmudgeT,t==='smudge'); mark(bCloneT,t==='clone'); if(t!=='clone') drawCloneMarkOff(); if(typeof pxSz!=='undefined'&&pxSizes[t]!=null) pxSz.value=pxSizes[t]; mark(bSel0,t==='select'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
+    if(typeof markTop==='function') markTop(); mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bBlurT,t==='blur'); mark(bSharpT,t==='sharpen'); mark(bSmudgeT,t==='smudge'); mark(bCloneT,t==='clone'); if(t!=='clone') drawCloneMarkOff(); if(typeof pxSz!=='undefined'&&pxSizes[t]!=null) pxSz.value=pxSizes[t]; mark(bSel0,t==='select'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'||t==='dodge'||t==='burn'); show(rAir2,t==='air'||t==='dodge'||t==='burn'); show(rArrow, t==='line');
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
   function setColor(c){ color=c; changeSel('color'); if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
-  function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click on the page'); }
+  function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; markTop(); msg(d?'Draw mode':'Click mode – you can click on the page'); }
   setTool('pen'); setColor('#111111'); setSize2(3); styleListen();
 
   // dra verktygsfältet
