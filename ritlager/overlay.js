@@ -824,7 +824,7 @@
     var pn=document.createElementNS(NS,'svg'); pn.setAttribute('viewBox','0 0 72 72'); pn.style.cssText='overflow:visible;position:absolute;right:-21.5px;bottom:-9px;width:25px;height:25px;pointer-events:none;';
     var g=document.createElementNS(NS,'g'); g.setAttribute('transform','rotate(45 36 36)'); pn.appendChild(g);
     function sh(tag,at){ var n=document.createElementNS(NS,tag); for(var k in at) n.setAttribute(k,at[k]); g.appendChild(n); }
-    sh('rect',{x:32,y:-9,width:8,height:73,fill:'#111',stroke:'#111','stroke-width':1.6}); sh('polygon',{points:'32,64 40,64 36,82',fill:'#fff',stroke:'#111','stroke-width':1.6,'stroke-linejoin':'round'}); sh('polygon',{points:'34,76 38,76 36,82',fill:'#111'}); sh('rect',{x:32,y:-17,width:8,height:8,rx:2,fill:'#111',stroke:'#111','stroke-width':1.6});
+    sh('rect',{x:32,y:-24,width:8,height:88,fill:'#111',stroke:'#111','stroke-width':1.6}); sh('polygon',{points:'32,64 40,64 36,82',fill:'#fff',stroke:'#111','stroke-width':1.6,'stroke-linejoin':'round'}); sh('polygon',{points:'34,76 38,76 36,82',fill:'#111'}); sh('rect',{x:32,y:-32,width:8,height:8,rx:2,fill:'#111',stroke:'#111','stroke-width':1.6});
     w.appendChild(pn); head.appendChild(w);
   })();
   var hide = btn('Hide', function(){ api.toggle(); }, 'Hide/show (D toggles draw/click)'); hide.style.padding='4px 8px'; hide.style.fontSize='12px';
