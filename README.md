@@ -14,7 +14,8 @@ Features:
 - Pressure sensitivity with a pen tablet, stabilising, sharp–soft, contrast, thin-line modes
 - Export PNG with transparent, white or custom background, or on top of a screenshot of the page
 - Layers with per-layer opacity, export as one image or one PNG per layer
-- Foldable toolbar sections
+- Foldable toolbar sections; remembers your settings; one-click presets and saved colours
+- Colour picker with hex and rgb (screen picker in Chrome/Edge)
 - Autosave, named versions, editable project files, open an old PNG as underlay
 - Save into a chosen folder (Chrome/Edge)
 
