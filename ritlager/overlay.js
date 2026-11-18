@@ -58,7 +58,7 @@
   }
   // an edit that replaces the stroke list: undoable as one step
   function opSnap(fn){ var prev=strokes; strokes=prev.slice(); fn(); ulog.push({t:'s',prev:prev}); redo=[]; rebuild(); }
-  var restyle=true, tgt=[], quietChg=false;
+  var restyle=false, tgt=[], quietChg=false; // changes only reach existing strokes when they are selected
   function targets(){ if(tool==='select'&&sel&&sel.length) return sel; if(!restyle) return []; return tgt.filter(function(st){ return strokes.indexOf(st)>=0; }); }
   function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; }
   function scaleTextProps(n,st,k){ if(st.tool!=='text') return; ['bw','ls','ol','sh','bxl','bxp','fat','sb','ob','bxs'].forEach(function(p){ if(st[p]) n[p]=st[p]*k; }); }
@@ -754,7 +754,7 @@
       bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bTxt=btn('Text tool (T)',function(){setTool('text');},'Text (T): click where the text should go');
   var bSel0=btn('↖ Select',function(){ setTool('select'); },'Select, move and change strokes (S or V). Opacity, Colour and Thickness then change the selected strokes'); 
   var bAir=btn('Airbrush',function(){changeSel('tool','air'); setTool('air');},'Airbrush (A): soft spray that builds up. Hardness sets how soft the edge is, Opacity how strong it can get'); r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bAir); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bSel0); bar.appendChild(r2);
-  var rRs=row(); var rsChk=chk(rRs,'Changes also apply to the last / selected stroke',true,'ON: changing Opacity, Colour, Thickness, style or Pen/Brush/Airbrush also changes the stroke you drew last (dashed blue box) or the one you selected. OFF: they only affect new strokes.'); rsChk.addEventListener('change',function(){ restyle=rsChk.checked; refresh(); msg(restyle?'Changes now also apply to the last / selected stroke':'Changes now only apply to new strokes'); }); bar.appendChild(rRs);
+
 
   sec('Colour');
   var r3=row(), sw=[];
@@ -1521,7 +1521,7 @@
   // ---- presets and remembered settings ----
   var thinSelRef=thinSel;
   function getSettings(all){
-    var o={tool:(tool==='eraser'?lastDraw:tool),color:color,size:+size.toFixed(2),nib:nibSel.value,soft:+soft.value,dry:+dry.value,ink:+ink.value,sens:+sens.value,pr:pr.checked,pm:pm.value,sm:+sm.value,thin:thinSel.value,arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value,rs:restyle};
+    var o={tool:(tool==='eraser'?lastDraw:tool),color:color,size:+size.toFixed(2),nib:nibSel.value,soft:+soft.value,dry:+dry.value,ink:+ink.value,sens:+sens.value,pr:pr.checked,pm:pm.value,sm:+sm.value,thin:thinSel.value,arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value};
     if(all){ o.csel=csel.value; o.bg=bgSel.value; o.bgc=bgCol.value; o.ly=lySel.value; o.ask=askEl.checked; o.tool=tool; if(bar.style.left){ o.x=parseFloat(bar.style.left); o.y=parseFloat(bar.style.top); } }
     return o;
   }
@@ -1531,7 +1531,7 @@
   function applySettings2(o){
     if(o.nib) nibSel.value=o.nib; if(o.soft!=null) soft.value=o.soft; if(o.dry!=null) dry.value=o.dry; if(o.ink!=null) ink.value=o.ink;
     if(o.sens!=null) sens.value=o.sens; if(o.pr!=null) pr.checked=o.pr; if(o.pm) pm.value=o.pm; if(o.sm!=null) sm.value=o.sm;
-    if(o.rs!=null){ restyle=!!o.rs; rsChk.checked=restyle; } if(o.hard!=null) airHard.value=o.hard; if(o.flow!=null) airFlow.value=o.flow; if(o.thin) thinSel.value=o.thin; if(o.arrow!=null) ar.checked=o.arrow;
+    if(o.hard!=null) airHard.value=o.hard; if(o.flow!=null) airFlow.value=o.flow; if(o.thin) thinSel.value=o.thin; if(o.arrow!=null) ar.checked=o.arrow;
     if(o.csel){ csel.value=o.csel; hint(); } if(o.bg){ bgSel.value=o.bg; bgCol.style.display=bgSel.value==='color'?'inline-block':'none'; } if(o.bgc) bgCol.value=o.bgc;
     if(o.ly) lySel.value=o.ly; if(o.ask!=null) askEl.checked=o.ask;
     if(o.tool) setTool(o.tool); if(o.color) setColor(o.color); if(o.size!=null) setSize2(o.size);
