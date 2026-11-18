@@ -44,6 +44,27 @@
 
   var ref=null, rscale=1, under=null, moveUnder=false, contrast=0, tool='pen', color='#111111', size=6, drawing=true, visible=true;
   var strokes=[], redo=[], cur=null, lastBlob=null;
+  var layers=[{id:1,name:'Layer 1',vis:true,op:100}], act=1, nextLid=2, tmp=document.createElement('canvas');
+  function layerOf(s){ return s.l||layers[0].id; }
+  function getLayer(id){ for(var i=0;i<layers.length;i++) if(layers[i].id===id) return layers[i]; return layers[layers.length-1]; }
+  function topVisibleId(){ for(var i=layers.length-1;i>=0;i--) if(layers[i].vis) return layers[i].id; return -1; }
+  // Draw the underlay and all visible layers (each with its own opacity) onto target. setup(ctx) applies a transform. only = draw just that layer id.
+  function compose(target,setup,only){
+    if(layers.length===1&&layers[0].op>=100&&only==null){
+      target.save(); setup(target); if(under) target.drawImage(under.img,under.x,under.y); strokes.forEach(function(st){ render(target,st); }); target.restore(); return;
+    }
+    var tw=target.canvas.width, th=target.canvas.height;
+    if(tmp.width!==tw||tmp.height!==th){ tmp.width=tw; tmp.height=th; }
+    var tc=tmp.getContext('2d');
+    if(under&&only==null){ target.save(); setup(target); target.drawImage(under.img,under.x,under.y); target.restore(); }
+    layers.forEach(function(L){
+      if(!L.vis||(only!=null&&L.id!==only)) return;
+      var mine=strokes.filter(function(st){ return layerOf(st)===L.id; }); if(!mine.length) return;
+      tc.setTransform(1,0,0,1,0,0); tc.clearRect(0,0,tw,th); tc.save(); setup(tc);
+      mine.forEach(function(st){ render(tc,st); }); tc.restore();
+      target.save(); target.setTransform(1,0,0,1,0,0); target.globalAlpha=L.op/100; target.drawImage(tmp,0,0); target.restore();
+    });
+  }
   // ---- autospara: ritningen minns sidan i den här webbläsaren (localStorage) ----
   var KEY='ritlager:'+location.origin+location.pathname+location.search, ready=false, saveT=null, warned=false;
   function persist(){
@@ -56,12 +77,16 @@
   }
   var SKEY='ritlager-versioner:'+location.origin+location.pathname+location.search;
   function pack(withRef){
-    return {v:1,t:Date.now(),c:contrast,ref:(withRef&&ref)?{src:ref.c.toDataURL('image/png'),sx:ref.sx,sy:ref.sy,w:ref.w,h:ref.h,k:ref.k}:undefined,under:under?{src:under.src,x:under.x,y:under.y}:null,strokes:strokes.map(function(s){ var o={}; for(var k in s) if(k!=='pts'&&k!=='sm') o[k]=s[k];
+    return {v:1,t:Date.now(),c:contrast,ref:(withRef&&ref)?{src:ref.c.toDataURL('image/png'),sx:ref.sx,sy:ref.sy,w:ref.w,h:ref.h,k:ref.k}:undefined,under:under?{src:under.src,x:under.x,y:under.y}:null,layers:layers.map(function(L){ return {id:L.id,name:L.name,vis:L.vis,op:L.op}; }),act:act,strokes:strokes.map(function(s){ var o={}; for(var k in s) if(k!=='pts'&&k!=='sm') o[k]=s[k];
       o.pts=s.pts.map(function(p){ return [Math.round(p.x*10)/10,Math.round(p.y*10)/10,Math.round(p.p*100)/100]; }); return o; })};
   }
   function unpack(d){
     if(!d||!d.strokes) return -1;
     strokes=d.strokes.map(function(o){ o.pts=o.pts.map(function(p){ return {x:p[0],y:p[1],p:p[2]}; }); return o; });
+    layers = (d.layers&&d.layers.length) ? d.layers.map(function(L){ return {id:L.id,name:L.name,vis:L.vis!==false,op:L.op==null?100:L.op}; }) : [{id:1,name:'Layer 1',vis:true,op:100}];
+    act = d.act&&layers.some(function(L){ return L.id===d.act; }) ? d.act : layers[layers.length-1].id;
+    nextLid = layers.reduce(function(m,L){ return Math.max(m,L.id); },0)+1;
+    if(typeof drawLayerUI==='function'&&layerBox) drawLayerUI();
     contrast=+d.c||0; ctr.value=contrast; redo=[]; under=null;
     if(d.under&&d.under.src){ var im=new Image(); im.onload=function(){ under={img:im,x:d.under.x||0,y:d.under.y||0,src:d.under.src}; rebuild(); }; im.src=d.under.src; }
     if(d.ref&&d.ref.src){ var ri=new Image(); ri.onload=function(){ var rc=document.createElement('canvas'); rc.width=ri.width; rc.height=ri.height; rc.getContext('2d').drawImage(ri,0,0); ref={c:rc,sx:d.ref.sx,sy:d.ref.sy,w:d.ref.w,h:d.ref.h,k:d.ref.k}; updateRefInfo(); }; ri.src=d.ref.src; }
@@ -279,8 +304,17 @@
     if(cv.parentNode!==host) host.appendChild(cv);
   }
   function rescan(){ if(scPos){ scPos.style.position=''; scPos=null; } SC=findScroller(); placeCanvas(); measure(); setSize(); }
-  function rebuild(){ bctx.clearRect(0,0,W,H); if(under) bctx.drawImage(under.img,under.x,under.y); strokes.forEach(function(s){render(bctx,s);}); refresh(); persist(); }
-  function refresh(){ ctx.clearRect(0,0,W,H); ctx.drawImage(base,0,0); if(cur) render(ctx,cur); }
+  function rebuild(){ bctx.clearRect(0,0,W,H); compose(bctx,function(){}); refresh(); persist(); }
+  function refresh(){
+    ctx.clearRect(0,0,W,H); ctx.drawImage(base,0,0);
+    if(!cur) return;
+    var L=getLayer(layerOf(cur));
+    if(cur.tool!=='eraser'&&L.op<100){
+      if(tmp.width!==W||tmp.height!==H){ tmp.width=W; tmp.height=H; }
+      var tc=tmp.getContext('2d'); tc.setTransform(1,0,0,1,0,0); tc.clearRect(0,0,W,H); render(tc,cur);
+      ctx.save(); ctx.globalAlpha=L.op/100; ctx.drawImage(tmp,0,0); ctx.restore();
+    } else render(ctx,cur);
+  }
 
   // ---- inmatning (dokumentkoordinater) ----
   function cpt(e){ var r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
@@ -301,8 +335,9 @@
     if(!drawing || e.pointerType==='touch') return;
     if(e.pointerType==='mouse' && e.button!==0) return;
     cv.setPointerCapture(e.pointerId);
+    if(!getLayer(act).vis){ msg('This layer is hidden – show it to draw on it'); return; }
     var q=pos(e);
-    cur={tool:(tool==='brush'?'pen':tool),color:color,size:size,soft:+soft.value,sens:+sens.value/100,ink:+ink.value/100,pressure:pr.checked, brush:tool==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
+    cur={l:act,tool:(tool==='brush'?'pen':tool),color:color,size:size,soft:+soft.value,sens:+sens.value/100,ink:+ink.value/100,pressure:pr.checked, brush:tool==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
          arrow:ar.checked,pts:[q],sm:{x:q.x,y:q.y,p:q.p}};
     e.preventDefault(); refresh();
   });
@@ -330,7 +365,9 @@
   });
   function end(){
     if(!cur) return;
-    delete cur.sm; strokes.push(cur); redo=[]; render(bctx,cur); cur=null; refresh(); persist();
+    delete cur.sm; strokes.push(cur); redo=[];
+    var L=getLayer(layerOf(cur)), fast = layers.length===1 ? L.op>=100 : (cur.tool!=='eraser'&&L.op>=100&&L.id===topVisibleId());
+    if(fast){ render(bctx,cur); cur=null; refresh(); persist(); } else { cur=null; rebuild(); }
   }
   function endAny(e){ if(ug){ ug=null; persist(); return; } end(e); }
   cv.addEventListener('pointerup', endAny); cv.addEventListener('pointercancel', endAny);
@@ -353,7 +390,8 @@
   hg.appendChild(quick); hg.appendChild(hide); head.appendChild(hg);
   bar.appendChild(head);
 
-  function sec(t){ var d=el('div','font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#999;margin-top:3px;border-top:1px solid #e4e4e4;padding-top:6px;',t); bar.appendChild(d); return d; }
+  function sec(t){ var d=el('div','font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-top:3px;border-top:1px solid #e4e4e4;padding-top:6px;cursor:pointer;user-select:none;',t); d.setAttribute('data-sec',t); d._t=t; d._open=true; d._hidden=false; bar.appendChild(d); return d; }
+  function applySec(h){ if(!h._wrap) return; h.textContent=(h._open?'▾ ':'▸ ')+h._t; h.style.display=h._hidden?'none':'block'; h._wrap.style.display=(h._open&&!h._hidden)?'flex':'none'; }
   function lab(r,t){ r.appendChild(el('span','font-size:12px;color:#666;',t)); }
   function slider(r,min,max,val,w){ var i=el('input','width:'+w+'px;accent-color:#111;'); i.type='range'; i.min=min; i.max=max; i.value=val; r.appendChild(i); return i; }
   function chk(r,txt,on,tip){ var l=el('label','font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;'); var i=el('input'); i.type='checkbox'; i.checked=on; l.appendChild(i); l.appendChild(document.createTextNode(txt)); if(tip) l.title=tip; r.appendChild(l); return i; }
@@ -434,12 +472,41 @@
   r7.appendChild(btn('Clear',function(){ if(strokes.length){redo=strokes.slice().reverse(); strokes=[]; rebuild(); msg('Cleared – ↶ undoes');} }));
   r7.appendChild(btn('Re-measure',function(){ rescan(); msg('Canvas is now '+W+' × '+H+' px'+(SC?' (inside the page’s scroll area)':'')); },'Resize the canvas if the page has grown longer'));
   bar.appendChild(r7);
-  var rAr=row(); lab(rAr,'Canvas area');
-  var arSel=el('select',BTN+'padding:3px 6px;');
-  [['page','Whole page (scrolls)'],['view','Visible area only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; arSel.appendChild(op); });
-  arSel.title='Whole page: you can scroll and draw anywhere on the page (default). Visible area only: a canvas covering just what is on screen now – choose this before you start drawing.';
-  arSel.addEventListener('change',function(){ area=arSel.value; if(strokes.length||under) msg('Positions shift when you change area – best to switch before drawing',4500); rescan(); });
-  rAr.appendChild(arSel); bar.appendChild(rAr);
+
+  sec('Layers');
+  var layerBox=el('div','display:flex;flex-direction:column;gap:5px;'); bar.appendChild(layerBox);
+  var lRaf=0; function lRebuild(){ cancelAnimationFrame(lRaf); lRaf=requestAnimationFrame(rebuild); }
+  function markLayers(){ Array.prototype.forEach.call(layerBox.children,function(d){ d.style.background = (+d.getAttribute('data-id')===act) ? '#e9e9e9' : '#fff'; d.style.borderColor = (+d.getAttribute('data-id')===act) ? '#111' : '#d4d4d4'; }); }
+  function drawLayerUI(){
+    layerBox.innerHTML='';
+    for(var i=layers.length-1;i>=0;i--) (function(L,idx){
+      var d=el('div','border:1px solid #d4d4d4;border-radius:7px;padding:4px 5px;display:flex;flex-direction:column;gap:4px;background:#fff;'); d.setAttribute('data-id',L.id);
+      var r1=row(); r1.style.flexWrap='nowrap';
+      var nm=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:5px;padding:3px 6px;flex:1;min-width:0;box-sizing:border-box;'); nm.type='text'; nm.value=L.name; nm.maxLength=30;
+      nm.addEventListener('focus',function(){ act=L.id; markLayers(); }); nm.addEventListener('input',function(){ L.name=nm.value; persist(); });
+      var eye=chk(r1,'Show',L.vis); r1.insertBefore(nm,r1.firstChild);
+      eye.addEventListener('change',function(){ L.vis=eye.checked; rebuild(); });
+      r1.appendChild(btn('✕',function(){
+        if(layers.length<2){ msg('At least one layer is needed'); return; }
+        backupCurrent(); strokes=strokes.filter(function(st){ return layerOf(st)!==L.id; }); redo=[];
+        layers.splice(layers.indexOf(L),1); if(act===L.id) act=layers[layers.length-1].id; drawLayerUI(); rebuild(); msg('Layer deleted (your previous drawing is saved as "Previous (auto)")');
+      },'Delete this layer and its strokes'));
+      var r2=row(); r2.style.flexWrap='nowrap'; lab(r2,'Opacity'); var op=slider(r2,0,100,L.op,70); op.title='Opacity of the whole layer';
+      var opv=el('span','font-size:11px;color:#666;width:30px;',L.op+'%'); r2.appendChild(opv);
+      op.addEventListener('input',function(){ L.op=+op.value; opv.textContent=L.op+'%'; lRebuild(); });
+      r2.appendChild(btn('↑',function(){ var k=layers.indexOf(L); if(k<layers.length-1){ layers.splice(k,1); layers.splice(k+1,0,L); drawLayerUI(); rebuild(); } },'Move layer up (in front)'));
+      r2.appendChild(btn('↓',function(){ var k=layers.indexOf(L); if(k>0){ layers.splice(k,1); layers.splice(k-1,0,L); drawLayerUI(); rebuild(); } },'Move layer down (behind)'));
+      d.appendChild(r1); d.appendChild(r2);
+      d.addEventListener('pointerdown',function(e){ if(e.target.tagName==='BUTTON') return; act=L.id; markLayers(); });
+      layerBox.appendChild(d);
+    })(layers[i],i);
+    markLayers();
+  }
+  var rLa=row();
+  rLa.appendChild(btn('+ Add layer',function(){ var L={id:nextLid++,name:'Layer '+(layers.length+1),vis:true,op:100}; layers.push(L); act=L.id; drawLayerUI(); persist(); }));
+  bar.appendChild(rLa);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Drawing and the eraser work on the highlighted layer. Layers are exported together or as separate PNGs (see Export).'));
+  drawLayerUI();
 
   sec('Export (image for RC)');
   var rSz=row(); lab(rSz,'Image size');
@@ -447,6 +514,11 @@
   [['full','Whole page'],['crop','Strokes only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; csel.appendChild(op); });
   rSz.appendChild(csel); bar.appendChild(rSz);
   var cr={ get checked(){ return csel.value==='crop'; } };
+  var rLy=row(); lab(rLy,'Layers');
+  var lySel=el('select',BTN+'padding:3px 6px;');
+  [['all','All in one image'],['each','Each layer as its own PNG'],['active','Active layer only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; lySel.appendChild(op); });
+  lySel.title='Use “Each layer” to get one PNG per layer, e.g. one to place over objects in RC and one under.';
+  rLy.appendChild(lySel); bar.appendChild(rLy);
   var szHint=el('div','font-size:11px;color:#777;line-height:1.35;');
   function hint(){ szHint.textContent = csel.value==='crop' ? 'Strokes only: the image is cropped to the area around your strokes. Smaller file, but you have to place it yourself in RC.' : 'Whole page: the image is as large as the page. Place it at the page top-left in RC and the strokes line up exactly.'; }
   csel.addEventListener('change',hint); hint(); bar.appendChild(szHint);
@@ -567,7 +639,7 @@
     tool=t; if(t!=='eraser') lastDraw=t;
     mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bLine,t==='line'); mark(bEr,t==='eraser');
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser'); show(rDry, t==='brush'); show(rArrow, t==='line');
-    var pressOK = t!=='line'; secPress.style.display=pressOK?'block':'none'; show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
+    var pressOK = t!=='line'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
   function setColor(c){ color=c; if(c.length===7) cp.value=c; sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
   function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click in RC'); }
@@ -639,17 +711,23 @@
     if(window.showSaveFilePicker && askEl.checked) viaPicker(); else viaDownload();
   }
   function exportPng(mode){
-    try{ exportPng2(mode); }catch(e){ msg('Export failed: '+(e&&e.message?e.message:e)+'. Try Image size: Strokes only.'); }
+    try{
+      if(mode==='save'&&lySel.value==='each'&&bgSel.value!=='shot'){
+        var L2=layers.filter(function(L){ return L.vis&&strokes.some(function(st){ return layerOf(st)===L.id; }); });
+        if(!L2.length){ msg('Draw something first'); return; }
+        L2.forEach(function(L,i){ setTimeout(function(){ try{ exportPng2('save',L.id,L.name); }catch(e){ msg('Export failed: '+(e&&e.message?e.message:e)); } },i*400); });
+        return;
+      }
+      exportPng2(mode, lySel.value==='active' ? act : null);
+    }catch(e){ msg('Export failed: '+(e&&e.message?e.message:e)+'. Try Image size: Strokes only.'); }
   }
-  function exportPng2(mode){
+  function exportPng2(mode,only,label){
     var b, out, oc;
     if(bgSel.value==='shot'){
       if(!ref){ msg('Capture a screenshot first (Capture screenshot)'); return; }
       out=document.createElement('canvas'); out.width=ref.c.width; out.height=ref.c.height; oc=out.getContext('2d');
       oc.drawImage(ref.c,0,0);
-      oc.save(); oc.scale(ref.k,ref.k); oc.translate(-ref.sx,-ref.sy); rscale=ref.k;
-      if(under) oc.drawImage(under.img,under.x,under.y);
-      strokes.forEach(function(st){ render(oc,st); }); rscale=1; oc.restore();
+      rscale=ref.k; compose(oc,function(c){ c.scale(ref.k,ref.k); c.translate(-ref.sx,-ref.sy); },only==null?null:only); rscale=1;
       b={x:ref.sx,y:ref.sy,w:out.width,h:out.height};
     } else {
       if(!strokes.length&&!under){ msg('Draw something first'); return; }
@@ -657,11 +735,12 @@
       if(cr.checked){ var t=bounds(); if(t){ var pad=8,x=Math.max(0,t.x-pad),y=Math.max(0,t.y-pad); b={x:x,y:y,w:Math.min(W,t.x+t.w+pad)-x,h:Math.min(H,t.y+t.h+pad)-y}; } }
       out=document.createElement('canvas'); out.width=b.w; out.height=b.h;
       oc=out.getContext('2d'); var bgv=bgValue(); if(bgv){ oc.fillStyle=bgv; oc.fillRect(0,0,b.w,b.h); }
-      oc.drawImage(base,b.x,b.y,b.w,b.h,0,0,b.w,b.h);
+      if(only==null&&layers.length===1&&layers[0].op>=100) oc.drawImage(base,b.x,b.y,b.w,b.h,0,0,b.w,b.h);
+      else compose(oc,function(c){ c.translate(-b.x,-b.y); },only==null?null:only);
     }
     out.toBlob(function(bl){
       if(!bl){ msg('The image became too large for the browser. Choose Image size: Strokes only.'); return; }
-      lastBlob=bl; lastName=fname('ritlager-'+b.w+'x'+b.h,'.png');
+      lastBlob=bl; var tag=label?'-'+String(label).replace(/[^\w-]+/g,'_'):''; lastName=fname('ritlager'+tag+'-'+b.w+'x'+b.h,'.png',tag);
       if(mode==='copy'){
         try{ navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(function(){msg('Image copied');},function(){msg('Copying was denied – use Export PNG');}); }
         catch(e){ msg('Copying is not supported here – use Export PNG'); }
@@ -693,6 +772,23 @@
   };
   window.__ritlager=api;
 
+  // ---- collapsible sections (remembered between visits) ----
+  (function(){
+    var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
+    var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1};
+    var hs=[], curH=null, wrap=null;
+    Array.prototype.slice.call(bar.children).forEach(function(k){
+      if(k.hasAttribute&&k.hasAttribute('data-sec')){
+        curH=k; hs.push(k); wrap=el('div','display:flex;flex-direction:column;gap:7px;'); k._wrap=wrap;
+        k._open = st[k._t]!=null ? !!st[k._t] : !closedDefault[k._t];
+        bar.appendChild(k); bar.appendChild(wrap);
+        k.addEventListener('click',function(){ k._open=!k._open; st[k._t]=k._open?1:0; try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} applySec(k); });
+      } else if(curH){ wrap.appendChild(k); }
+    });
+    hs.forEach(applySec);
+    var allBtn=btn('⇕',function(){ var anyOpen=hs.some(function(h){ return h._open&&!h._hidden; }); hs.forEach(function(h){ h._open=!anyOpen; st[h._t]=h._open?1:0; applySec(h); }); try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} },'Collapse / expand all sections');
+    hg.insertBefore(allBtn,hg.firstChild);
+  })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   setSize(); setDrawing(true);
   var nRest=restore();

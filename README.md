@@ -13,6 +13,8 @@ Features:
 - Pen, brush, line (with arrowhead) and eraser; pen styles: round, square, flat, pencil, marker, ink, watercolour
 - Pressure sensitivity with a pen tablet, stabilising, sharp–soft, contrast, thin-line modes
 - Export PNG with transparent, white or custom background, or on top of a screenshot of the page
+- Layers with per-layer opacity, export as one image or one PNG per layer
+- Foldable toolbar sections
 - Autosave, named versions, editable project files, open an old PNG as underlay
 - Save into a chosen folder (Chrome/Edge)
 
