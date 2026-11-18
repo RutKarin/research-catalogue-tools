@@ -719,6 +719,13 @@
   function applySec(h){ if(!h._wrap) return; h.textContent=(h._open?'▾ ':'▸ ')+h._t; h.style.display=(h._hidden||h._flat)?'none':'block'; h._wrap.style.display=(h._open&&!h._hidden)?'flex':'none'; }
   function lab(r,t){ r.appendChild(el('span','font-size:12px;color:#666;',t)); }
   function slider(r,min,max,val,w){ var i=el('input','width:'+w+'px;accent-color:#111;'); i.type='range'; i.min=min; i.max=max; i.value=val; r.appendChild(i); return i; }
+  function liveVal(inp,suf){
+    var sp=el('span','font-size:11.5px;color:#444;min-width:34px;text-align:right;'); inp.parentNode&&inp.parentNode.appendChild(sp);
+    function upd(){ sp.textContent=inp.value+(suf==null?'%':suf); }
+    var d=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+    Object.defineProperty(inp,'value',{get:function(){ return d.get.call(inp); },set:function(v){ d.set.call(inp,v); upd(); },configurable:true});
+    inp.addEventListener('input',upd); upd(); return inp;
+  }
   function chk(r,txt,on,tip){ var l=el('label','font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;'); var i=el('input'); i.type='checkbox'; i.checked=on; l.appendChild(i); l.appendChild(document.createTextNode(txt)); if(tip) l.title=tip; r.appendChild(l); return i; }
 
   var r1=row(); var bDraw=btn('Draw',function(){setDrawing(true);},'Draw on the page (D)'), bPass=btn('Click',function(){setDrawing(false);},'Click through to the page (D)');
@@ -780,10 +787,10 @@
     if(!d||d[3]===0){ msg('Nothing to pick there. In this browser, first press “Capture screenshot” (under Export) to use the pipette on the page.',5500); return; }
     var c='#'+hex2(d[0])+hex2(d[1])+hex2(d[2]); setColor(c); msg('Picked '+c.toUpperCase());
   }
-  var r3b=row(); lab(r3b,'Opacity'); var ink=slider(r3b,5,100,100,100); ink.title='How dark/dense the colour is. 100 = full black';
+  var r3b=row(); lab(r3b,'Opacity'); var ink=slider(r3b,5,100,100,100); liveVal(ink); ink.title='How dark/dense the colour is. 100 = full black';
   bar.appendChild(r3b);
-  var rC=row(); lab(rC,'Contrast'); var ctr=slider(rC,0,100,0,110);
-  ctr.title='Redraws strokes several times so light and thin strokes get darker. High = thin strokes turn fully black. Applies to all strokes, including already drawn ones (not the brush).';
+  var rC=row(); lab(rC,'Contrast'); var ctr=slider(rC,0,100,0,110); liveVal(ctr);
+  ctr.title='Redraws strokes several times so light and thin strokes get darker. High = thin strokes turn fully black. Applies to all strokes, including already drawn ones. It only changes strokes that are thin or less than fully opaque – solid thick strokes at 100% opacity look the same. It does not affect Brush, Airbrush, text or pictures.';
   var ctrRaf=0; ctr.addEventListener('input',function(){ contrast=+ctr.value; cancelAnimationFrame(ctrRaf); ctrRaf=requestAnimationFrame(rebuild); });
   bar.appendChild(rC);
 
@@ -821,8 +828,8 @@
   nibSel.title='Round: soft round tip. Square: tip with corners. Flat: calligraphy nib, thin in one direction. Pencil: grainy, like pencil on paper. Marker: transparent highlighter. Ink: soft ink pen with drops and tapering ends. Watercolour: transparent wash with darker edges and pigment grain.';
   rNib.appendChild(nibSel); bar.appendChild(rNib);
   var rSoft=row(); lab(rSoft,'Sharp'); var soft=slider(rSoft,0,100,0,100); lab(rSoft,'Soft'); bar.appendChild(rSoft);
-  var rAir=row(); lab(rAir,'Hardness'); var airHard=slider(rAir,0,100,20,100); airHard.title='0 = very soft, 100 = hard edge'; bar.appendChild(rAir);
-  var rAir2=row(); lab(rAir2,'Build-up'); var airFlow=slider(rAir2,5,100,35,100); airFlow.title='How fast the colour builds up when you go over the same place'; bar.appendChild(rAir2);
+  var rAir=row(); lab(rAir,'Hardness'); var airHard=slider(rAir,0,100,20,100); liveVal(airHard); airHard.title='0 = very soft, 100 = hard edge'; bar.appendChild(rAir);
+  var rAir2=row(); lab(rAir2,'Build-up'); var airFlow=slider(rAir2,5,100,35,100); liveVal(airFlow); airFlow.title='How fast the colour builds up when you go over the same place'; bar.appendChild(rAir2);
   var rDry=row(); lab(rDry,'Brush dryness'); var dry=slider(rDry,0,100,30,90); bar.appendChild(rDry);
   var rArrow=row(); var ar=chk(rArrow,'Arrowhead on lines',false,'Adds an arrowhead at the end of straight lines drawn with the Line tool.'); bar.appendChild(rArrow);
 
@@ -862,15 +869,15 @@
   var rT4=row(); lab(rT4,'Letter spacing'); var txLs=slider(rT4,-5,40,0,110);
   var rT5=row(); lab(rT5,'Line height'); var txLh=slider(rT5,80,250,125,110); txLh.title='in % of the text size';
   var rO0=row(); var txOlOn=chk(rO0,'Outline',false,'A line around every letter'); var rT6=row(); lab(rT6,'Width'); var txOl=slider(rT6,1,20,4,90); var txOlc=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txOlc.type='color'; txOlc.value='#e0245e'; txOlc.title='Outline colour'; rO0.appendChild(txOlc);
-  var rTa=row(); lab(rTa,'Fill inside'); var txFa=slider(rTa,0,100,100,110); txFa.title='100 = solid letters. Lower = see-through inside; 0 = only the outline is drawn';
+  var rTa=row(); lab(rTa,'Fill inside'); var txFa=slider(rTa,0,100,100,110); liveVal(txFa); txFa.title='100 = solid letters. Lower = see-through inside; 0 = only the outline is drawn';
   var rTb=row(); lab(rTb,'Letter softness'); var txSb=slider(rTb,0,25,0,100); txSb.title='Blurs the edges of the letters';
-  var rTc=row(); lab(rTc,'Text opacity'); var txTo=slider(rTc,0,100,100,110);
+  var rTc=row(); lab(rTc,'Text opacity'); var txTo=slider(rTc,0,100,100,110); liveVal(txTo);
   var rTd=row(); lab(rTd,'Softness'); var txOb=slider(rTd,0,25,0,100); txOb.title='Blurs the outline';
-  var rTe=row(); lab(rTe,'Opacity'); var txOo=slider(rTe,0,100,100,110);
+  var rTe=row(); lab(rTe,'Opacity'); var txOo=slider(rTe,0,100,100,110); liveVal(txOo);
   var rS0=row(); var txShOn=chk(rS0,'Shadow',false,'Drop shadow behind the text'); var rT7=row(); lab(rT7,'Size'); var txSh=slider(rT7,1,30,8,110);
   var COLS='width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;';
   var rT9=row(); var txBx=chk(rT9,'Box behind text',false,'A coloured box with an optional border behind the text'); var txBxc=el('input',COLS); txBxc.type='color'; txBxc.value='#ffffff'; txBxc.title='Fill colour inside the box'; rT9.appendChild(txBxc);
-  var rBs=row(); lab(rBs,'Softness'); var txBxs=slider(rBs,0,30,0,110); txBxs.title='Blurs the edge of the box'; var rBo=row(); lab(rBo,'Opacity'); var txBxo=slider(rBo,0,100,100,110);
+  var rBs=row(); lab(rBs,'Softness'); var txBxs=slider(rBs,0,30,0,110); txBxs.title='Blurs the edge of the box'; var rBo=row(); lab(rBo,'Opacity'); var txBxo=slider(rBo,0,100,100,110); liveVal(txBxo);
   var rT10=row(); lab(rT10,'Border'); var txBxl=slider(rT10,0,16,2,80); var txBxlc=el('input',COLS); txBxlc.type='color'; txBxlc.value='#111111'; txBxlc.title='Border colour'; rT10.appendChild(txBxlc);
   var rT11=row(); lab(rT11,'Padding'); var txBxp=slider(rT11,0,60,8,110);
   function curProps(){ return {ff:curFF(),size:+txSize.value||32,it:txIt.checked,bd:txBd.checked,fa:+txFa.value,sb:+txSb.value,to:+txTo.value,ob:+txOb.value,oo:+txOo.value,wt:+txWt.value,fat:+txFat.value,color:txCol.value,al:txAl.value,bw:+txBw.value||0,ls:+txLs.value,lh:(+txLh.value||125)/100,ol:txOlOn.checked?Math.max(1,+txOl.value):0,olc:txOlc.value,sh:txShOn.checked?Math.max(1,+txSh.value):0,bxs:+txBxs.value,bxo:+txBxo.value,bx:txBx.checked,bxc:txBxc.value,bxl:+txBxl.value,bxlc:txBxlc.value,bxp:+txBxp.value}; }
