@@ -14,10 +14,11 @@ async function onActionClick(tab) {
     });
     await api.action.setBadgeText({ tabId: tab.id, text: '' });
   } catch (e) {
+    console.error('Ritlager could not start on this page:', e);
     // Browser-internal pages (chrome://, edge://, about:, the web stores …) don't allow extensions.
     await api.action.setBadgeBackgroundColor({ tabId: tab.id, color: '#d6282b' });
     await api.action.setBadgeText({ tabId: tab.id, text: '!' });
-    await api.action.setTitle({ tabId: tab.id, title: 'Ritlager can’t run on this page' });
+    await api.action.setTitle({ tabId: tab.id, title: 'Ritlager can’t run on this page. Reason: ' + String((e && e.message) || e) });
   }
 }
 
