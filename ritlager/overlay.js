@@ -805,7 +805,7 @@
   var BTN = 'font:inherit;font-size:12.5px;color:#111;background:#fff;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;cursor:pointer;margin:0;';
   function el(t,css,txt){ var x=document.createElement(t); if(css) x.style.cssText=css; if(txt!=null) x.textContent=txt; return x; }
   function row(){ return el('div','display:flex;gap:5px;align-items:center;flex-wrap:wrap;'); }
-  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.padding='5px 6px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt); if(txt==='Use page'){ b.appendChild(document.createTextNode(txt)); b.style.gap='6px'; }
+  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.padding=txt==='Use page'?'5px 8px':'5px 4px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt); if(txt==='Use page'){ b.appendChild(document.createTextNode(txt)); b.style.gap='6px'; }
     b.removeAttribute('title'); if(title&&txt==='Erase all'){ var tip=null, tipT=0;
       b.addEventListener('mouseenter',function(){ var r=b.getBoundingClientRect(); tip=document.createElement('div'); tip.textContent=title; tip.style.cssText='position:fixed;z-index:2147483647;pointer-events:none;background:#111;color:#fff;font:300 12px system-ui,sans-serif;padding:4px 8px;border-radius:6px;max-width:220px;line-height:1.3;top:'+(r.bottom+6)+'px;'; document.documentElement.appendChild(tip); clearTimeout(tipT); tipT=setTimeout(function(){ if(tip){ tip.remove(); tip=null; } },1800); var w=tip.offsetWidth; tip.style.left=Math.max(4,Math.min(window.innerWidth-w-4,r.left+r.width/2-w/2))+'px'; });
       b.addEventListener('mouseleave',function(){ if(tip){ tip.remove(); tip=null; } });
@@ -835,12 +835,19 @@
   function chk(r,txt,on,tip){ var l=el('label','font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;'); var i=el('input'); i.type='checkbox'; i.checked=on; l.appendChild(i); l.appendChild(document.createTextNode(txt)); if(tip) l.title=tip; r.appendChild(l); return i; }
 
   function eraseAll(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – Undo brings it back'); } else msg('Nothing to erase'); }
-  var r1=row(); r1.style.flexWrap='nowrap'; r1.style.gap='4px'; var bDraw=iconBtn('Draw',['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z','m15 5 4 4'],function(){ setDrawing(true); if(tool==='select'||tool==='cut') setTool(lastDraw||'pen'); },'Draw (D) – pen and other drawing tools'), bPass=iconBtn('Use page',['M22 14a8 8 0 0 1-8 8','M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1','M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10','M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],function(){ setDrawing(!drawing); },'Use the page: scroll and click (H). Press again to draw.');
+  function saveProject(){
+    var bl=new Blob([JSON.stringify(pack(true))],{type:'application/json'});
+    saveBlob(bl,fname('ritlager-project','.json'),'The project file is editable and can be reopened, even on another computer.');
+  }
+  var r1=row(); r1.style.flexWrap='nowrap'; r1.style.gap='3px'; var bDraw=iconBtn('Draw',['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z','m15 5 4 4'],function(){ setDrawing(true); if(tool==='select'||tool==='cut'||tool==='eraser') setTool(lastDraw||'pen'); },'Draw (D) – pen and other drawing tools'), bPass=iconBtn('Use page',['M22 14a8 8 0 0 1-8 8','M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1','M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10','M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],function(){ setDrawing(!drawing); },'Use the page: scroll and click (H). Press again to draw.');
   var bMove=iconBtn('Select',['M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z'],function(){ setDrawing(true); setTool('select'); },'Select and move (V)');
-  function markTop(){ var m=drawing&&tool==='select'; mark(bDraw,drawing&&!m); mark(bMove,m); mark(bPass,!drawing); }
-  r1.appendChild(bDraw); r1.appendChild(bMove); hg.appendChild(bPass); hg.appendChild(hide);
+  var bEr=iconBtn('Eraser',['m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21','M22 21H7','m5 11 9 9'],function(){ setDrawing(true); setTool('eraser'); },'Eraser (E)');
+  var bSv=iconBtn('Save',['M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z','M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7','M7 3v4a1 1 0 0 0 1 1h7'],function(){ saveProject(); },'Save project file');
+  function markTop(){ var m=drawing&&tool==='select', er=drawing&&tool==='eraser'; mark(bDraw,drawing&&!m&&!er); mark(bMove,m); mark(bEr,er); mark(bPass,!drawing); }
+  r1.appendChild(bDraw); r1.appendChild(bMove); r1.appendChild(bEr); hg.appendChild(bPass); hg.appendChild(hide);
   r1.appendChild(iconBtn('Undo',['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],function(){ undo(); },'Undo (Ctrl+Z)'));
   r1.appendChild(iconBtn('Redo',['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],function(){ redoFn(); },'Redo (Ctrl+Shift+Z)'));
+  r1.appendChild(bSv);
   r1.appendChild(iconBtn('Erase all',['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6','M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'],function(){ eraseAll(); },'Clear the whole drawing'));
   bar.appendChild(r1);
 
@@ -1496,10 +1503,7 @@
   rV2.appendChild(btn('Delete',function(){ var n=verSel.value; if(!n) return; var v=getVers(); v['Deleted (auto)']=v[n]; delete v[n]; putVers(v); fillVers(); msg('Deleted "'+n+'"'); }));
   bar.appendChild(rV2);
   var rV3=row();
-  rV3.appendChild(btn('Save project file',function(){
-    var bl=new Blob([JSON.stringify(pack(true))],{type:'application/json'});
-    saveBlob(bl,fname('ritlager-project','.json'),'The project file is editable and can be reopened, even on another computer.');
-  },'The whole drawing as an editable file (.json)'));
+  rV3.appendChild(btn('Save project file',function(){ saveProject(); },'The whole drawing as an editable file (.json)'));
   var pf=el('input'); pf.type='file'; pf.accept='.json,application/json'; pf.style.display='none';
   pf.addEventListener('change',function(){ var f=pf.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ backupCurrent(); var n=unpack(JSON.parse(r.result)); msg(n<0?'The file does not look like a Ritlager file':'Opened the project file ('+n+' strokes)'); }catch(e){ msg('Could not read the file'); } }; r.readAsText(f); pf.value=''; });
   rV3.appendChild(pf); rV3.appendChild(btn('Open project file',function(){ pf.click(); },'Open a project file you saved earlier'));
