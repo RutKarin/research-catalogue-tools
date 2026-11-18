@@ -868,7 +868,7 @@
   rHex.appendChild(btn('Pipette',function(){ pickColour(); },'Pipette: pick a colour from the page or from your drawing (I)'));
   bar.appendChild(rHex);
   bar.appendChild(rgbEl);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Click the square or type a colour code.'));
   var pickMode=false;
   function hex2(n){ return ('0'+n.toString(16)).slice(-2); }
   function pickColour(){
@@ -1042,7 +1042,7 @@
   syncVis();
   sec('Fonts and convert'); [rT8,rT12].forEach(function(r){ bar.appendChild(r); });
 
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Click on the page and type.'));
   sec('Undo and canvas');
   var r7=row();
   r7.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
@@ -1097,7 +1097,7 @@
   lab(rSm5,'Rotate'); var roIn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:52px;box-sizing:border-box;'); roIn.type='number'; roIn.value=0; roIn.min=-360; roIn.max=360; rSm5.appendChild(roIn); lab(rSm5,'°');
   rSm5.appendChild(btn('Apply',function(){ var sc=(+scIn.value||100)/100, dg=+roIn.value||0; selXform(sc,dg); scIn.value=100; roIn.value=0; },'Scale and/or rotate the selection around its centre'));
   bar.appendChild(rSm5);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Drag around strokes, then move, resize or rotate.'));
 
   sec('Cut out');
   var rCt=row();
@@ -1106,7 +1106,7 @@
   var rCk=row(); lab(rCk,'Cut');
   var cutKeep=el('select',BTN+'padding:3px 6px;'); [['in','Erase inside'],['out','Erase outside (keep inside)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; cutKeep.appendChild(op); }); rCk.appendChild(cutKeep); bar.appendChild(rCk);
   var rCf=row(); lab(rCf,'Soft edge'); var cutFeather=slider(rCf,0,40,0,110); cutFeather.title='0 = hard edge; higher = feathered edge'; bar.appendChild(rCf);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick Rectangle or Lasso, then draw the shape on the page. The cut applies to the active layer (pictures, drawing and text) and can be undone. To move a cut-out together with its picture later, use Layer in the Select tool.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Draw a shape on the page to cut the active layer.'));
 
   sec('Import images');
   var rIm=row();
@@ -1114,13 +1114,13 @@
   imf.addEventListener('change',function(){ var f=imf.files[0]; if(f) importImageFile(f); imf.value=''; });
   rIm.appendChild(imf); rIm.appendChild(btn('Import image…',function(){ imf.click(); },'Add a picture from your computer to the active layer'));
   bar.appendChild(rIm);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','You can also drop an image file onto the page or paste a copied image with Ctrl+V. The picture lands on the active layer and works like any object: move, resize and rotate with the Select tool, rub out with the Eraser, or use Cut out.'));
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Imported pictures are saved in your browser together with the drawing, so large photos can fill the storage and stop autosave. Recommended: keep each picture under about 1500 px on the long side and under 500 KB (JPG is smaller than PNG). Export a PNG or project file for anything important.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Or drop or paste (Ctrl+V) a picture.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Keep pictures under about 1500 px and 500 KB.'));
 
   sec('Dodge and burn');
   var rDb=row(); var bDodge=btn('Dodge (lighter)',function(){ setTool('dodge'); },'Paint over your drawing to make it lighter'), bBurn=btn('Burn (darker)',function(){ setTool('burn'); },'Paint over your drawing to make it darker'); rDb.appendChild(bDodge); rDb.appendChild(bBurn); bar.appendChild(rDb);
   var rDe=row(); lab(rDe,'Exposure'); var fxExp=slider(rDe,2,100,25,110); liveVal(fxExp); fxExp.title='How strong each stroke is'; bar.appendChild(rDe);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Paint over what you have drawn on the active layer: Dodge lightens it, Burn darkens it. It only changes drawn pixels, never the page behind. Size comes from Thickness; softness and build-up from the Airbrush sliders that appear when the tool is chosen.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Lightens or darkens your drawing only.'));
 
   sec('Retouch');
   var rRt=row(); var bBlurT=btn('Blur',function(){ setTool('blur'); },'Paint to blur what you have drawn on the active layer'), bSharpT=btn('Sharpen',function(){ setTool('sharpen'); },'Paint to make soft edges crisper'), bSmudgeT=btn('Smudge',function(){ setTool('smudge'); },'Drag the paint along, like a finger in wet paint'), bCloneT=btn('Clone',function(){ setTool('clone'); },'Copy one part of the layer to another. Alt+click the source first');
@@ -1132,7 +1132,7 @@
   var rP2=row(); lab(rP2,'Amount'); var pxAmt=slider(rP2,1,40,6,110); pxAmt.title='Blur: how far it spreads. Sharpen: how much crisper.'; bar.appendChild(rP2);
   var rP3=row(); lab(rP3,'Hardness'); var pxHard=slider(rP3,0,100,30,110); liveVal(pxHard); bar.appendChild(rP3);
   var rP4=row(); rP4.appendChild(btn('Set clone source',function(){ cloneSet=true; setTool('clone'); msg('Now click on the spot you want to copy from'); },'Or hold Alt and click with the Clone tool')); bar.appendChild(rP4);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Works on your drawing only. Clone: Alt+click the source.'));
 
   sec('Layer effects');
   var fxName=el('div','font-size:12px;color:#444;','');
@@ -1146,7 +1146,7 @@
   var rFs2=row(); lab(rFs2,'Right'); var fxShx=slider(rFs2,-80,80,6,110); liveVal(fxShx,' px'); bar.appendChild(rFs2);
   var rFs3=row(); lab(rFs3,'Down'); var fxShy=slider(rFs3,-80,80,6,110); liveVal(fxShy,' px'); bar.appendChild(rFs3);
   var rFs4=row(); lab(rFs4,'Strength'); var fxSha=slider(rFs4,5,100,60,110); liveVal(fxSha); bar.appendChild(rFs4);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Applies to the whole active layer.'));
   function fxShow(){ [rFg1,rFg2].forEach(function(r){ r.style.display=fxGlow.checked?'flex':'none'; }); [rFs1,rFs2,rFs3,rFs4].forEach(function(r){ r.style.display=fxSh.checked?'flex':'none'; }); }
   function fxUpdate(){
     var L=getLayer(act), f=fxOf(L); fxName.textContent='Active layer: '+L.name;
@@ -1198,7 +1198,7 @@
   var rLa=row();
   rLa.appendChild(btn('+ Add layer',function(){ var L={id:nextLid++,name:'Layer '+(layers.length+1),vis:true,op:100}; layers.push(L); act=L.id; drawLayerUI(); persist(); }));
   bar.appendChild(rLa);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed in RC cannot blend with the page itself.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Draws on the highlighted layer.'));
   drawLayerUI();
 
   // ---- Animate: frames -> preview -> GIF / video ----
@@ -1222,7 +1222,7 @@
   rA7.appendChild(btn('Clear all',function(){ aPreview(false); frames=[]; aSel=-1; aDraw(); },'Remove all frames')); bar.appendChild(rA7);
   var aPrev=document.createElement('canvas'); aPrev.width=240; aPrev.height=160; aPrev.style.cssText='width:100%;border:1px solid #ddd;border-radius:6px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/14px 14px;display:none;'; bar.appendChild(aPrev);
   var rA8=row(); rA8.appendChild(btn('Save GIF',function(){ aGif(); },'Animated GIF – works almost everywhere, max 256 colours')); rA8.appendChild(btn('Save video (WebM)',function(){ aWebm(); },'Smoother and smaller, Chrome/Edge/Firefox')); bar.appendChild(rA8);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Replay my drawing shows the strokes being drawn one after another. Or draw, press + Add, change the drawing, press + Add again, and so on. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'));
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Replay, or draw and press + Add for each frame.'));
   function aBgVal(){ return aBg.value==='white'?'#ffffff':(aBg.value==='color'?aBgc.value:null); }
   var aBox=null;
   function aBounds(){ if(!aCrop.checked) return {x:0,y:0,w:W,h:H}; var vis=strokes.filter(function(st){ return st.tool!=='eraser'&&st.tool!=='cut'&&getLayer(layerOf(st)).vis; }); var t=vis.length?boxOf(vis):null; if(!t) return {x:0,y:0,w:W,h:H}; var pad=10,x=Math.max(0,Math.floor(t.x0-pad)),y=Math.max(0,Math.floor(t.y0-pad)); return {x:x,y:y,w:Math.max(8,Math.min(W,Math.ceil(t.x1+pad))-x),h:Math.max(8,Math.min(H,Math.ceil(t.y1+pad))-y)}; }
@@ -1505,7 +1505,7 @@
   fillVers();
 
   var dbg=el('div','font-size:11px;color:#888;','Device: –'); bar.appendChild(dbg);
-  var info=el('div','font-size:11px;color:#777;line-height:1.35;','The drawing is autosaved for this page in the browser. Export PNG gives you the image for RC. Save a project file or a version if you want to edit the strokes later.');
+  var info=el('div','font-size:11px;color:#777;line-height:1.35;','Autosaved here. Save a project file to edit later.');
   bar.appendChild(info);
 
   var note=el('div','position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:'+(Z+2)+';background:#111;color:#fff;padding:7px 13px;border-radius:8px;font:300 13px '+FONT+';opacity:0;transition:opacity .25s;pointer-events:none;');
@@ -1764,9 +1764,34 @@
     var top=el('div',''); top.appendChild(lnk('Ritlager',REPO)); top.appendChild(document.createTextNode(' · © 2026 Rut Karin Zettergren ')); var mit=el('span','display:inline-block;border:1px solid #999;border-radius:4px;padding:0 4px;font-size:10px;line-height:14px;color:#555;vertical-align:1px;','MIT'); mit.title='MIT licence: free to use, change and share'; top.appendChild(mit); d.appendChild(top);
     var more=el('div','margin-top:4px;display:none;');
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save and open) to keep your work.'));
-    var tg=el('span','color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:2px;','More info ▸');
-    tg.addEventListener('click',function(){ var o=more.style.display==='none'; more.style.display=o?'block':'none'; tg.textContent=o?'Less ▾':'More info ▸'; });
-    d.appendChild(tg); d.appendChild(more); bar.appendChild(d);
+    var MANUAL=[
+      ['Colour','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'],
+      ['Text','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'],
+      ['Select tool','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'],
+      ['Cut out','Pick Rectangle or Lasso, then draw the shape on the page. The cut applies to the active layer (pictures, drawing and text) and can be undone. To move a cut-out together with its picture later, use Layer in the Select tool.'],
+      ['Import images','You can also drop an image file onto the page or paste a copied image with Ctrl+V. The picture lands on the active layer and works like any object: move, resize and rotate with the Select tool, rub out with the Eraser, or use Cut out.'],
+      ['Pictures and storage','Imported pictures are saved in your browser together with the drawing, so large photos can fill the storage and stop autosave. Recommended: keep each picture under about 1500 px on the long side and under 500 KB (JPG is smaller than PNG). Export a PNG or project file for anything important.'],
+      ['Dodge and burn','Paint over what you have drawn on the active layer: Dodge lightens it, Burn darkens it. It only changes drawn pixels, never the page behind. Size comes from Thickness; softness and build-up from the Airbrush sliders that appear when the tool is chosen.'],
+      ['Retouch','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'],
+      ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
+      ['Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed in RC cannot blend with the page itself.'],
+      ['Animate','Replay my drawing shows the strokes being drawn one after another. Or draw, press + Add, change the drawing, press + Add again, and so on. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
+      ['Saving','The drawing is autosaved for this page in the browser. Export PNG gives you the image for RC. Save a project file or a version if you want to edit the strokes later.']
+    ];
+    var man=el('div','margin-top:4px;display:none;');
+    var kb=el('div','margin-bottom:6px;','Shortcuts: D draw/click, B pen, P brush, L line, E eraser, T text, A airbrush, S or V select, I pipette, [ ] thickness, Ctrl+Z undo, Ctrl+Y redo.');
+    man.appendChild(kb);
+    MANUAL.forEach(function(m){ var h=el('div','font-weight:400;color:#111;margin-top:6px;',m[0]); man.appendChild(h); man.appendChild(el('div','',m[1])); });
+    var lk='color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:2px;';
+    var tg=el('span',lk,'More info ▸'), tm=el('span',lk+'margin-left:12px;','Use manual ▸');
+    function showPanel(which){
+      var oi=which==='info'&&more.style.display==='none', om=which==='man'&&man.style.display==='none';
+      more.style.display=oi?'block':'none'; man.style.display=om?'block':'none';
+      tg.textContent=oi?'Less ▾':'More info ▸'; tm.textContent=om?'Hide manual ▾':'Use manual ▸';
+    }
+    tg.addEventListener('click',function(){ showPanel('info'); });
+    tm.addEventListener('click',function(){ showPanel('man'); });
+    d.appendChild(tg); d.appendChild(tm); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   setSize(); setDrawing(true);
