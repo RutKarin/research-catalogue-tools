@@ -1090,6 +1090,8 @@
   var aCount=el('div','font-size:11.5px;color:#666;','No frames yet'); bar.appendChild(aCount);
   var rA5=row(); lab(rA5,'Time / frame'); var aMs=slider(rA5,30,1000,120,90); liveVal(aMs,' ms'); bar.appendChild(rA5);
   var rA6=row(); lab(rA6,'Pause at end'); var aEnd=slider(rA6,0,3000,600,90); liveVal(aEnd,' ms'); var aLoop=chk(rA6,'Loop',true); bar.appendChild(rA6);
+  var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bar.appendChild(rAf);
+  var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bar.appendChild(rAg);
   var rA7=row(); var bPlay=btn('▶ Preview',function(){ aPreview(!aPlay); },'Play the animation here'); rA7.appendChild(bPlay);
   rA7.appendChild(btn('Keep every 2nd',function(){ if(frames.length<3) return; frames=frames.filter(function(f,i){ return i%2===0; }); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Halves the number of frames (smaller file)'));
   rA7.appendChild(btn('Clear all',function(){ aPreview(false); frames=[]; aSel=-1; aDraw(); },'Remove all frames')); bar.appendChild(rA7);
@@ -1140,18 +1142,29 @@
       [['◀','Move earlier',function(){ if(i>0){ var x=frames[i-1]; frames[i-1]=frames[i]; frames[i]=x; aSel=i-1; aDraw(); } }],['▶','Move later',function(){ if(i<frames.length-1){ var x=frames[i+1]; frames[i+1]=frames[i]; frames[i]=x; aSel=i+1; aDraw(); } }],['⧉','Copy this frame',function(){ frames.splice(i+1,0,{c:f.c}); aSel=i+1; aDraw(); }],['✕','Remove this frame',function(){ frames.splice(i,1); aSel=Math.min(aSel,frames.length-1); aDraw(); }]].forEach(function(o){ var b=el('button','border:0;background:none;cursor:pointer;font-size:11px;padding:1px 2px;',o[0]); b.type='button'; b.title=o[1]; b.addEventListener('click',o[2]); r.appendChild(b); });
       d.appendChild(r); aStrip.appendChild(d);
     });
-    var secs=frames.length*(+aMs.value)/1000+(+aEnd.value)/1000;
+    var secs=(frames.length*(+aMs.value)+(+aEnd.value)+(+aFi.value)+(+aFo.value))/1000;
     aCount.textContent=frames.length?(frames.length+' frames · about '+secs.toFixed(1)+' s · '+frames[0].c.width+'×'+frames[0].c.height+' px'):'No frames yet';
   }
-  [aMs,aEnd].forEach(function(x){ x.addEventListener('input',function(){ if(frames.length) aDraw(); }); });
-  function aShow(i){ var f=frames[i]; if(!f) return; aPrev.style.display='block'; aPrev.width=f.c.width; aPrev.height=f.c.height; var g=aPrev.getContext('2d'); g.clearRect(0,0,aPrev.width,aPrev.height); g.drawImage(f.c,0,0); }
+  [aMs,aEnd,aFi,aFo].forEach(function(x){ x.addEventListener('input',function(){ if(frames.length) aDraw(); }); });
+  function aShow(i){ var f=frames[i]; if(!f) return; aShowC(f.c); }
+  function aShowC(c){ var f={c:c}; aPrev.style.display='block'; aPrev.width=f.c.width; aPrev.height=f.c.height; var g=aPrev.getContext('2d'); g.clearRect(0,0,aPrev.width,aPrev.height); g.drawImage(f.c,0,0); }
   function aPreview(on){
     clearTimeout(aTimer); aPlay=0; bPlay.textContent='▶ Preview';
     if(!on||!frames.length) return;
-    aPlay=1; bPlay.textContent='■ Stop'; var i=0;
-    (function step(){ if(!aPlay) return; aShow(i); var last=i===frames.length-1; var wait=(+aMs.value)+(last?(+aEnd.value):0); i++;
-      if(i>=frames.length){ if(!aLoop.checked){ aTimer=setTimeout(function(){ aPreview(false); },wait); return; } i=0; }
+    aPlay=1; bPlay.textContent='■ Stop'; var i=0, seq=aSeq();
+    (function step(){ if(!aPlay) return; aShowC(seq[i].c); var wait=seq[i].d; i++;
+      if(i>=seq.length){ if(!aLoop.checked){ aTimer=setTimeout(function(){ aPreview(false); },wait); return; } i=0; }
       aTimer=setTimeout(step,wait); })();
+  }
+  function aSeq(){
+    var seq=frames.map(function(f,i){ return {c:f.c,d:(+aMs.value)+(i===frames.length-1?(+aEnd.value):0)}; });
+    if(!seq.length) return seq;
+    var bg=aBgVal()||'#ffffff', w=frames[0].c.width, h=frames[0].c.height;
+    function mix(src,a){ var c=document.createElement('canvas'); c.width=w; c.height=h; var x=c.getContext('2d'); x.fillStyle=bg; x.fillRect(0,0,w,h); x.globalAlpha=a; x.drawImage(src,0,0,w,h); return c; }
+    var fi=+aFi.value, fo=+aFo.value, pre=[], post=[];
+    if(fi>0){ var n=Math.max(2,Math.min(15,Math.round(fi/60))); for(var k=1;k<=n;k++) pre.push({c:mix(frames[0].c,k/(n+1)),d:fi/n}); }
+    if(fo>0){ var m=Math.max(2,Math.min(15,Math.round(fo/60))); for(var j=1;j<=m;j++) post.push({c:mix(frames[frames.length-1].c,1-j/(m+1)),d:fo/m}); if(post.length&&seq.length) { /* the pause at the end belongs before the fade */ } }
+    return pre.concat(seq,post);
   }
   function aDelays(){ return frames.map(function(f,i){ return (+aMs.value)+(i===frames.length-1?(+aEnd.value):0); }); }
   // --- GIF encoder (own, no libraries) ---
@@ -1187,8 +1200,8 @@
     return out;
   }
   function encodeGif(){
-    var w=frames[0].c.width, h=frames[0].c.height, transparent=aBgVal()===null, imgs=frames.map(function(f){ var c=f.c; if(c.width!==w||c.height!==h){ var t=document.createElement('canvas'); t.width=w; t.height=h; t.getContext('2d').drawImage(c,0,0,w,h); c=t; } return c.getContext('2d').getImageData(0,0,w,h).data; });
-    var pal=gifPalette(imgs,transparent), TI=255, cache=new Map(), bytes=[], dl=aDelays();
+    var seq=aSeq(), w=seq[0].c.width, h=seq[0].c.height, transparent=aBgVal()===null, imgs=seq.map(function(f){ var c=f.c; if(c.width!==w||c.height!==h){ var t=document.createElement('canvas'); t.width=w; t.height=h; t.getContext('2d').drawImage(c,0,0,w,h); c=t; } return c.getContext('2d').getImageData(0,0,w,h).data; });
+    var pal=gifPalette(imgs,transparent), TI=255, cache=new Map(), bytes=[], dl=seq.map(function(f){ return f.d; });
     function nearest(r,g,b){ var key=((r>>3)<<10)|((g>>3)<<5)|(b>>3), v=cache.get(key); if(v!==undefined) return v; var best=0,bd=1e9, lim=255; for(var i=0;i<lim;i++){ var d=(pal[i][0]-r)*(pal[i][0]-r)+(pal[i][1]-g)*(pal[i][1]-g)+(pal[i][2]-b)*(pal[i][2]-b); if(d<bd){ bd=d; best=i; } } cache.set(key,best); return best; }
     function w16(n){ bytes.push(n&255,(n>>8)&255); }
     'GIF89a'.split('').forEach(function(ch){ bytes.push(ch.charCodeAt(0)); }); w16(w); w16(h); bytes.push(0xF7,0,0);
@@ -1222,11 +1235,11 @@
     if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){ msg('This browser cannot make video here – use Save GIF'); return; }
     var w=frames[0].c.width, h=frames[0].c.height, c=document.createElement('canvas'); c.width=w; c.height=h; var g=c.getContext('2d'), bg=aBgVal();
     var st=c.captureStream(30), mt=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].filter(function(m){ return MediaRecorder.isTypeSupported(m); })[0]; if(!mt){ msg('This browser cannot make WebM – use Save GIF'); return; }
-    var rec=new MediaRecorder(st,{mimeType:mt,videoBitsPerSecond:4e6}), chunks=[], dl=aDelays();
+    var seq=aSeq(), rec=new MediaRecorder(st,{mimeType:mt,videoBitsPerSecond:4e6}), chunks=[], dl=seq.map(function(f){ return f.d; });
     rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
     rec.onstop=function(){ var bl=new Blob(chunks,{type:'video/webm'}); saveBlob(bl,fname('ritlager-animation','.webm',''),'Video with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); };
     var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
-    (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(frames[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=frames.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
+    (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(seq[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=seq.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
   }
   sec('Export (image for RC)');
   var rSz=row(); lab(rSz,'Image size');
