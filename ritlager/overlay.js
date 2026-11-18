@@ -814,7 +814,7 @@
   function btn(txt,fn,title){ var b=el('button',BTN,txt); b.type='button'; if(title) b.title=title; b.addEventListener('click',fn); return b; }
   function mark(b,on){ b.style.background=on?'#111':'#fff'; b.style.color=on?'#fff':'#111'; b.style.borderColor=on?'#111':'#c9c9c9'; }
 
-  var head = row(); head.style.justifyContent='space-between'; head.style.cursor='move'; head.style.cssText+='position:sticky;top:-8px;z-index:2;background:#fafafa;padding:12px 0 12px;margin-top:-8px;border-bottom:1px solid #e4e4e4;';
+  var head = row(); head.style.justifyContent='space-between'; head.style.cursor='move'; head.style.cssText+='position:sticky;top:-8px;z-index:2;background:#fafafa;padding:12px 0 22px;margin-top:-8px;border-bottom:1px solid #e4e4e4;';
   (function(){
     var NS='http://www.w3.org/2000/svg';
     var w=el('span','position:relative;display:inline-block;margin-left:10px;margin-right:12px;line-height:1;');
@@ -828,7 +828,7 @@
     w.appendChild(pn); head.appendChild(w);
   })();
   var hide = iconBtn('Close',['M18 6 6 18','m6 6 12 12'],function(){ api.toggle(); },'Close');
-  var hg=row(); hg.style.position='relative'; hg.style.top='8px'; hg.style.flexWrap='nowrap'; hg.style.gap='3px'; head.style.flexWrap='nowrap'; var quick=null;
+  var hg=row(); hg.style.position='relative'; hg.style.top='6px'; hg.style.flexWrap='nowrap'; hg.style.gap='3px'; head.style.flexWrap='nowrap'; var quick=null;
   head.appendChild(hg);
   bar.appendChild(head);
 
@@ -1836,7 +1836,7 @@
     }
     tg.addEventListener('click',function(){ showPanel('info'); });
     tm.addEventListener('click',function(){ showPanel('man'); });
-    var lr=el('div','text-align:center;'); lr.appendChild(tg); lr.appendChild(tm); d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
+    var lr=el('div','text-align:left;'); lr.appendChild(tg); lr.appendChild(tm); d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   setSize(); setDrawing(true);
