@@ -169,10 +169,10 @@
     var q=cpt(e); cv.setPointerCapture(e.pointerId); e.preventDefault();
     if(sel.length&&rotAt(q)){ var rc={cx:(selBox.x0+selBox.x1)/2,cy:(selBox.y0+selBox.y1)/2}; rc.a0=Math.atan2(q.y-rc.cy,q.x-rc.cx); selOrig=strokes; selDrag={rot:rc,moved:false}; return; }
     if(sel.length){ var hi=handleAt(q); if(hi>=0){ var cs=corners(), g=cs[hi], a=cs[(hi+2)%4]; if(g.x!==a.x&&g.y!==a.y){ selOrig=strokes; selDrag={sc:{ax:a.x,ay:a.y,gx:g.x,gy:g.y},moved:false}; return; } } }
-    var pk=selMode==='pick'?pickAt(q):null;
-    if(sel.length&&inBox(selBox,q)&&(selMode!=='pick'||!pk||sel.indexOf(pk)>=0)){ selOrig=strokes; selCur=sel; selDrag={x:q.x,y:q.y,moved:false}; return; }
+    var pk=selMode!=='lasso'?pickAt(q):null;
+    if(sel.length&&inBox(selBox,q)&&(selMode!=='pick'&&selMode!=='rect'||!pk||sel.indexOf(pk)>=0||selMode==='rect'&&inBox(selBox,q))){ selOrig=strokes; selCur=sel; selDrag={x:q.x,y:q.y,moved:false}; return; }
     sel=[]; selBox=null;
-    if(selMode==='pick'){
+    if(selMode==='pick'||(selMode==='rect'&&pk)){
       if(pk) sel=[pk];
       selBox=sel.length?boxOf(sel):null; if(sel.length){ selOrig=strokes; selCur=sel; selDrag={x:q.x,y:q.y,moved:false}; } else msg('Nothing there to pick'); refresh(); return;
     }
@@ -1781,7 +1781,7 @@
       ['Colour','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'],
       ['## Text','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'],
       ['## Edit','The tools for changing what you have already put on the page: Select, Cut out and Import images. Undo, redo and Erase all are at the top.'],
-      ['Select tool','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'],
+      ['Select tool','Click a stroke to select it, or drag a box around several (Pick only clicks; Lasso draws a free shape). Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'],
       ['Cut out','Pick Rectangle or Lasso, then draw the shape on the page. The cut applies to the active layer (pictures, drawing and text) and can be undone. To move a cut-out together with its picture later, use Layer in the Select tool.'],
       ['Import images','Press Import image…, or drop an image file onto the page or paste a copied image with Ctrl+V. The picture lands on the active layer and works like any object: move, resize and rotate with the Select tool, rub out with the Eraser, or use Cut out. Keep pictures small: under about 1500 px on the long side and under 500 KB (JPG is smaller than PNG). Large files can fill the browser storage and stop autosave, because pictures are saved in your browser together with the drawing. Export a PNG or project file for anything important.'],
       ['## Effects','Change the look of what you have drawn on the active layer.'],
