@@ -3,10 +3,28 @@
 
   var Z = 2147483000, FONT = '"Geosans Light","Avenir","Avenir Next","Nunito Sans",system-ui,sans-serif';
   var de = document.documentElement, bd = document.body;
-  var W, H;
+  var W, H, SC=null, area='page', offX=0, offY=0;
+  // Some pages (e.g. editors) scroll inside an inner element instead of the document. Find it so the canvas can live inside it and scroll with the content.
+  function findScroller(){
+    if(de.scrollHeight>de.clientHeight+40) return null; // the document itself scrolls
+    var best=null, bh=0, all=document.querySelectorAll('body *');
+    for(var i=0;i<all.length&&i<6000;i++){
+      var e=all[i]; if(e.scrollHeight<=e.clientHeight+40||e.clientHeight<window.innerHeight*0.6||e.clientWidth<window.innerWidth*0.6) continue;
+      var o=getComputedStyle(e).overflowY; if(o!=='auto'&&o!=='scroll'&&o!=='overlay') continue;
+      if(e.scrollHeight>bh){ best=e; bh=e.scrollHeight; }
+    }
+    return best;
+  }
+  SC=findScroller();
   function measure(){
+    if(area==='view'){
+      W = SC?SC.clientWidth:de.clientWidth; H = SC?SC.clientHeight:window.innerHeight;
+      offX = SC?SC.scrollLeft:window.pageXOffset; offY = SC?SC.scrollTop:window.pageYOffset;
+    } else if(SC){ W=SC.scrollWidth; H=SC.scrollHeight; offX=offY=0; }
+    else {
     W = Math.max(de.scrollWidth, bd ? bd.scrollWidth : 0, de.clientWidth);
     H = Math.max(de.scrollHeight, bd ? bd.scrollHeight : 0, de.clientHeight);
+    offX=offY=0; }
     W = Math.min(W, 6000);
     var maxH = Math.floor(30e6 / W); H = Math.min(H, maxH, 20000);
   }
@@ -20,7 +38,7 @@
   function setSize(){
     var keep = null;
     cv.width = base.width = W; cv.height = base.height = H;
-    cv.style.width = W+'px'; cv.style.height = H+'px';
+    cv.style.width = W+'px'; cv.style.height = H+'px'; cv.style.left=offX+'px'; cv.style.top=offY+'px';
     rebuild();
   }
 
@@ -254,17 +272,32 @@
     }
     c.restore();
   }
+  var scPos=null;
+  function placeCanvas(){
+    var host = SC||de;
+    if(SC && getComputedStyle(SC).position==='static'){ scPos=SC; SC.style.position='relative'; }
+    if(cv.parentNode!==host) host.appendChild(cv);
+  }
+  function rescan(){ if(scPos){ scPos.style.position=''; scPos=null; } SC=findScroller(); placeCanvas(); measure(); setSize(); }
   function rebuild(){ bctx.clearRect(0,0,W,H); if(under) bctx.drawImage(under.img,under.x,under.y); strokes.forEach(function(s){render(bctx,s);}); refresh(); persist(); }
   function refresh(){ ctx.clearRect(0,0,W,H); ctx.drawImage(base,0,0); if(cur) render(ctx,cur); }
 
   // ---- inmatning (dokumentkoordinater) ----
-  function pos(e){
-    return { x:e.pageX, y:e.pageY,
+  function cpt(e){ var r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  function pos(e){ var q=cpt(e);
+    return { x:q.x, y:q.y,
       p: e.pointerType==='pen' ? (e.pressure||0.5) : 0.8 };
   }
+  // If the page scrolls by its own script (not natively), pass wheel movement on to whatever is under the canvas.
+  cv.addEventListener('wheel',function(e){
+    if(SC||de.scrollHeight>de.clientHeight+40) return;
+    var pe=cv.style.pointerEvents; cv.style.pointerEvents='none';
+    var t=document.elementFromPoint(e.clientX,e.clientY); cv.style.pointerEvents=pe;
+    if(t&&t!==cv){ try{ t.dispatchEvent(new WheelEvent('wheel',{bubbles:true,cancelable:true,clientX:e.clientX,clientY:e.clientY,deltaX:e.deltaX,deltaY:e.deltaY,deltaMode:e.deltaMode,ctrlKey:e.ctrlKey})); }catch(x){} }
+  },{passive:true});
   var ug=null, ugRaf=0;
   cv.addEventListener('pointerdown', function(e){
-    if(moveUnder && under){ ug={px:e.pageX,py:e.pageY,x:under.x,y:under.y}; cv.setPointerCapture(e.pointerId); e.preventDefault(); return; }
+    if(moveUnder && under){ var q0=cpt(e); ug={px:q0.x,py:q0.y,x:under.x,y:under.y}; cv.setPointerCapture(e.pointerId); e.preventDefault(); return; }
     if(!drawing || e.pointerType==='touch') return;
     if(e.pointerType==='mouse' && e.button!==0) return;
     cv.setPointerCapture(e.pointerId);
@@ -274,7 +307,7 @@
     e.preventDefault(); refresh();
   });
   cv.addEventListener('pointermove', function(e){
-    if(ug){ under.x=Math.round(ug.x+e.pageX-ug.px); under.y=Math.round(ug.y+e.pageY-ug.py); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild); return; }
+    if(ug){ var q1=cpt(e); under.x=Math.round(ug.x+q1.x-ug.px); under.y=Math.round(ug.y+q1.y-ug.py); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild); return; }
     dbg.textContent='Device: '+e.pointerType+' · pressure '+(e.pressure||0).toFixed(2)+(cur?(cur.usedSpeed?' · thickness from: speed':' · thickness from: pen pressure'):'');
     if(!cur) return;
     var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
@@ -399,8 +432,14 @@
   r7.appendChild(btn('↶',function(){ if(strokes.length){redo.push(strokes.pop()); rebuild();} },'Undo (Ctrl+Z)'));
   r7.appendChild(btn('↷',function(){ if(redo.length){strokes.push(redo.pop()); rebuild();} },'Redo'));
   r7.appendChild(btn('Clear',function(){ if(strokes.length){redo=strokes.slice().reverse(); strokes=[]; rebuild(); msg('Cleared – ↶ undoes');} }));
-  r7.appendChild(btn('Re-measure',function(){ measure(); setSize(); msg('Canvas is now '+W+' × '+H+' px'); },'Resize the canvas if the page has grown longer'));
+  r7.appendChild(btn('Re-measure',function(){ rescan(); msg('Canvas is now '+W+' × '+H+' px'+(SC?' (inside the page’s scroll area)':'')); },'Resize the canvas if the page has grown longer'));
   bar.appendChild(r7);
+  var rAr=row(); lab(rAr,'Canvas area');
+  var arSel=el('select',BTN+'padding:3px 6px;');
+  [['page','Whole page (scrolls)'],['view','Visible area only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; arSel.appendChild(op); });
+  arSel.title='Whole page: you can scroll and draw anywhere on the page (default). Visible area only: a canvas covering just what is on screen now – choose this before you start drawing.';
+  arSel.addEventListener('change',function(){ area=arSel.value; if(strokes.length||under) msg('Positions shift when you change area – best to switch before drawing',4500); rescan(); });
+  rAr.appendChild(arSel); bar.appendChild(rAr);
 
   sec('Export (image for RC)');
   var rSz=row(); lab(rSz,'Image size');
@@ -437,7 +476,7 @@
           stop(); hid.forEach(function(x){ x.style.visibility=''; });
           var kx=fw/iw, ky=fh/ih;
           if(!fw||Math.abs(kx/ky-1)>0.03){ msg('The screenshot seems to include the browser frame. Choose the tab, not the whole window.'); return; }
-          ref={c:c,sx:window.scrollX,sy:window.scrollY,w:iw,h:ih,k:kx}; updateRefInfo(); bgSel.value='shot'; bgCol.style.display='none';
+          var rr=cv.getBoundingClientRect(); ref={c:c,sx:-rr.left,sy:-rr.top,w:iw,h:ih,k:kx}; updateRefInfo(); bgSel.value='shot'; bgCol.style.display='none';
           msg('Reference image captured ('+fw+' × '+fh+' px). Background is now set to Screenshot.');
         },350);
       }); };
@@ -650,11 +689,11 @@
 
   var api={
     toggle:function(){ visible=!visible; cv.style.display=bar.style.display=visible?(bar.style.display==='none'?'flex':''):'none'; cv.style.display=visible?'block':'none'; bar.style.display=visible?'flex':'none'; if(visible) msg('Ritlager on'); },
-    destroy:function(){ document.removeEventListener('keydown',onKey,true); cv.remove(); bar.remove(); note.remove(); delete window.__ritlager; }
+    destroy:function(){ document.removeEventListener('keydown',onKey,true); cv.remove(); if(scPos) scPos.style.position=''; bar.remove(); note.remove(); delete window.__ritlager; }
   };
   window.__ritlager=api;
 
-  de.appendChild(cv); de.appendChild(bar); de.appendChild(note);
+  placeCanvas(); de.appendChild(bar); de.appendChild(note);
   setSize(); setDrawing(true);
   var nRest=restore();
   if(nRest){ rebuild(); }
