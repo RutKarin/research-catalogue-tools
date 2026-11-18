@@ -13,6 +13,7 @@ Features:
 - Pen, brush, line (with arrowhead) and eraser; pen styles: round, square, flat, pencil, marker, ink, watercolour
 - Pressure sensitivity with a pen tablet, stabilising, sharp–soft, contrast, thin-line modes
 - Export PNG with transparent, white or custom background, or on top of a screenshot of the page
+- Animate menu: replay or hand-made frames, preview, remove frames, save GIF or WebM video
 - Airbrush (soft spray with hardness, build-up and opacity)
 - Select tool (pick, rectangle, lasso): move, resize, flip, duplicate, cut, copy, paste (Ctrl+X/C/V), undo/redo
 - Layers with opacity and blend modes (multiply, screen, overlay …), export as one image or one PNG per layer

@@ -1029,6 +1029,158 @@
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed in RC cannot blend with the page itself.'));
   drawLayerUI();
 
+  // ---- Animate: frames -> preview -> GIF / video ----
+  sec('Animate');
+  var frames=[], aSel=-1, aPlay=0, aTimer=0;
+  var rA1=row(); lab(rA1,'Frames'); var aN=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;width:52px;'); aN.type='number'; aN.min=2; aN.max=200; aN.value=24; aN.title='How many frames the replay should have'; rA1.appendChild(aN);
+  rA1.appendChild(btn('Replay my drawing',function(){ aReplay(); },'Makes frames that show the drawing being drawn, stroke by stroke')); bar.appendChild(rA1);
+  var rA2=row(); rA2.appendChild(btn('+ Add current drawing as frame',function(){ aAdd(strokes); },'Takes a picture of the drawing as it is now – draw, add, change, add… for hand-made animation')); bar.appendChild(rA2);
+  var rA3=row(); lab(rA3,'Size'); var aW=el('select',BTN+'padding:3px 6px;'); [[320,'320 px wide'],[480,'480 px wide'],[640,'640 px wide'],[800,'800 px wide'],[1000,'1000 px wide']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aW.appendChild(op); }); aW.value=640; rA3.appendChild(aW);
+  var aCrop=chk(rA3,'Drawn area only',true,'Cut away empty space around the drawing'); bar.appendChild(rA3);
+  var rA4=row(); lab(rA4,'Background'); var aBg=el('select',BTN+'padding:3px 6px;'); [['white','White'],['transparent','Transparent'],['color','Colour']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aBg.appendChild(op); }); rA4.appendChild(aBg);
+  var aBgc=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;display:none;'); aBgc.type='color'; aBgc.value='#f4efe6'; rA4.appendChild(aBgc); aBg.addEventListener('change',function(){ aBgc.style.display=aBg.value==='color'?'inline-block':'none'; }); bar.appendChild(rA4);
+  var aStrip=el('div','display:flex;flex-wrap:wrap;gap:5px;max-height:240px;overflow-y:auto;'); bar.appendChild(aStrip);
+  var aCount=el('div','font-size:11.5px;color:#666;','No frames yet'); bar.appendChild(aCount);
+  var rA5=row(); lab(rA5,'Time / frame'); var aMs=slider(rA5,30,1000,120,90); liveVal(aMs,' ms'); bar.appendChild(rA5);
+  var rA6=row(); lab(rA6,'Pause at end'); var aEnd=slider(rA6,0,3000,600,90); liveVal(aEnd,' ms'); var aLoop=chk(rA6,'Loop',true); bar.appendChild(rA6);
+  var rA7=row(); var bPlay=btn('▶ Preview',function(){ aPreview(!aPlay); },'Play the animation here'); rA7.appendChild(bPlay);
+  rA7.appendChild(btn('Keep every 2nd',function(){ if(frames.length<3) return; frames=frames.filter(function(f,i){ return i%2===0; }); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Halves the number of frames (smaller file)'));
+  rA7.appendChild(btn('Clear all',function(){ aPreview(false); frames=[]; aSel=-1; aDraw(); },'Remove all frames')); bar.appendChild(rA7);
+  var aPrev=document.createElement('canvas'); aPrev.width=240; aPrev.height=160; aPrev.style.cssText='width:100%;border:1px solid #ddd;border-radius:6px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/14px 14px;display:none;'; bar.appendChild(aPrev);
+  var rA8=row(); rA8.appendChild(btn('Save GIF',function(){ aGif(); },'Animated GIF – works almost everywhere, max 256 colours')); rA8.appendChild(btn('Save video (WebM)',function(){ aWebm(); },'Smoother and smaller, Chrome/Edge/Firefox')); bar.appendChild(rA8);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Replay my drawing shows the strokes being drawn one after another. Or draw, press + Add, change the drawing, press + Add again, and so on. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'));
+  function aBgVal(){ return aBg.value==='white'?'#ffffff':(aBg.value==='color'?aBgc.value:null); }
+  var aBox=null;
+  function aBounds(){ if(!aCrop.checked) return {x:0,y:0,w:W,h:H}; var vis=strokes.filter(function(st){ return st.tool!=='eraser'&&st.tool!=='cut'&&getLayer(layerOf(st)).vis; }); var t=vis.length?boxOf(vis):null; if(!t) return {x:0,y:0,w:W,h:H}; var pad=10,x=Math.max(0,Math.floor(t.x0-pad)),y=Math.max(0,Math.floor(t.y0-pad)); return {x:x,y:y,w:Math.max(8,Math.min(W,Math.ceil(t.x1+pad))-x),h:Math.max(8,Math.min(H,Math.ceil(t.y1+pad))-y)}; }
+  function aShot(list,b){
+    var k=Math.min(1,(+aW.value)/b.w), cw=Math.max(1,Math.round(b.w*k)), ch=Math.max(1,Math.round(b.h*k));
+    var c=document.createElement('canvas'); c.width=cw; c.height=ch; var x=c.getContext('2d'), bg=aBgVal(); if(bg){ x.fillStyle=bg; x.fillRect(0,0,cw,ch); }
+    var keep=strokes, old=rscale; strokes=list; rscale=k;
+    try{ compose(x,function(g){ g.scale(k,k); g.translate(-b.x,-b.y); },null); }finally{ strokes=keep; rscale=old; }
+    return c;
+  }
+  function aAdd(list){
+    if(frames.length>=200){ msg('Max 200 frames'); return; }
+    if(!list.length&&!under){ msg('Draw something first'); return; }
+    if(!aBox||!frames.length) aBox=aBounds();
+    var c=aShot(list,aBox); frames.push({c:c}); aSel=frames.length-1; aDraw();
+  }
+  function aReplay(){
+    if(!strokes.length){ msg('Draw something first'); return; }
+    var n=Math.max(2,Math.min(200,+aN.value||24)); aPreview(false); frames=[]; aBox=aBounds();
+    var wts=strokes.map(function(st){ return (st.tool==='text'||st.tool==='image'||st.tool==='cut')?6:Math.max(1,st.pts.length); }), tot=wts.reduce(function(a,b){ return a+b; },0);
+    for(var f=1;f<=n;f++){
+      var goal=tot*f/n, acc=0, list=[];
+      for(var i=0;i<strokes.length;i++){
+        var w=wts[i];
+        if(acc+w<=goal+1e-6){ list.push(strokes[i]); acc+=w; continue; }
+        var part=goal-acc, st=strokes[i];
+        if(part>=1&&st.tool!=='text'&&st.tool!=='image'&&st.tool!=='cut'&&st.tool!=='line'){ var cp=Object.assign({},st); delete cp.sm; cp.pts=st.pts.slice(0,Math.max(1,Math.floor(part))); list.push(cp); }
+        break;
+      }
+      frames.push({c:aShot(list,aBox)});
+    }
+    aSel=frames.length-1; aDraw(); msg(frames.length+' frames made – press Preview');
+  }
+  function aDraw(){
+    aStrip.textContent='';
+    frames.forEach(function(f,i){
+      var d=el('div','width:72px;border:2px solid '+(i===aSel?'#111':'#ddd')+';border-radius:6px;padding:2px;box-sizing:border-box;background:#fff;');
+      var t=document.createElement('canvas'); t.width=64; t.height=Math.max(1,Math.round(64*f.c.height/f.c.width)); t.style.cssText='width:100%;display:block;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/10px 10px;'; t.getContext('2d').drawImage(f.c,0,0,t.width,t.height);
+      t.addEventListener('click',function(){ aSel=i; aPreview(false); aShow(i); aDraw(); });
+      d.appendChild(t); d.appendChild(el('div','font-size:10px;color:#666;text-align:center;',String(i+1)));
+      var r=el('div','display:flex;justify-content:space-between;');
+      [['◀','Move earlier',function(){ if(i>0){ var x=frames[i-1]; frames[i-1]=frames[i]; frames[i]=x; aSel=i-1; aDraw(); } }],['▶','Move later',function(){ if(i<frames.length-1){ var x=frames[i+1]; frames[i+1]=frames[i]; frames[i]=x; aSel=i+1; aDraw(); } }],['⧉','Copy this frame',function(){ frames.splice(i+1,0,{c:f.c}); aSel=i+1; aDraw(); }],['✕','Remove this frame',function(){ frames.splice(i,1); aSel=Math.min(aSel,frames.length-1); aDraw(); }]].forEach(function(o){ var b=el('button','border:0;background:none;cursor:pointer;font-size:11px;padding:1px 2px;',o[0]); b.type='button'; b.title=o[1]; b.addEventListener('click',o[2]); r.appendChild(b); });
+      d.appendChild(r); aStrip.appendChild(d);
+    });
+    var secs=frames.length*(+aMs.value)/1000+(+aEnd.value)/1000;
+    aCount.textContent=frames.length?(frames.length+' frames · about '+secs.toFixed(1)+' s · '+frames[0].c.width+'×'+frames[0].c.height+' px'):'No frames yet';
+  }
+  [aMs,aEnd].forEach(function(x){ x.addEventListener('input',function(){ if(frames.length) aDraw(); }); });
+  function aShow(i){ var f=frames[i]; if(!f) return; aPrev.style.display='block'; aPrev.width=f.c.width; aPrev.height=f.c.height; var g=aPrev.getContext('2d'); g.clearRect(0,0,aPrev.width,aPrev.height); g.drawImage(f.c,0,0); }
+  function aPreview(on){
+    clearTimeout(aTimer); aPlay=0; bPlay.textContent='▶ Preview';
+    if(!on||!frames.length) return;
+    aPlay=1; bPlay.textContent='■ Stop'; var i=0;
+    (function step(){ if(!aPlay) return; aShow(i); var last=i===frames.length-1; var wait=(+aMs.value)+(last?(+aEnd.value):0); i++;
+      if(i>=frames.length){ if(!aLoop.checked){ aTimer=setTimeout(function(){ aPreview(false); },wait); return; } i=0; }
+      aTimer=setTimeout(step,wait); })();
+  }
+  function aDelays(){ return frames.map(function(f,i){ return (+aMs.value)+(i===frames.length-1?(+aEnd.value):0); }); }
+  // --- GIF encoder (own, no libraries) ---
+  function gifPalette(imgs,transparent){
+    var hist=new Map();
+    imgs.forEach(function(d){ for(var i=0;i<d.length;i+=16){ if(d[i+3]<128) continue; var k=((d[i]>>3)<<10)|((d[i+1]>>3)<<5)|(d[i+2]>>3); hist.set(k,(hist.get(k)||0)+1); } });
+    var items=[]; hist.forEach(function(n,k){ var q5=function(v){ return (v<<3)|(v>>2); }; items.push({r:q5((k>>10)&31),g:q5((k>>5)&31),b:q5(k&31),n:n}); });
+    var want=255; if(!items.length) items=[{r:255,g:255,b:255,n:1}];
+    var boxes=[items];
+    while(boxes.length<want){
+      var bi=-1,bs=0; boxes.forEach(function(b,i){ if(b.length>1){ var sz=b.reduce(function(a,p){ return a+p.n; },0); if(sz>bs){ bs=sz; bi=i; } } }); if(bi<0) break;
+      var b=boxes[bi], mn=[255,255,255], mx=[0,0,0]; b.forEach(function(p){ ['r','g','b'].forEach(function(c,j){ if(p[c]<mn[j]) mn[j]=p[c]; if(p[c]>mx[j]) mx[j]=p[c]; }); });
+      var ch=['r','g','b'][[mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2]].indexOf(Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2]))];
+      b.sort(function(p,q){ return p[ch]-q[ch]; }); var half=bs/2, acc=0, cut=0; for(var i=0;i<b.length-1;i++){ acc+=b[i].n; cut=i+1; if(acc>=half) break; }
+      boxes.splice(bi,1,b.slice(0,cut),b.slice(cut));
+    }
+    var pal=boxes.map(function(b){ var n=0,r=0,g=0,bl=0; b.forEach(function(p){ n+=p.n; r+=p.r*p.n; g+=p.g*p.n; bl+=p.b*p.n; }); return [Math.round(r/n),Math.round(g/n),Math.round(bl/n)]; });
+    while(pal.length<256) pal.push([0,0,0]); return pal;
+  }
+  function gifLZW(idx,minCode){
+    var out=[], clear=1<<minCode, eoi=clear+1, size=minCode+1, next=eoi+1, dict=new Map(), cur=0, bits=0;
+    function put(code){ cur|=code<<bits; bits+=size; while(bits>=8){ out.push(cur&255); cur>>>=8; bits-=8; } }
+    put(clear); var p=idx[0];
+    for(var i=1;i<idx.length;i++){
+      var k=idx[i], key=(p<<8)|k, v=dict.get(key);
+      if(v!==undefined){ p=v; continue; }
+      put(p);
+      if(next<4096){ dict.set(key,next++); if(next-1>=(1<<size)&&size<12) size++; }
+      else { put(clear); dict.clear(); next=eoi+1; size=minCode+1; }
+      p=k;
+    }
+    put(p); put(eoi); if(bits>0) out.push(cur&255);
+    return out;
+  }
+  function encodeGif(){
+    var w=frames[0].c.width, h=frames[0].c.height, transparent=aBgVal()===null, imgs=frames.map(function(f){ var c=f.c; if(c.width!==w||c.height!==h){ var t=document.createElement('canvas'); t.width=w; t.height=h; t.getContext('2d').drawImage(c,0,0,w,h); c=t; } return c.getContext('2d').getImageData(0,0,w,h).data; });
+    var pal=gifPalette(imgs,transparent), TI=255, cache=new Map(), bytes=[], dl=aDelays();
+    function nearest(r,g,b){ var key=((r>>3)<<10)|((g>>3)<<5)|(b>>3), v=cache.get(key); if(v!==undefined) return v; var best=0,bd=1e9, lim=255; for(var i=0;i<lim;i++){ var d=(pal[i][0]-r)*(pal[i][0]-r)+(pal[i][1]-g)*(pal[i][1]-g)+(pal[i][2]-b)*(pal[i][2]-b); if(d<bd){ bd=d; best=i; } } cache.set(key,best); return best; }
+    function w16(n){ bytes.push(n&255,(n>>8)&255); }
+    'GIF89a'.split('').forEach(function(ch){ bytes.push(ch.charCodeAt(0)); }); w16(w); w16(h); bytes.push(0xF7,0,0);
+    pal.forEach(function(c){ bytes.push(c[0],c[1],c[2]); });
+    if(aLoop.checked) bytes.push(0x21,0xFF,11,78,69,84,83,67,65,80,69,50,46,48,3,1,0,0,0);
+    var prev=null;
+    imgs.forEach(function(d,fi){
+      var idx=new Uint8Array(w*h), x0=0,y0=0,x1=w-1,y1=h-1, cur2=new Uint8Array(w*h);
+      for(var i=0,p=0;i<d.length;i+=4,p++) cur2[p]= (transparent&&d[i+3]<128)?TI:nearest(d[i],d[i+1],d[i+2]);
+      var useDelta=!transparent&&prev;
+      if(useDelta){ var mnx=w,mny=h,mxx=-1,mxy=-1; for(var y=0;y<h;y++) for(var x=0;x<w;x++){ var q=y*w+x; if(cur2[q]!==prev[q]){ if(x<mnx)mnx=x; if(x>mxx)mxx=x; if(y<mny)mny=y; if(y>mxy)mxy=y; } }
+        if(mxx<0){ mnx=0;mny=0;mxx=0;mxy=0; } x0=mnx;y0=mny;x1=mxx;y1=mxy; }
+      var rw=x1-x0+1, rh=y1-y0+1, sub=new Uint8Array(rw*rh), n=0;
+      for(var y2=y0;y2<=y1;y2++) for(var x2=x0;x2<=x1;x2++){ var q2=y2*w+x2; sub[n++]= (useDelta&&cur2[q2]===prev[q2])?255:cur2[q2]; }
+      var tIdx=255, hasT=transparent||useDelta;
+      bytes.push(0x21,0xF9,4,(transparent?(2<<2):(1<<2))|(hasT?1:0)); w16(Math.max(2,Math.round(dl[fi]/10))); bytes.push(tIdx,0);
+      bytes.push(0x2C); w16(x0); w16(y0); w16(rw); w16(rh); bytes.push(0);
+      bytes.push(8); var lz=gifLZW(sub,8); for(var j=0;j<lz.length;j+=255){ var chunk=lz.slice(j,j+255); bytes.push(chunk.length); for(var m=0;m<chunk.length;m++) bytes.push(chunk[m]); } bytes.push(0);
+      prev=cur2;
+    });
+    bytes.push(0x3B);
+    return new Blob([new Uint8Array(bytes)],{type:'image/gif'});
+  }
+  function aGif(){
+    if(!frames.length){ msg('Make some frames first'); return; }
+    msg('Making the GIF…',3000);
+    setTimeout(function(){ try{ var bl=encodeGif(); saveBlob(bl,fname('ritlager-animation','.gif',''),'GIF with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); }catch(e){ msg('Could not make the GIF: '+(e&&e.message?e.message:e)); } },50);
+  }
+  function aWebm(){
+    if(!frames.length){ msg('Make some frames first'); return; }
+    if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){ msg('This browser cannot make video here – use Save GIF'); return; }
+    var w=frames[0].c.width, h=frames[0].c.height, c=document.createElement('canvas'); c.width=w; c.height=h; var g=c.getContext('2d'), bg=aBgVal();
+    var st=c.captureStream(30), mt=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].filter(function(m){ return MediaRecorder.isTypeSupported(m); })[0]; if(!mt){ msg('This browser cannot make WebM – use Save GIF'); return; }
+    var rec=new MediaRecorder(st,{mimeType:mt,videoBitsPerSecond:4e6}), chunks=[], dl=aDelays();
+    rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+    rec.onstop=function(){ var bl=new Blob(chunks,{type:'video/webm'}); saveBlob(bl,fname('ritlager-animation','.webm',''),'Video with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); };
+    var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
+    (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(frames[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=frames.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
+  }
   sec('Export (image for RC)');
   var rSz=row(); lab(rSz,'Image size');
   var csel=el('select',BTN+'padding:3px 6px;');
@@ -1345,7 +1497,7 @@
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Animate':'Animate','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
