@@ -1379,10 +1379,10 @@
   [['png','PNG (sharp, can be transparent)'],['jpg','JPG (small file, no transparency)'],['tif','TIFF (for print and archive)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; fmSel.appendChild(op); });
   rFm.appendChild(fmSel); bar.appendChild(rFm);
   var rQ=row(); lab(rQ,'JPG quality'); var jq=slider(rQ,10,100,92,110); liveVal(jq); rQ.style.display='none'; bar.appendChild(rQ);
-  var rDpi=row(); lab(rDpi,'DPI (print size)'); var dpiEl=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;width:70px;box-sizing:border-box;'); dpiEl.type='number'; dpiEl.min=36; dpiEl.max=1200; dpiEl.value=300; dpiEl.title='Stored in the file so Photoshop, InDesign and printers know the print size. It does not change the number of pixels – use Resolution for that.'; rDpi.appendChild(dpiEl); bar.appendChild(rDpi);
+  var rDpi=row(); lab(rDpi,'DPI (print size)'); var dpiEl=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;width:70px;box-sizing:border-box;'); dpiEl.type='number'; dpiEl.min=36; dpiEl.max=1200; dpiEl.value=72; var dpiTouched=false; dpiEl.addEventListener('input',function(){ dpiTouched=true; }); dpiEl.title='Stored in the file so Photoshop, InDesign and printers know the print size. It does not change the number of pixels – use Resolution for that.'; rDpi.appendChild(dpiEl); bar.appendChild(rDpi);
   var rRs=row(); lab(rRs,'Resolution');
   var rsSel=el('select',BTN+'padding:3px 6px;');
-  [['1','1× (as on screen)'],['1.5','1.5×'],['2','2×'],['3','3×'],['4','4×'],['6','6×']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; rsSel.appendChild(op); });
+  [['1','1× (as on screen)'],['1.5','1.5×'],['2','2× (sharp on retina screens)'],['3','3×'],['4','4×'],['6','6×']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; rsSel.appendChild(op); });
   rRs.appendChild(rsSel); bar.appendChild(rRs);
   var rsInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(rsInfo);
   function expBox(){ var b={w:W,h:H}; if(csel.value==='crop'){ try{ var t=bounds(); if(t) b={w:Math.min(W,Math.ceil(t.w+16)),h:Math.min(H,Math.ceil(t.h+16))}; }catch(e){} } return b; }
@@ -1392,6 +1392,7 @@
   var szHint=el('div','font-size:11px;color:#777;line-height:1.35;');
   function hint(){ szHint.textContent = csel.value==='crop' ? 'Strokes only: the image is cropped to the area around your strokes. Smaller file, but you have to place it yourself in RC.' : 'Whole page: the image is as large as the page. Place it at the page top-left in RC and the strokes line up exactly.'; }
   csel.addEventListener('change',hint); hint(); bar.appendChild(szHint);
+  fmSel.addEventListener('change',function(){ if(!dpiTouched) dpiEl.value=fmSel.value==='tif'?300:72; });
   [fmSel,rsSel,csel].forEach(function(x){ x.addEventListener('change',fmtUpdate); }); dpiEl.addEventListener('input',fmtUpdate);
   var rBg=row(); lab(rBg,'Background');
   var bgSel=el('select',BTN+'padding:3px 6px;');
