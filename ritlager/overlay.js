@@ -1367,7 +1367,7 @@
   var rLy=row(); lab(rLy,'Layers');
   var lySel=el('select',BTN+'padding:3px 6px;');
   [['all','All in one image'],['each','Each layer as its own image'],['active','Active layer only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; lySel.appendChild(op); });
-  lySel.title='Use “Each layer” to get one image file per layer, e.g. one to place over objects in RC and one under.';
+  lySel.title='Use “Each layer” to get one image file per layer, e.g. one to place over objects on the page and one under.';
   rLy.appendChild(lySel); bar.appendChild(rLy);
   var rFm=row(); lab(rFm,'File type');
   var fmSel=el('select',BTN+'padding:3px 6px;');
@@ -1512,7 +1512,7 @@
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
   function setColor(c){ color=c; changeSel('color'); if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
-  function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click in RC'); }
+  function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click on the page'); }
   setTool('pen'); setColor('#111111'); setSize2(3); styleListen();
 
   // dra verktygsfältet
@@ -1765,7 +1765,7 @@
       ['Dodge and burn','Paint over what you have drawn on the active layer: Dodge lightens it, Burn darkens it. It only changes drawn pixels, never the page behind. Size comes from Thickness; softness and build-up from the Airbrush sliders that appear when the tool is chosen.'],
       ['Retouch','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'],
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
-      ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed in RC cannot blend with the page itself.'],
+      ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
       ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
       ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Layers can be exported together or one image each. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
     ];
