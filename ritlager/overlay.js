@@ -58,6 +58,8 @@
   }
   // an edit that replaces the stroke list: undoable as one step
   function opSnap(fn){ var prev=strokes; strokes=prev.slice(); fn(); ulog.push({t:'s',prev:prev}); redo=[]; rebuild(); }
+  var restyle=true, tgt=[], quietChg=false;
+  function targets(){ if(tool==='select'&&sel&&sel.length) return sel; if(!restyle) return []; return tgt.filter(function(st){ return strokes.indexOf(st)>=0; }); }
   function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; }
   function scaleTextProps(n,st,k){ if(st.tool!=='text') return; ['bw','ls','ol','sh','bxl','bxp','fat','sb','ob','bxs'].forEach(function(p){ if(st[p]) n[p]=st[p]*k; }); }
   function isObj(st){ return st.tool==='text'||st.tool==='image'; }
@@ -84,7 +86,7 @@
       var iid='i'+Date.now().toString(36)+Math.floor(Math.random()*1e5).toString(36); imgs[iid]={src:src,w:w,h:h};
       var r=cv.getBoundingClientRect(), x=atX!=null?atX:-r.left+40, y=atY!=null?atY:-r.top+40, disp=Math.min(1,Math.max(60,Math.min(window.innerWidth*0.6,W-80))/w);
       var st={l:act,tool:'image',iid:iid,size:disp,rot:0,ink:1,color:'#000',pts:[{x:x,y:y,p:1}]};
-      opSnap(function(){ strokes.push(st); sel=[st]; selCur=[st]; selBox=boxOf([st]); });
+      opSnap(function(){ strokes.push(st); sel=[st]; selCur=[st]; selBox=boxOf([st]); }); tgt=[st];
       setTool('select'); msg('Image added to the active layer'+note2+' – drag to move, corner squares to resize, Eraser or Cut out to cut it');
     }; im.onerror=function(){ msg('Could not read that image'); }; im.src=fr.result; };
     fr.readAsDataURL(file);
@@ -125,7 +127,7 @@
     strokes=prev.slice(); var ns=null;
     if(val) ns=t.orig?Object.assign({},t.orig,t.P,{text:val,ink:t.orig.ink}):Object.assign({},t.P,{l:act,tool:'text',text:val,ink:+ink.value/100,pts:[{x:t.x,y:t.y,p:1}]});
     if(t.orig){ var i=strokes.indexOf(t.orig); if(i>=0){ if(ns) strokes[i]=ns; else strokes.splice(i,1); } } else if(ns) strokes.push(ns);
-    ulog.push({t:'s',prev:prev}); redo=[]; clearSel(); rebuild();
+    ulog.push({t:'s',prev:prev}); redo=[]; clearSel(); if(ns) tgt=[ns]; rebuild();
   }
   function textHit(q){ for(var i=strokes.length-1;i>=0;i--){ var st=strokes[i]; if(st.tool==='text'&&getLayer(layerOf(st)).vis&&inBox(strokeBox(st),q)) return st; } return null; }
   function textDown(e){
@@ -252,7 +254,12 @@
     if(d.moved){ ulog.push({t:'s',prev:selOrig}); redo=[]; sel=selCur; selBox=boxOf(sel); persist(); }
     refresh();
   }
+  function drawTgtBox(){
+    if(!restyle||marq||(sel&&sel.length)||cur) return; var t=tgt.filter(function(st){ return strokes.indexOf(st)>=0; }); if(!t.length) return; var b=boxOf(t); if(!b) return;
+    ctx.save(); ctx.setLineDash([5,4]); ctx.lineWidth=1.2; ctx.strokeStyle='rgba(40,120,255,.9)'; ctx.strokeRect(b.x0,b.y0,b.x1-b.x0,b.y1-b.y0); ctx.restore();
+  }
   function drawSelOverlay(){
+    drawTgtBox();
     if(marq&&marq.lasso){ ctx.save(); ctx.beginPath(); marq.pts.forEach(function(p,i){ if(i) ctx.lineTo(p.x,p.y); else ctx.moveTo(p.x,p.y); }); ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.stroke(); ctx.lineWidth=1.2; ctx.strokeStyle='#111'; ctx.setLineDash([6,4]); ctx.stroke(); ctx.restore(); return; }
     var r=null; if(marq) r={x:Math.min(marq.x0,marq.x1),y:Math.min(marq.y0,marq.y1),w:Math.abs(marq.x1-marq.x0),h:Math.abs(marq.y1-marq.y0)}; else if(selBox) r={x:selBox.x0,y:selBox.y0,w:selBox.x1-selBox.x0,h:selBox.y1-selBox.y0};
     if(!r) return;
@@ -700,7 +707,7 @@
   });
   function end(){
     if(!cur) return;
-    delete cur.sm; strokes.push(cur); ulog.push({t:'d'}); redo=[];
+    delete cur.sm; strokes.push(cur); if(cur.tool!=='eraser') tgt=[cur]; ulog.push({t:'d'}); redo=[];
     var L=getLayer(layerOf(cur)), fast = layers.length===1 ? L.op>=100 : (cur.tool!=='eraser'&&L.op>=100&&L.id===topVisibleId());
     if(fast){ render(bctx,cur); cur=null; refresh(); persist(); } else { cur=null; rebuild(); }
   }
@@ -743,10 +750,11 @@
 
   sec('Drawing tools');
   var r2=row();
-  var bPen=btn('Pen',function(){setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){setTool('brush');},'Brush (P)'),
+  var bPen=btn('Pen',function(){changeSel('tool','pen'); setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){changeSel('tool','brush'); setTool('brush');},'Brush (P)'),
       bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bTxt=btn('Text tool (T)',function(){setTool('text');},'Text (T): click where the text should go');
   var bSel0=btn('↖ Select',function(){ setTool('select'); },'Select, move and change strokes (S or V). Opacity, Colour and Thickness then change the selected strokes'); 
-  var bAir=btn('Airbrush',function(){setTool('air');},'Airbrush (A): soft spray that builds up. Hardness sets how soft the edge is, Opacity how strong it can get'); r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bAir); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bSel0); bar.appendChild(r2);
+  var bAir=btn('Airbrush',function(){changeSel('tool','air'); setTool('air');},'Airbrush (A): soft spray that builds up. Hardness sets how soft the edge is, Opacity how strong it can get'); r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bAir); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bSel0); bar.appendChild(r2);
+  var rRs=row(); var rsChk=chk(rRs,'Changes also apply to the last / selected stroke',true,'ON: changing Opacity, Colour, Thickness, style or Pen/Brush/Airbrush also changes the stroke you drew last (dashed blue box) or the one you selected. OFF: they only affect new strokes.'); rsChk.addEventListener('change',function(){ restyle=rsChk.checked; refresh(); msg(restyle?'Changes now also apply to the last / selected stroke':'Changes now only apply to new strokes'); }); bar.appendChild(rRs);
 
   sec('Colour');
   var r3=row(), sw=[];
@@ -812,11 +820,11 @@
   var SMIN=0.2, SMAX=1000, LR=Math.log(SMAX/SMIN);
   sz.min=0; sz.max=100; sz.step=0.25;
   function showSize(){ szv.textContent = (size<10 ? size.toFixed(1) : String(Math.round(size)))+' px'; if(szn&&document.activeElement!==szn) szn.value=size<10?size.toFixed(1):Math.round(size); }
-  function setSize2(v){ size=Math.max(SMIN,Math.min(SMAX,v)); sz.value=100*Math.log(size/SMIN)/LR; showSize(); changeSel('size'); }
+  function setSize2(v,nochg){ size=Math.max(SMIN,Math.min(SMAX,v)); sz.value=100*Math.log(size/SMIN)/LR; showSize(); if(!nochg) changeSel('size'); }
   sz.addEventListener('input',function(){ size=SMIN*Math.exp(LR*(+sz.value)/100); showSize(); });
   sz.addEventListener('change',function(){ changeSel('size'); });
   var szn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:56px;box-sizing:border-box;'); szn.type='number'; szn.min=0.2; szn.max=1000; szn.step=1; szn.title='Type an exact size in px (up to 1000)';
-  szn.addEventListener('input',function(){ var v=+szn.value; if(v>=SMIN) setSize2(v); });
+  szn.addEventListener('input',function(){ var v=+szn.value; if(v>=SMIN) setSize2(v,true); }); szn.addEventListener('change',function(){ changeSel('size'); });
   r4.appendChild(sz); r4.appendChild(szv); r4.appendChild(szn); bar.appendChild(r4); showSize();
   var rp=row();
   [0.2,0.5,1,2,4,8,16,32,64,128,256,512].forEach(function(n){
@@ -980,16 +988,23 @@
     msg('Last stroke selected – change Opacity, Colour or Thickness to change it, or drag it');
   }
   function styleListen(){ [nibSel,thinSel,soft,dry,ar,airHard,airFlow].forEach(function(x){ x.addEventListener('change',function(){ changeSel('style'); }); }); }
-  function setSelUI(){ var t=sel.filter(function(st){ return st.tool==='text'; })[0]; if(t&&typeof setControls==='function') setControls(t); var a=sel.filter(function(st){ return st.tool!=='text'&&st.tool!=='image'&&st.tool!=='cut'; })[0]; if(a&&a.color&&a.color.length===7){ color=a.color; cp.value=a.color; hexIn.value=a.color; var n=parseInt(a.color.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; sw.forEach(function(q){ q[0].style.outline=q[1]===a.color?'2px solid #111':'none'; }); } var ps=sel.filter(function(st){ return st.tool==='pen'||st.tool==='line'||st.tool==='air'; })[0]; if(ps){ if(ps.tool==='air'){ if(ps.hard!=null) airHard.value=ps.hard; if(ps.flow!=null) airFlow.value=ps.flow; } else { if(ps.nib) nibSel.value=ps.nib; if(ps.soft!=null) soft.value=ps.soft; if(ps.dry!=null) dry.value=Math.round(ps.dry*100); thinSel.value=ps.hair?'black':'smooth'; if(ps.arrow!=null) ar.checked=!!ps.arrow; } }
+  function setSelUI(){ if(sel&&sel.length) tgt=sel.slice(); var t=sel.filter(function(st){ return st.tool==='text'; })[0]; if(t&&typeof setControls==='function') setControls(t); var a=sel.filter(function(st){ return st.tool!=='text'&&st.tool!=='image'&&st.tool!=='cut'; })[0]; if(a&&a.color&&a.color.length===7){ color=a.color; cp.value=a.color; hexIn.value=a.color; var n=parseInt(a.color.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; sw.forEach(function(q){ q[0].style.outline=q[1]===a.color?'2px solid #111':'none'; }); } var ps=sel.filter(function(st){ return st.tool==='pen'||st.tool==='line'||st.tool==='air'; })[0]; if(ps){ if(ps.tool==='air'){ if(ps.hard!=null) airHard.value=ps.hard; if(ps.flow!=null) airFlow.value=ps.flow; } else { if(ps.nib) nibSel.value=ps.nib; if(ps.soft!=null) soft.value=ps.soft; if(ps.dry!=null) dry.value=Math.round(ps.dry*100); thinSel.value=ps.hair?'black':'smooth'; if(ps.arrow!=null) ar.checked=!!ps.arrow; } }
     if(sel[0]&&sel[0].ink!=null&&sel[0].tool!=='cut') ink.value=Math.round(sel[0].ink*100); if(a&&a.size&&a.tool!=='image'){ size=a.size; showSize(); } }
-  function changeSel(kind){
-    if(tool!=='select'||!sel||!sel.length) return false;
-    var ok=function(st){ if(st.tool==='cut') return false; if(kind==='style') return st.tool==='pen'||st.tool==='line'||st.tool==='air'; if(kind==='color') return st.tool!=='image'&&st.tool!=='eraser'; if(kind==='size') return st.tool!=='image'&&st.tool!=='text'; return true; };
-    var targets=sel.filter(ok); if(!targets.length) return false;
+  function changeSel(kind,arg){
+    if(quietChg) return false;
+    var base=targets(); if(!base.length) return false;
+    var ok=function(st){ if(st.tool==='cut') return false; if(kind==='style') return st.tool==='pen'||st.tool==='line'||st.tool==='air'; if(kind==='tool') return st.tool==='pen'||st.tool==='air'; if(kind==='color') return st.tool!=='image'&&st.tool!=='eraser'; if(kind==='size') return st.tool!=='image'&&st.tool!=='text'; return true; };
+    var list=base.filter(ok); if(!list.length) return false;
     var map=new Map();
-    opSnap(function(){ strokes=strokes.map(function(st){ if(targets.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; if(kind==='ink') n.ink=+ink.value/100; else if(kind==='color') n.color=color; else if(kind==='size') n.size=size; else { if(n.tool==='air'){ n.hard=+airHard.value; n.flow=+airFlow.value; } else { n.nib=nibSel.value; n.soft=+soft.value; n.dry=+dry.value/100; n.hair=hair.checked; if(n.tool==='line') n.arrow=ar.checked; } } map.set(st,n); return n; }); });
-    sel=sel.map(function(st){ return map.get(st)||st; }); selCur=sel; selBox=boxOf(sel); refresh();
-    msg('Changed '+targets.length+' selected stroke'+(targets.length>1?'s':'')+' – Ctrl+Z undoes');
+    function penProps(n){ n.nib=nibSel.value; n.soft=+soft.value; n.dry=+dry.value/100; n.hair=hair.checked; }
+    opSnap(function(){ strokes=strokes.map(function(st){ if(list.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm;
+      if(kind==='ink') n.ink=+ink.value/100; else if(kind==='color') n.color=color; else if(kind==='size') n.size=size;
+      else if(kind==='tool'){ n.tool=arg==='brush'?'pen':arg; n.brush=arg==='brush'; if(n.tool==='air'){ n.hard=+airHard.value; n.flow=+airFlow.value; } else penProps(n); }
+      else { if(n.tool==='air'){ n.hard=+airHard.value; n.flow=+airFlow.value; } else { penProps(n); if(n.tool==='line') n.arrow=ar.checked; } }
+      map.set(st,n); return n; }); });
+    var upd=function(a){ return a.map(function(x){ return map.get(x)||x; }); };
+    tgt=upd(tgt); if(sel&&sel.length){ sel=upd(sel); selCur=sel; selBox=boxOf(sel); }
+    refresh(); msg('Changed '+list.length+' stroke'+(list.length>1?'s':'')+' ('+(tool==='select'&&sel.length?'selected':'last drawn')+') – Ctrl+Z undoes');
     return true;
   }
   var rSm4=row();
@@ -1493,15 +1508,17 @@
   // ---- presets and remembered settings ----
   var thinSelRef=thinSel;
   function getSettings(all){
-    var o={tool:(tool==='eraser'?lastDraw:tool),color:color,size:+size.toFixed(2),nib:nibSel.value,soft:+soft.value,dry:+dry.value,ink:+ink.value,sens:+sens.value,pr:pr.checked,pm:pm.value,sm:+sm.value,thin:thinSel.value,arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value};
+    var o={tool:(tool==='eraser'?lastDraw:tool),color:color,size:+size.toFixed(2),nib:nibSel.value,soft:+soft.value,dry:+dry.value,ink:+ink.value,sens:+sens.value,pr:pr.checked,pm:pm.value,sm:+sm.value,thin:thinSel.value,arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value,rs:restyle};
     if(all){ o.csel=csel.value; o.bg=bgSel.value; o.bgc=bgCol.value; o.ly=lySel.value; o.ask=askEl.checked; o.tool=tool; if(bar.style.left){ o.x=parseFloat(bar.style.left); o.y=parseFloat(bar.style.top); } }
     return o;
   }
   function applySettings(o){
-    if(!o) return;
+    if(!o) return; quietChg=true; try{ applySettings2(o); }finally{ quietChg=false; }
+  }
+  function applySettings2(o){
     if(o.nib) nibSel.value=o.nib; if(o.soft!=null) soft.value=o.soft; if(o.dry!=null) dry.value=o.dry; if(o.ink!=null) ink.value=o.ink;
     if(o.sens!=null) sens.value=o.sens; if(o.pr!=null) pr.checked=o.pr; if(o.pm) pm.value=o.pm; if(o.sm!=null) sm.value=o.sm;
-    if(o.hard!=null) airHard.value=o.hard; if(o.flow!=null) airFlow.value=o.flow; if(o.thin) thinSel.value=o.thin; if(o.arrow!=null) ar.checked=o.arrow;
+    if(o.rs!=null){ restyle=!!o.rs; rsChk.checked=restyle; } if(o.hard!=null) airHard.value=o.hard; if(o.flow!=null) airFlow.value=o.flow; if(o.thin) thinSel.value=o.thin; if(o.arrow!=null) ar.checked=o.arrow;
     if(o.csel){ csel.value=o.csel; hint(); } if(o.bg){ bgSel.value=o.bg; bgCol.style.display=bgSel.value==='color'?'inline-block':'none'; } if(o.bgc) bgCol.value=o.bgc;
     if(o.ly) lySel.value=o.ly; if(o.ask!=null) askEl.checked=o.ask;
     if(o.tool) setTool(o.tool); if(o.color) setColor(o.color); if(o.size!=null) setSize2(o.size);
