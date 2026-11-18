@@ -100,7 +100,7 @@
   var tEd=null;
   function openText(x,y,orig){
     commitText();
-    var fs=orig?orig.size:(+txSize.value||32), ff=orig?orig.ff:txFont.value, it=orig?orig.it:txIt.checked, bd=orig?orig.bd:txBd.checked, col=orig?orig.color:color;
+    var fs=orig?orig.size:(+txSize.value||32), ff=orig?orig.ff:curFF(), it=orig?orig.it:txIt.checked, bd=orig?orig.bd:txBd.checked, col=orig?orig.color:color;
     var ta=document.createElement('textarea');
     ta.style.cssText='position:absolute;left:'+x+'px;top:'+y+'px;z-index:'+(Z+1)+';margin:0;padding:0;border:1px dashed #888;background:rgba(255,255,255,.35);outline:none;resize:none;overflow:hidden;white-space:pre;color:'+col+';font:'+textFont({size:fs,ff:ff,it:it,bd:bd})+';line-height:1.25;min-width:140px;';
     ta.rows=1; ta.value=orig?orig.text:''; ta.spellcheck=false;
@@ -507,8 +507,9 @@
     if(s.feather>0){ var OFF=20000; c.shadowColor='#000'; c.shadowBlur=s.feather*rscale; c.shadowOffsetX=OFF*rscale; c.translate(-OFF,0); }
     c.fill('evenodd'); c.restore();
   }
-  var FONTS={sans:'"Geosans Light","Avenir","Avenir Next","Nunito Sans",system-ui,sans-serif',serif:'Georgia,"Times New Roman",serif',mono:'"SF Mono",Menlo,Consolas,monospace',hand:'"Segoe Print","Bradley Hand","Comic Sans MS",cursive',display:'Impact,"Arial Black",sans-serif'};
-  function textFont(s){ return (s.it?'italic ':'')+(s.bd?'700 ':'300 ')+s.size+'px '+(FONTS[s.ff]||FONTS.sans); }
+  var FONTS={sans:'"Geosans Light","Avenir","Avenir Next","Nunito Sans",system-ui,sans-serif',serif:'Georgia,"Times New Roman",serif',mono:'"SF Mono",Menlo,Consolas,monospace',hand:'"Segoe Print","Bradley Hand","Comic Sans MS",cursive',display:'Impact,"Arial Black",sans-serif',avenir:'"Avenir","Avenir Next","Nunito Sans",sans-serif',helvetica:'"Helvetica Neue",Helvetica,Arial,sans-serif',futura:'Futura,"Century Gothic","Trebuchet MS",sans-serif',gill:'"Gill Sans","Gill Sans MT",Calibri,sans-serif',verdana:'Verdana,Geneva,sans-serif',garamond:'Garamond,"Hoefler Text","Palatino Linotype",serif',palatino:'Palatino,"Book Antiqua","Palatino Linotype",serif',times:'"Times New Roman",Times,serif',didot:'Didot,"Bodoni MT","Playfair Display",serif',courier:'"Courier New",Courier,monospace',typewriter:'"American Typewriter","Courier New",monospace',marker:'"Marker Felt","Chalkduster","Comic Sans MS",cursive',script:'"Brush Script MT","Snell Roundhand","Lucida Handwriting",cursive',impact:'Impact,"Arial Black","Haettenschweiler",sans-serif'};
+  function fontStack(ff){ if(ff&&ff.slice(0,2)==='c:'){ var nm=ff.slice(2).replace(/["\\]/g,''); return '"'+nm+'",sans-serif'; } return FONTS[ff]||FONTS.sans; }
+  function textFont(s){ return (s.it?'italic ':'')+(s.bd?'700 ':'300 ')+s.size+'px '+fontStack(s.ff); }
   function renderText(c,s){
     var p=s.pts[0]; c.save(); c.globalAlpha=s.ink==null?1:s.ink; c.fillStyle=s.color; c.textBaseline='top'; c.font=textFont(s);
     c.translate(p.x,p.y); if(s.rot) c.rotate(s.rot);
@@ -822,10 +823,14 @@
 
   sec('Text');
   var rText=row(); lab(rText,'Font');
-  var txFont=el('select',BTN+'padding:3px 6px;'); [['sans','Sans'],['serif','Serif'],['mono','Mono'],['hand','Handwriting'],['display','Display']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
+  var FOPTS=[['sans','Geosans Light / Avenir'],['avenir','Avenir'],['helvetica','Helvetica'],['futura','Futura'],['gill','Gill Sans'],['verdana','Verdana'],['serif','Georgia (serif)'],['garamond','Garamond'],['palatino','Palatino'],['times','Times'],['didot','Didot'],['mono','Mono'],['courier','Courier'],['typewriter','Typewriter'],['hand','Handwriting'],['marker','Marker'],['script','Script'],['display','Display'],['impact','Impact'],['custom','Other font on my computer…']];
+  var txFont=el('select',BTN+'padding:3px 6px;'); FOPTS.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
+  var txCustom=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 6px;width:100%;box-sizing:border-box;display:none;'); txCustom.type='text'; txCustom.placeholder='Exact font name, e.g. Geosans Light'; rText.appendChild(txCustom);
+  txFont.addEventListener('change',function(){ txCustom.style.display=txFont.value==='custom'?'':'none'; });
+  function curFF(){ return txFont.value==='custom'&&txCustom.value.trim()?'c:'+txCustom.value.trim():(txFont.value==='custom'?'sans':txFont.value); }
   var txSize=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:50px;box-sizing:border-box;'); txSize.type='number'; txSize.value=32; txSize.min=4; txSize.max=400; txSize.title='Text size in px'; rText.appendChild(txSize); lab(rText,'px');
   var txBd=chk(rText,'Bold',false), txIt=chk(rText,'Italic',false);
-  rText.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. Colour and opacity come from Colour; use the Select tool to move, resize or rotate it.'));
+  rText.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Fonts come from your own computer, so the same text looks different on a computer without that font (exported PNGs keep the look). Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. Colour and opacity come from Colour; use the Select tool to move, resize or rotate it.'));
   bar.appendChild(rText);
 
   sec('Cut out');
