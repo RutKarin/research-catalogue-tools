@@ -1193,7 +1193,6 @@
 
   // ---- Animate: frames -> preview -> GIF / video ----
   sec('Animate');
-  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','Make frames: “Build-up from my drawing” (the drawing grows stroke by stroke) or “+ Add this frame” (one picture at a time, change the drawing between). Then ▶ Preview and Save. At least 2 frames are needed.'));
   var frames=[], aSel=-1, aPlay=0, aTimer=0;
   var rA1=row(); lab(rA1,'Frames'); var aN=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;width:52px;'); aN.type='number'; aN.min=2; aN.max=200; aN.value=24; aN.title='How many frames the replay should have'; rA1.appendChild(aN);
   bar.appendChild(rA1);
@@ -1357,6 +1356,7 @@
     var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
     (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(seq[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=seq.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
   }
+  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','Make frames: “Build-up from my drawing” (the drawing grows stroke by stroke) or “+ Add this frame” (one picture at a time, change the drawing between). Then ▶ Preview and Save. At least 2 frames are needed.'));
 
   sec('Export (image for RC)');
   var rSz=row(); lab(rSz,'Image size');
