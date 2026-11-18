@@ -682,8 +682,8 @@
   sec('Drawing tools');
   var r2=row();
   var bPen=btn('Pen',function(){setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){setTool('brush');},'Brush (P)'),
-      bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bTxt=btn('Text',function(){setTool('text');},'Text (T): click where the text should go');
-  r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bTxt); bar.appendChild(r2);
+      bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bTxt=btn('Text tool (T)',function(){setTool('text');},'Text (T): click where the text should go');
+  r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bLine); r2.appendChild(bEr); bar.appendChild(r2);
 
   sec('Colour');
   var r3=row(), sw=[];
@@ -822,6 +822,7 @@
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'));
 
   sec('Text');
+  var rTt=row(); rTt.appendChild(bTxt); bar.appendChild(rTt);
   var rText=row(); lab(rText,'Font');
   var FOPTS=[['sans','Geosans Light / Avenir'],['avenir','Avenir'],['helvetica','Helvetica'],['futura','Futura'],['gill','Gill Sans'],['verdana','Verdana'],['serif','Georgia (serif)'],['garamond','Garamond'],['palatino','Palatino'],['times','Times'],['didot','Didot'],['mono','Mono'],['courier','Courier'],['typewriter','Typewriter'],['hand','Handwriting'],['marker','Marker'],['script','Script'],['display','Display'],['impact','Impact'],['custom','Other font on my computer…']];
   var txFont=el('select',BTN+'padding:3px 6px;'); FOPTS.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
