@@ -792,6 +792,19 @@
   rPn.appendChild(btn('+ Save',function(){ var n=(preName.value||'').trim().slice(0,24)||('Preset '+(loadPre().length+1)); var a=loadPre(); a.push({n:n,s:getSettings(false)}); savePre(a); preName.value=''; drawPre(); msg('Saved preset "'+n+'"'); },'Saves the current tool, colour, thickness and pen settings as a one-click preset'));
   bar.appendChild(rPn);
 
+  sec('Text');
+  var rTt=row(); rTt.appendChild(bTxt); bar.appendChild(rTt);
+  var rText=row(); lab(rText,'Font');
+  var FOPTS=[['sans','Geosans Light / Avenir'],['avenir','Avenir'],['helvetica','Helvetica'],['futura','Futura'],['gill','Gill Sans'],['verdana','Verdana'],['serif','Georgia (serif)'],['garamond','Garamond'],['palatino','Palatino'],['times','Times'],['didot','Didot'],['mono','Mono'],['courier','Courier'],['typewriter','Typewriter'],['hand','Handwriting'],['marker','Marker'],['script','Script'],['display','Display'],['impact','Impact'],['custom','Other font on my computer…']];
+  var txFont=el('select',BTN+'padding:3px 6px;'); FOPTS.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
+  var txCustom=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 6px;width:100%;box-sizing:border-box;display:none;'); txCustom.type='text'; txCustom.placeholder='Exact font name, e.g. Geosans Light'; rText.appendChild(txCustom);
+  txFont.addEventListener('change',function(){ txCustom.style.display=txFont.value==='custom'?'':'none'; });
+  function curFF(){ return txFont.value==='custom'&&txCustom.value.trim()?'c:'+txCustom.value.trim():(txFont.value==='custom'?'sans':txFont.value); }
+  var txSize=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:50px;box-sizing:border-box;'); txSize.type='number'; txSize.value=32; txSize.min=4; txSize.max=400; txSize.title='Text size in px'; rText.appendChild(txSize); lab(rText,'px');
+  var txBd=chk(rText,'Bold',false), txIt=chk(rText,'Italic',false);
+  rText.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Fonts come from your own computer, so the same text looks different on a computer without that font (exported PNGs keep the look). Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. Colour and opacity come from Colour; use the Select tool to move, resize or rotate it.'));
+  bar.appendChild(rText);
+
   sec('Undo and canvas');
   var r7=row();
   r7.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
@@ -820,19 +833,6 @@
   rSm5.appendChild(btn('Apply',function(){ var sc=(+scIn.value||100)/100, dg=+roIn.value||0; selXform(sc,dg); scIn.value=100; roIn.value=0; },'Scale and/or rotate the selection around its centre'));
   bar.appendChild(rSm5);
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'));
-
-  sec('Text');
-  var rTt=row(); rTt.appendChild(bTxt); bar.appendChild(rTt);
-  var rText=row(); lab(rText,'Font');
-  var FOPTS=[['sans','Geosans Light / Avenir'],['avenir','Avenir'],['helvetica','Helvetica'],['futura','Futura'],['gill','Gill Sans'],['verdana','Verdana'],['serif','Georgia (serif)'],['garamond','Garamond'],['palatino','Palatino'],['times','Times'],['didot','Didot'],['mono','Mono'],['courier','Courier'],['typewriter','Typewriter'],['hand','Handwriting'],['marker','Marker'],['script','Script'],['display','Display'],['impact','Impact'],['custom','Other font on my computer…']];
-  var txFont=el('select',BTN+'padding:3px 6px;'); FOPTS.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
-  var txCustom=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 6px;width:100%;box-sizing:border-box;display:none;'); txCustom.type='text'; txCustom.placeholder='Exact font name, e.g. Geosans Light'; rText.appendChild(txCustom);
-  txFont.addEventListener('change',function(){ txCustom.style.display=txFont.value==='custom'?'':'none'; });
-  function curFF(){ return txFont.value==='custom'&&txCustom.value.trim()?'c:'+txCustom.value.trim():(txFont.value==='custom'?'sans':txFont.value); }
-  var txSize=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:50px;box-sizing:border-box;'); txSize.type='number'; txSize.value=32; txSize.min=4; txSize.max=400; txSize.title='Text size in px'; rText.appendChild(txSize); lab(rText,'px');
-  var txBd=chk(rText,'Bold',false), txIt=chk(rText,'Italic',false);
-  rText.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Fonts come from your own computer, so the same text looks different on a computer without that font (exported PNGs keep the look). Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. Colour and opacity come from Colour; use the Select tool to move, resize or rotate it.'));
-  bar.appendChild(rText);
 
   sec('Cut out');
   var rCt=row();
@@ -1210,7 +1210,7 @@
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Text':'Edit','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Text':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
