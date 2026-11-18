@@ -1356,7 +1356,7 @@
     var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
     (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(seq[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=seq.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
   }
-  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','Make frames: “Build-up from my drawing” (the drawing grows stroke by stroke) or “+ Add this frame” (one picture at a time, change the drawing between). Then ▶ Preview and Save. At least 2 frames are needed.'));
+  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or “+ Add this frame” for each step. 2) ▶ Preview. 3) Save GIF or video. At least 2 frames are needed.'));
 
   sec('Export (image for RC)');
   var rSz=row(); lab(rSz,'Image size');
