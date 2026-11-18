@@ -1339,7 +1339,7 @@
       } else if(curH){ wrap.appendChild(k); }
     });
     var cnt={}; hs.forEach(function(h){ var g=GROUP[h._t]||'More'; cnt[g]=(cnt[g]||0)+1; });
-    hs.forEach(function(h){ if(cnt[GROUP[h._t]||'More']===1){ h._flat=true; h._open=true; } });
+    hs.forEach(function(h){ if(cnt[GROUP[h._t]||'More']===1||GROUP[h._t]==='Text'){ h._flat=true; h._open=true; } });
     hs.forEach(applySec); gs.forEach(applyGrp);
     var allBtn=btn('⇕',function(){ var anyOpen=gs.some(function(g){ return g._open; })||hs.some(function(h){ return h._open&&!h._hidden&&!h._flat; }); gs.forEach(function(g){ g._open=!anyOpen; st['grp:'+g._t]=g._open?1:0; applyGrp(g); }); hs.forEach(function(h){ if(h._flat) return; h._open=!anyOpen; st[h._t]=h._open?1:0; applySec(h); }); saveSt(); },'Collapse / expand all menus');
     hg.insertBefore(allBtn,hg.firstChild);
