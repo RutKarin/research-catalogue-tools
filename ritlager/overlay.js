@@ -1705,6 +1705,7 @@
   var STK='ritlager-settings', stT=0;
   function saveSettings(){ clearTimeout(stT); stT=setTimeout(function(){ try{ localStorage.setItem(STK,JSON.stringify(getSettings(true))); }catch(e){} },400); }
   bar.addEventListener('input',saveSettings); bar.addEventListener('change',saveSettings); bar.addEventListener('click',saveSettings); head.addEventListener('pointerup',saveSettings);
+  quietChg=true; try{ setTool('pen'); setColor('#000000'); setSize2(4); }catch(e){} quietChg=false;
   try{ applySettings(JSON.parse(localStorage.getItem(STK))); }catch(e){}
   try{ fmSel.value='png'; dpiEl.value=72; dpiTouched=false; fmtUpdate(); }catch(e){}
   var PK='ritlager-presets';
