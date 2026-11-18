@@ -59,7 +59,7 @@
   // an edit that replaces the stroke list: undoable as one step
   function opSnap(fn){ var prev=strokes; strokes=prev.slice(); fn(); ulog.push({t:'s',prev:prev}); redo=[]; rebuild(); }
   function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; }
-  function scaleTextProps(n,st,k){ if(st.tool!=='text') return; ['bw','ls','ol','sh','bxl','bxp'].forEach(function(p){ if(st[p]) n[p]=st[p]*k; }); }
+  function scaleTextProps(n,st,k){ if(st.tool!=='text') return; ['bw','ls','ol','sh','bxl','bxp','fat'].forEach(function(p){ if(st[p]) n[p]=st[p]*k; }); }
   function isObj(st){ return st.tool==='text'||st.tool==='image'; }
   function objCorners(st){ if(st.tool==='text') return textBox(st); var im=imgs[st.iid]||{w:100,h:100}, w=im.w*st.size, h=im.h*st.size, co=Math.cos(st.rot||0), si=Math.sin(st.rot||0), p=st.pts[0]; return [[0,0],[w,0],[w,h],[0,h]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; }); }
   function selPts(st){ if(!isObj(st)) return st.pts; var q=objCorners(st); q.push({x:(q[0].x+q[2].x)/2,y:(q[0].y+q[2].y)/2}); return q; }
@@ -101,7 +101,7 @@
   var tEd=null;
   function styleTa(ta,P){
     ta.style.color=P.color; ta.style.font=textFont(P); ta.style.lineHeight=String(P.lh||1.25); ta.style.letterSpacing=(P.ls||0)+'px'; ta.style.textAlign=P.al||'left';
-    ta.style.whiteSpace=P.bw>0?'pre-wrap':'pre'; ta.style.width=P.bw>0?P.bw+'px':''; ta.style.webkitTextStroke=P.ol>0?Math.min(P.ol,3)+'px '+(P.olc||'#fff')+'':''; ta.style.background=P.bx?(P.bxc||'#fff'):'rgba(255,255,255,.35)';
+    ta.style.whiteSpace=P.bw>0?'pre-wrap':'pre'; ta.style.width=P.bw>0?P.bw+'px':''; ta.style.webkitTextStroke=P.ol>0?Math.min(P.ol,3)+'px '+(P.olc||'#e0245e')+'':''; ta.style.background=P.bx?(P.bxc||'#fff'):'rgba(255,255,255,.35)';
   }
   function openText(x,y,orig){
     commitText();
@@ -515,7 +515,7 @@
   }
   var FONTS={sans:'"Geosans Light","Avenir","Avenir Next","Nunito Sans",system-ui,sans-serif',serif:'Georgia,"Times New Roman",serif',mono:'"SF Mono",Menlo,Consolas,monospace',hand:'"Segoe Print","Bradley Hand","Comic Sans MS",cursive',display:'Impact,"Arial Black",sans-serif',avenir:'"Avenir","Avenir Next","Nunito Sans",sans-serif',helvetica:'"Helvetica Neue",Helvetica,Arial,sans-serif',futura:'Futura,"Century Gothic","Trebuchet MS",sans-serif',gill:'"Gill Sans","Gill Sans MT",Calibri,sans-serif',verdana:'Verdana,Geneva,sans-serif',garamond:'Garamond,"Hoefler Text","Palatino Linotype",serif',palatino:'Palatino,"Book Antiqua","Palatino Linotype",serif',times:'"Times New Roman",Times,serif',didot:'Didot,"Bodoni MT","Playfair Display",serif',courier:'"Courier New",Courier,monospace',typewriter:'"American Typewriter","Courier New",monospace',marker:'"Marker Felt","Chalkduster","Comic Sans MS",cursive',script:'"Brush Script MT","Snell Roundhand","Lucida Handwriting",cursive',impact:'Impact,"Arial Black","Haettenschweiler",sans-serif'};
   function fontStack(ff){ if(ff&&ff.slice(0,2)==='c:'){ var nm=ff.slice(2).replace(/["\\]/g,''); return '"'+nm+'",sans-serif'; } return FONTS[ff]||FONTS.sans; }
-  function textFont(s){ return (s.it?'italic ':'')+(s.bd?'700 ':'300 ')+s.size+'px '+fontStack(s.ff); }
+  function textFont(s){ return (s.it?'italic ':'')+(s.wt||(s.bd?700:300))+' '+s.size+'px '+fontStack(s.ff); }
   var mctx=document.createElement('canvas').getContext('2d');
   function layoutText(s){
     mctx.font=textFont(s); try{ mctx.letterSpacing=(s.ls||0)+'px'; }catch(e){}
@@ -536,7 +536,8 @@
     if(s.sh>0&&!s.bx){ c.shadowColor='rgba(0,0,0,.5)'; c.shadowBlur=s.sh*rscale; c.shadowOffsetX=s.sh*0.4*rscale; c.shadowOffsetY=s.sh*0.4*rscale; }
     L.lines.forEach(function(ln,i){
       var x=s.al==='center'?(L.w-L.ws[i])/2:(s.al==='right'?L.w-L.ws[i]:0), y=i*L.lh;
-      if(s.ol>0){ c.strokeStyle=s.olc||'#ffffff'; c.lineWidth=s.ol*2; c.strokeText(ln,x,y); }
+      if(s.ol>0){ c.strokeStyle=s.olc||'#e0245e'; c.lineWidth=s.ol*2+(s.fat||0); c.strokeText(ln,x,y); }
+      if(s.fat>0){ c.strokeStyle=s.color; c.lineWidth=s.fat; c.strokeText(ln,x,y); }
       c.fillStyle=s.color; c.fillText(ln,x,y);
     });
     c.restore();
@@ -830,24 +831,26 @@
   var txBd=chk(rT2,'Bold',false), txIt=chk(rT2,'Italic',false);
   var txCol=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txCol.type='color'; txCol.value='#111111'; txCol.title='Text colour'; rT2.appendChild(txCol);
   bar.appendChild(rT2);
+  var rTw=row(); lab(rTw,'Weight'); var txWt=slider(rTw,100,900,300,100); txWt.step=100; txWt.title='Thinner ← → thicker. Works with fonts that have several weights (e.g. Avenir, Helvetica)'; bar.appendChild(rTw);
+  var rTf=row(); lab(rTf,'Thicken'); var txFat=slider(rTf,0,12,0,100); txFat.title='Makes any font thicker by adding to its outline'; bar.appendChild(rTf);
   var rT3=row(); lab(rT3,'Align'); var txAl=el('select',BTN+'padding:3px 6px;'); [['left','Left'],['center','Centre'],['right','Right']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txAl.appendChild(op); }); rT3.appendChild(txAl);
   lab(rT3,'Wrap'); var txBw=el('input',INP+'width:60px;'); txBw.type='number'; txBw.min=0; txBw.max=3000; txBw.value=0; txBw.title='Line width in px where the text wraps to a new line. 0 = no wrapping'; rT3.appendChild(txBw); lab(rT3,'px (0 = off)');
   bar.appendChild(rT3);
   var rT4=row(); lab(rT4,'Letter spacing'); var txLs=slider(rT4,-5,40,0,110); bar.appendChild(rT4);
   var rT5=row(); lab(rT5,'Line height'); var txLh=slider(rT5,80,250,125,110); txLh.title='in % of the text size'; bar.appendChild(rT5);
-  var rT6=row(); lab(rT6,'Outline'); var txOl=slider(rT6,0,20,0,90); var txOlc=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txOlc.type='color'; txOlc.value='#ffffff'; txOlc.title='Outline colour'; rT6.appendChild(txOlc); bar.appendChild(rT6);
+  var rT6=row(); lab(rT6,'Outline'); var txOl=slider(rT6,0,20,0,90); var txOlc=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txOlc.type='color'; txOlc.value='#e0245e'; txOlc.title='Outline colour'; rT6.appendChild(txOlc); bar.appendChild(rT6);
   var rT7=row(); lab(rT7,'Shadow'); var txSh=slider(rT7,0,30,0,110); bar.appendChild(rT7);
   var COLS='width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;';
   var rT9=row(); var txBx=chk(rT9,'Box behind text',false,'Fill and border around the text'); var txBxc=el('input',COLS); txBxc.type='color'; txBxc.value='#ffffff'; txBxc.title='Fill colour inside the box'; rT9.appendChild(txBxc); bar.appendChild(rT9);
-  var rT10=row(); lab(rT10,'Border'); var txBxl=slider(rT10,0,16,2,80); var txBxlc=el('input',COLS); txBxlc.type='color'; txBxlc.value='#111111'; txBxlc.title='Border colour'; rT10.appendChild(txBxlc); bar.appendChild(rT10);
-  var rT11=row(); lab(rT11,'Padding'); var txBxp=slider(rT11,0,60,8,110); bar.appendChild(rT11);
-  function curProps(){ return {ff:curFF(),size:+txSize.value||32,it:txIt.checked,bd:txBd.checked,color:txCol.value,al:txAl.value,bw:+txBw.value||0,ls:+txLs.value,lh:(+txLh.value||125)/100,ol:+txOl.value,olc:txOlc.value,sh:+txSh.value,bx:txBx.checked,bxc:txBxc.value,bxl:+txBxl.value,bxlc:txBxlc.value,bxp:+txBxp.value}; }
+  var rT10=row(); lab(rT10,'Box border'); var txBxl=slider(rT10,0,16,2,80); var txBxlc=el('input',COLS); txBxlc.type='color'; txBxlc.value='#111111'; txBxlc.title='Border colour'; rT10.appendChild(txBxlc); bar.appendChild(rT10);
+  var rT11=row(); lab(rT11,'Box padding'); var txBxp=slider(rT11,0,60,8,110); bar.appendChild(rT11);
+  function curProps(){ return {ff:curFF(),size:+txSize.value||32,it:txIt.checked,bd:txBd.checked,wt:+txWt.value,fat:+txFat.value,color:txCol.value,al:txAl.value,bw:+txBw.value||0,ls:+txLs.value,lh:(+txLh.value||125)/100,ol:+txOl.value,olc:txOlc.value,sh:+txSh.value,bx:txBx.checked,bxc:txBxc.value,bxl:+txBxl.value,bxlc:txBxlc.value,bxp:+txBxp.value}; }
   // changing a setting also updates the selected text(s)
   function setControls(P){
     var known=Array.prototype.some.call(txFont.options,function(o){ return o.value===P.ff; });
     if(known){ txFont.value=P.ff; txCustom.style.display='none'; } else if(P.ff&&P.ff.slice(0,2)==='c:'){ txFont.value='custom'; txCustom.value=P.ff.slice(2); txCustom.style.display=''; }
-    txSize.value=Math.round(P.size); txIt.checked=!!P.it; txBd.checked=!!P.bd; txCol.value=P.color||'#111111'; txAl.value=P.al||'left'; txBw.value=Math.round(P.bw||0);
-    txLs.value=P.ls||0; txLh.value=Math.round((P.lh||1.25)*100); txOl.value=P.ol||0; txOlc.value=P.olc||'#ffffff'; txSh.value=P.sh||0;
+    txSize.value=Math.round(P.size); txIt.checked=!!P.it; txBd.checked=!!P.bd; txWt.value=P.wt||(P.bd?700:300); txFat.value=P.fat||0; txCol.value=P.color||'#111111'; txAl.value=P.al||'left'; txBw.value=Math.round(P.bw||0);
+    txLs.value=P.ls||0; txLh.value=Math.round((P.lh||1.25)*100); txOl.value=P.ol||0; txOlc.value=P.olc||'#e0245e'; txSh.value=P.sh||0;
     txBx.checked=!!P.bx; txBxc.value=P.bxc||'#ffffff'; txBxl.value=P.bxl==null?2:P.bxl; txBxlc.value=P.bxlc||'#111111'; txBxp.value=P.bxp==null?8:P.bxp;
   }
   function applyTextProps(){
@@ -858,9 +861,10 @@
   }
   [txFont,txAl].forEach(function(x){ x.addEventListener('change',function(){ txCustom.style.display=txFont.value==='custom'?'':'none'; applyTextProps(); }); });
   [txSize,txBw,txCustom,txCol,txOlc,txBxc,txBxlc].forEach(function(x){ x.addEventListener('change',applyTextProps); });
+  txBd.addEventListener('change',function(){ txWt.value=txBd.checked?700:300; });
   [txBd,txIt,txBx].forEach(function(x){ x.addEventListener('change',applyTextProps); });
-  [txLs,txLh,txOl,txSh,txBxl,txBxp].forEach(function(x){ x.addEventListener('change',applyTextProps); });
-  [txLs,txLh,txOl,txSh,txBxl,txBxp].forEach(function(x){ x.addEventListener('input',function(){ if(tEd) applyTextProps(); }); });
+  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat].forEach(function(x){ x.addEventListener('change',applyTextProps); });
+  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat].forEach(function(x){ x.addEventListener('input',function(){ if(tEd) applyTextProps(); }); });
   function rasterizeText(){
     var texts=sel.filter(function(st){ return st.tool==='text'; }); if(!texts.length){ msg('Select a text first (Select tool)'); return; }
     var map=new Map();
