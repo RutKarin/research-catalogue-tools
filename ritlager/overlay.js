@@ -1380,14 +1380,13 @@
   [['1','1× (as on screen)'],['1.5','1.5×'],['2','2× (sharp on retina screens)'],['3','3×'],['4','4×'],['6','6×']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; rsSel.appendChild(op); });
   rRs.appendChild(rsSel); bar.appendChild(rRs);
   var rsInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(rsInfo);
-  var rRm=row(); rRm.appendChild(btn('Re-measure',function(){ rescan(); fmtUpdate(); msg('Canvas is now '+W+' × '+H+' px'+(SC?' (inside the page’s scroll area)':'')); },'Use this if the page has become longer since you opened Ritlager, so the image covers the whole page')); bar.appendChild(rRm);
   function expBox(){ var b={w:W,h:H}; if(csel.value==='crop'){ try{ var t=bounds(); if(t) b={w:Math.min(W,Math.ceil(t.w+16)),h:Math.min(H,Math.ceil(t.h+16))}; }catch(e){} } return b; }
   function fmtUpdate(){ var k=+rsSel.value, b=expBox(); rQ.style.display=fmSel.value==='jpg'?'flex':'none';
     var w=Math.round(b.w*k), h=Math.round(b.h*k); rsInfo.textContent='The image will be about '+w+' × '+h+' px'+(fmSel.value!=='jpg'||true?' (at '+(+dpiEl.value||300)+' DPI = '+(w/(+dpiEl.value||300)*2.54).toFixed(1)+' × '+(h/(+dpiEl.value||300)*2.54).toFixed(1)+' cm)':'')+(fmSel.value==='jpg'&&bgSel.value==='none'?'. JPG cannot be transparent, so the background becomes white unless you choose another.':'.')+(w*h>1e8?' That is very large – the browser may refuse; choose a lower resolution.':'')+(isShot()?' (With Screenshot background the resolution is the screenshot\'s own.)':'');
     var L={png:'PNG',jpg:'JPG',tif:'TIFF'}[fmSel.value]; if(typeof bSave!=='undefined'&&bSave) bSave.textContent='Export '+L; if(typeof quick!=='undefined'&&quick) quick.textContent='Export '+L; }
   var szHint=el('div','font-size:11px;color:#777;line-height:1.35;');
   function hint(){ szHint.textContent = csel.value==='crop' ? 'Strokes only: the image is cropped to the area around your strokes. Smaller file, but you have to place it yourself on the page.' : 'Whole page: the image is as large as the page. Place it at the page top-left and the strokes line up exactly.'; }
-  csel.addEventListener('change',hint); hint();
+  csel.addEventListener('change',hint); hint(); csel.addEventListener('change',function(){ if(csel.value==='full'){ try{ rescan(); }catch(e){} fmtUpdate(); } });
   fmSel.addEventListener('change',function(){ if(!dpiTouched) dpiEl.value=fmSel.value==='tif'?300:72; });
   [fmSel,rsSel,csel].forEach(function(x){ x.addEventListener('change',fmtUpdate); }); dpiEl.addEventListener('input',fmtUpdate);
   var rBg=row(); lab(rBg,'Background');
@@ -1582,6 +1581,7 @@
   }
   function exportPng(mode){
     try{
+      if(csel.value==='full'){ try{ rescan(); }catch(e){} }
       if(mode==='save'&&lySel.value==='each'&&!isShot()){
         var L2=layers.filter(function(L){ return L.vis&&strokes.some(function(st){ return layerOf(st)===L.id; }); });
         if(!L2.length){ msg('Draw something first'); return; }
@@ -1768,7 +1768,7 @@
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
       ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
-      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. Re-measure makes the image cover the whole page if the page has grown longer since you opened Ritlager. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
+      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. Whole page measures the page again when you choose it and when you export, so the image covers the whole page even if it has grown longer since you opened Ritlager. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
     ];
     var man=el('div','margin-top:4px;display:none;');
     var kb=el('div','margin-bottom:6px;','Shortcuts: D draw/click, B pen, P brush, L line, E eraser, T text, A airbrush, S or V select, I pipette, [ ] thickness, Ctrl+Z undo, Ctrl+Y redo.');
