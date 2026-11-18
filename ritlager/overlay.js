@@ -817,9 +817,9 @@
   var head = row(); head.style.justifyContent='space-between'; head.style.cursor='move'; head.style.cssText+='position:sticky;top:-8px;z-index:2;background:#fafafa;padding:6px 0;margin-top:-8px;border-bottom:1px solid #e4e4e4;';
   (function(){
     var w=el('span','position:relative;display:inline-block;padding-right:17px;line-height:1;');
-    var t=el('span','display:inline-block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;font-weight:300;padding-bottom:3px;border-bottom:1px solid #111;margin-right:-13px;padding-right:13px;','Ritlager');
-    var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','#111'); sv.setAttribute('stroke-width','1.2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); sv.style.cssText='position:absolute;right:0;bottom:-1px;';
-    ['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z','m15 5 4 4'].forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); });
+    var t=el('span','display:inline-block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;font-weight:300;padding-bottom:3px;padding-right:1px;border-bottom:1px solid #111;','Ritlager');
+    var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','#111'); sv.setAttribute('stroke-width','1.3'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); sv.style.cssText='position:absolute;right:0;bottom:-1.5px;overflow:visible;';
+    [['M4.37 17.37 17.87 3.87 20.13 6.13 6.63 19.63Z',null],['m15.4 6.3 2.3 2.3',null],['M2 22 4.37 17.37 6.63 19.63Z','#111']].forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d[0]); if(d[1]) pa.setAttribute('fill',d[1]); sv.appendChild(pa); });
     w.appendChild(t); w.appendChild(sv); head.appendChild(w);
   })();
   var hide = btn('Hide', function(){ api.toggle(); }, 'Hide/show (D toggles draw/click)'); hide.style.padding='5px 9px';
