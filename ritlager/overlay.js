@@ -1449,6 +1449,7 @@
   fmtUpdate();
   r8.appendChild(btn('Show image',function(){ showDialog(lastBlob,lastName); },'Shows the latest export with its own download link, in case the download does not work'));
   bar.appendChild(r8);
+  bar.appendChild(el('div','font-size:11px;color:#888;line-height:1.4;margin-top:4px;','Ritlager is made by Rut Karin Zettergren for working with websites and Research Catalogue – a lighter, simpler take on drawing over a page.'));
 
   sec('Underlay (old PNG)');
   var rU=row();
@@ -1706,6 +1707,7 @@
   function saveSettings(){ clearTimeout(stT); stT=setTimeout(function(){ try{ localStorage.setItem(STK,JSON.stringify(getSettings(true))); }catch(e){} },400); }
   bar.addEventListener('input',saveSettings); bar.addEventListener('change',saveSettings); bar.addEventListener('click',saveSettings); head.addEventListener('pointerup',saveSettings);
   try{ applySettings(JSON.parse(localStorage.getItem(STK))); }catch(e){}
+  try{ fmSel.value='png'; dpiEl.value=72; dpiTouched=false; fmtUpdate(); }catch(e){}
   var PK='ritlager-presets';
   var DEFPRE=[{n:'Thin black',s:{tool:'pen',color:'#111111',size:0.4,nib:'round',soft:0,ink:100,thin:'black'}},{n:'Pencil',s:{tool:'pen',color:'#222222',size:3,nib:'pencil',soft:0,ink:100}},{n:'Marker',s:{tool:'pen',color:'#f2c200',size:24,nib:'marker',soft:0,ink:100}},{n:'Watercolour',s:{tool:'pen',color:'#1f5fd1',size:30,nib:'water',soft:0,ink:100}}];
   function loadPre(){ try{ var a=JSON.parse(localStorage.getItem(PK)); if(a&&a.length!=null) return a; }catch(e){} return DEFPRE.slice(); }
