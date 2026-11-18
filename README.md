@@ -1,6 +1,6 @@
 # Research Catalogue tools
 
-Small, free tools for working with webpages and [Research Catalogue](https://www.researchcatalogue.net/) (RC), designed by artist-researcher Rut Karin Zettergren. Ritlager does not upload your drawings.
+Small, free tools for working with webpages and [Research Catalogue](https://www.researchcatalogue.net/) (RC), designed by artist-researcher Rut Karin Zettergren.
 
 ## Ritlager (“drawing layer”)
 

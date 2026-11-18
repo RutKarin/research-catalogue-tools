@@ -1755,6 +1755,7 @@
     var d=el('div','font-size:11px;color:#888;line-height:1.4;margin-top:10px;padding-top:8px;border-top:1px solid #e4e4e4;');
     var a=el('a','color:#111;text-decoration:underline;cursor:pointer;','Ritlager'); a.href='https://github.com/RutKarin/research-catalogue-tools'; a.target='_blank'; a.rel='noopener noreferrer';
     d.appendChild(a); d.appendChild(document.createTextNode(' is a browser tool for drawing over web pages, designed by Rut Karin Zettergren for creating freehand drawings and visuals that can be exported for use on webpages and Research Catalogue.'));
+    d.appendChild(el('div','margin-top:6px;','Your drawing is autosaved in this browser, for this page only. When you export, the file is saved to your computer. Ritlager itself does not upload anything.'));
     bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
