@@ -44,7 +44,7 @@
 
   var ref=null, rscale=1, under=null, moveUnder=false, contrast=0, tool='pen', color='#111111', size=6, drawing=true, visible=true;
   var strokes=[], redo=[], ulog=[], cur=null, lastBlob=null;
-  var selMode='rect', selScope='active', sel=[], selCur=[], selBox=null, selDrag=null, selOrig=null, marq=null, clip=[], pasteN=0;
+  var cutMode='rect', selMode='rect', selScope='active', sel=[], selCur=[], selBox=null, selDrag=null, selOrig=null, marq=null, clip=[], pasteN=0;
   function undo(){
     var e=ulog.pop(); if(!e){ if(!strokes.length) return; e={t:'d'}; }
     if(e.t==='d'){ var st=strokes.pop(); if(st) redo.push({t:'d',stroke:st}); }
@@ -59,8 +59,10 @@
   // an edit that replaces the stroke list: undoable as one step
   function opSnap(fn){ var prev=strokes; strokes=prev.slice(); fn(); ulog.push({t:'s',prev:prev}); redo=[]; rebuild(); }
   function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; }
-  function selPts(st){ if(st.tool!=='text') return st.pts; var q=textBox(st); q.push({x:(q[0].x+q[2].x)/2,y:(q[0].y+q[2].y)/2}); return q; }
-  function strokeBox(st){ if(st.tool==='text'){ var q=textBox(st), a=1e9,b=1e9,c2=-1e9,d=-1e9; q.forEach(function(p){ a=Math.min(a,p.x); c2=Math.max(c2,p.x); b=Math.min(b,p.y); d=Math.max(d,p.y); }); return {x0:a-3,y0:b-3,x1:c2+3,y1:d+3}; }
+  function isObj(st){ return st.tool==='text'||st.tool==='image'; }
+  function objCorners(st){ if(st.tool==='text') return textBox(st); var im=imgs[st.iid]||{w:100,h:100}, w=im.w*st.size, h=im.h*st.size, co=Math.cos(st.rot||0), si=Math.sin(st.rot||0), p=st.pts[0]; return [[0,0],[w,0],[w,h],[0,h]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; }); }
+  function selPts(st){ if(!isObj(st)) return st.pts; var q=objCorners(st); q.push({x:(q[0].x+q[2].x)/2,y:(q[0].y+q[2].y)/2}); return q; }
+  function strokeBox(st){ if(isObj(st)){ var q=objCorners(st), a=1e9,b=1e9,c2=-1e9,d=-1e9; q.forEach(function(p){ a=Math.min(a,p.x); c2=Math.max(c2,p.x); b=Math.min(b,p.y); d=Math.max(d,p.y); }); return {x0:a-3,y0:b-3,x1:c2+3,y1:d+3}; }
     var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,r=(st.size||2)/2+3; st.pts.forEach(function(p){ if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; }); return {x0:x0-r,y0:y0-r,x1:x1+r,y1:y1+r}; }
   function boxOf(list){ var b=null; list.forEach(function(st){ var c=strokeBox(st); if(!b) b=c; else { b.x0=Math.min(b.x0,c.x0); b.y0=Math.min(b.y0,c.y0); b.x1=Math.max(b.x1,c.x1); b.y1=Math.max(b.y1,c.y1); } }); return b; }
   function inBox(b,q){ return b&&q.x>=b.x0&&q.x<=b.x1&&q.y>=b.y0&&q.y<=b.y1; }
@@ -72,6 +74,29 @@
   function baseCur(){ return selMode==='pick'?'default':DOTS; }
   function pip(x,y,poly){ var c=false; for(var i=0,j=poly.length-1;i<poly.length;j=i++){ if(((poly[i].y>y)!==(poly[j].y>y))&&(x<(poly[j].x-poly[i].x)*(y-poly[i].y)/(poly[j].y-poly[i].y)+poly[i].x)) c=!c; } return c; }
   function selCursor(q){ if(!sel.length) return baseCur(); if(rotAt(q)) return 'grab'; var h=handleAt(q); if(h>=0) return (h===0||h===2)?'nwse-resize':'nesw-resize'; return inBox(selBox,q)?'move':baseCur(); }
+  function importImageFile(file,atX,atY){
+    if(!file||!/^image\//.test(file.type)){ msg('That file is not an image'); return; }
+    var fr=new FileReader();
+    fr.onload=function(){ var im=new Image(); im.onload=function(){
+      var maxD=1800, k=Math.min(1,maxD/Math.max(im.width,im.height)), w=Math.round(im.width*k), h=Math.round(im.height*k), src=fr.result, note2='';
+      if(k<1||src.length>2.5e6){ var c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(im,0,0,w,h); src=c.toDataURL('image/png'); if(src.length>2.5e6){ src=c.toDataURL('image/jpeg',0.86); note2=' (compressed to JPEG – transparency lost)'; } }
+      var iid='i'+Date.now().toString(36)+Math.floor(Math.random()*1e5).toString(36); imgs[iid]={src:src,w:w,h:h};
+      var r=cv.getBoundingClientRect(), x=atX!=null?atX:-r.left+40, y=atY!=null?atY:-r.top+40, disp=Math.min(1,Math.max(60,Math.min(window.innerWidth*0.6,W-80))/w);
+      var st={l:act,tool:'image',iid:iid,size:disp,rot:0,ink:1,color:'#000',pts:[{x:x,y:y,p:1}]};
+      opSnap(function(){ strokes.push(st); sel=[st]; selCur=[st]; selBox=boxOf([st]); });
+      setTool('select'); msg('Image added to the active layer'+note2+' – drag to move, corner squares to resize, Eraser or Cut out to cut it');
+    }; im.onerror=function(){ msg('Could not read that image'); }; im.src=fr.result; };
+    fr.readAsDataURL(file);
+  }
+  cv.addEventListener('dragover',function(e){ if(e.dataTransfer&&Array.prototype.indexOf.call(e.dataTransfer.types||[],'Files')>=0) e.preventDefault(); });
+  cv.addEventListener('drop',function(e){ var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(!f) return; e.preventDefault(); var q=cpt(e); importImageFile(f,Math.round(q.x),Math.round(q.y)); });
+  document.addEventListener('paste',function(e){
+    if(!visible||!drawing||typing(e.target)) return;
+    var items=(e.clipboardData&&e.clipboardData.items)||[], f=null;
+    for(var i=0;i<items.length;i++) if(items[i].kind==='file'&&/^image\//.test(items[i].type)){ f=items[i].getAsFile(); break; }
+    if(f){ e.preventDefault(); importImageFile(f); return; }
+    if(clip.length||localStorage.getItem('ritlager-clip')){ e.preventDefault(); selPaste(); }
+  },true);
   var tEd=null;
   function openText(x,y,orig){
     commitText();
@@ -107,6 +132,21 @@
     openText(Math.round(q.x),Math.round(q.y),null);
   }
   cv.addEventListener('dblclick',function(e){ if(!drawing||tool==='text') return; var h=textHit(cpt(e)); if(h){ clearSel(); openText(h.pts[0].x,h.pts[0].y,h); } });
+  function cutDown(e){
+    var q=cpt(e); cv.setPointerCapture(e.pointerId); e.preventDefault();
+    if(!getLayer(act).vis){ msg('This layer is hidden – show it to cut it'); return; }
+    marq = cutMode==='lasso' ? {lasso:true,pts:[{x:q.x,y:q.y}]} : {x0:q.x,y0:q.y,x1:q.x,y1:q.y};
+    selDrag={marq:true,cut:true}; refresh();
+  }
+  function finishCut(){
+    var m=marq, poly=null; marq=null;
+    if(m.lasso){ if(m.pts.length>=3) poly=m.pts.map(function(p){ return {x:p.x,y:p.y,p:1}; }); }
+    else { var x0=Math.min(m.x0,m.x1),x1=Math.max(m.x0,m.x1),y0=Math.min(m.y0,m.y1),y1=Math.max(m.y0,m.y1); if(x1-x0>=4&&y1-y0>=4) poly=[{x:x0,y:y0,p:1},{x:x1,y:y0,p:1},{x:x1,y:y1,p:1},{x:x0,y:y1,p:1}]; }
+    if(!poly){ refresh(); return; }
+    var st={l:act,tool:'cut',keep:cutKeep.value,feather:+cutFeather.value,size:2,color:'#000',ink:1,pts:poly};
+    opSnap(function(){ strokes.push(st); });
+    msg(cutKeep.value==='out'?'Cut out: everything outside the shape was erased on this layer':'Cut out: the inside of the shape was erased on this layer');
+  }
   function selDown(e){
     var q=cpt(e); cv.setPointerCapture(e.pointerId); e.preventDefault();
     if(sel.length&&rotAt(q)){ var rc={cx:(selBox.x0+selBox.x1)/2,cy:(selBox.y0+selBox.y1)/2}; rc.a0=Math.atan2(q.y-rc.cy,q.x-rc.cx); selOrig=strokes; selDrag={rot:rc,moved:false}; return; }
@@ -126,7 +166,7 @@
     if(selDrag.rot){
       var rc=selDrag.rot, a=Math.atan2(q.y-rc.cy,q.x-rc.cx)-rc.a0; if(e.shiftKey) a=Math.round(a/(Math.PI/12))*(Math.PI/12);
       var co=Math.cos(a), si=Math.sin(a); selDrag.moved=true; selCur=[];
-      strokes=selOrig.map(function(st){ if(sel.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; n.pts=st.pts.map(function(p){ return {x:rc.cx+(p.x-rc.cx)*co-(p.y-rc.cy)*si,y:rc.cy+(p.x-rc.cx)*si+(p.y-rc.cy)*co,p:p.p}; }); if(st.tool==='text') n.rot=(st.rot||0)+a; selCur.push(n); return n; });
+      strokes=selOrig.map(function(st){ if(sel.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; n.pts=st.pts.map(function(p){ return {x:rc.cx+(p.x-rc.cx)*co-(p.y-rc.cy)*si,y:rc.cy+(p.x-rc.cx)*si+(p.y-rc.cy)*co,p:p.p}; }); if(isObj(st)) n.rot=(st.rot||0)+a; selCur.push(n); return n; });
       selBox=boxOf(selCur); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild); return;
     }
     if(selDrag.sc){
@@ -144,6 +184,7 @@
   }
   function selUp(){
     var d=selDrag; selDrag=null;
+    if(d.marq&&d.cut){ finishCut(); return; }
     if(d.marq){
       var m=marq; marq=null; sel=[];
       if(m.lasso){
@@ -177,7 +218,12 @@
   function selFlip(h){
     if(!sel.length){ msg('Select something first'); return; }
     var cx=(selBox.x0+selBox.x1)/2, cy=(selBox.y0+selBox.y1)/2, old=sel, made=[];
-    opSnap(function(){ strokes=strokes.map(function(st){ if(old.indexOf(st)<0) return st; var n=cloneStroke(st); n.pts=n.pts.map(function(p){ return h?{x:2*cx-p.x,y:p.y,p:p.p}:{x:p.x,y:2*cy-p.y,p:p.p}; }); made.push(n); return n; }); sel=made; selCur=made; selBox=boxOf(made); });
+    opSnap(function(){ strokes=strokes.map(function(st){ if(old.indexOf(st)<0) return st; var n=cloneStroke(st);
+      if(isObj(st)){ var oc=objCorners(st), ow=oc[1].x-oc[0].x, oh=oc[3].y-oc[0].y, p0=st.pts[0], unrot=!(st.rot);
+        n.pts=[{x:(h&&unrot)?2*cx-(p0.x+ow):(h?2*cx-p0.x:p0.x),y:(!h&&unrot)?2*cy-(p0.y+oh):(!h?2*cy-p0.y:p0.y),p:p0.p}];
+        if(st.tool==='image'){ if(h) n.fx=!st.fx; else n.fy=!st.fy; }
+      } else n.pts=n.pts.map(function(p){ return h?{x:2*cx-p.x,y:p.y,p:p.p}:{x:p.x,y:2*cy-p.y,p:p.p}; });
+      made.push(n); return n; }); sel=made; selCur=made; selBox=boxOf(made); });
   }
   function selDup(){
     if(!sel.length){ msg('Select something first'); return; }
@@ -188,7 +234,7 @@
     if(!sel.length){ msg('Select something first'); return; }
     var cx=(selBox.x0+selBox.x1)/2, cy=(selBox.y0+selBox.y1)/2, a=deg*Math.PI/180, co=Math.cos(a), si=Math.sin(a), old=sel, made=[];
     opSnap(function(){ strokes=strokes.map(function(st){ if(old.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; n.size=st.size*scale;
-      n.pts=st.pts.map(function(p){ var dx=(p.x-cx)*scale, dy=(p.y-cy)*scale; return {x:cx+dx*co-dy*si,y:cy+dx*si+dy*co,p:p.p}; }); if(st.tool==='text') n.rot=(st.rot||0)+a; made.push(n); return n; }); sel=made; selCur=made; selBox=boxOf(made); });
+      n.pts=st.pts.map(function(p){ var dx=(p.x-cx)*scale, dy=(p.y-cy)*scale; return {x:cx+dx*co-dy*si,y:cy+dx*si+dy*co,p:p.p}; }); if(isObj(st)) n.rot=(st.rot||0)+a; made.push(n); return n; }); sel=made; selCur=made; selBox=boxOf(made); });
   }
   function selLayer(){ setTool('select'); sel=strokes.filter(function(st){ return layerOf(st)===act; }); selBox=sel.length?boxOf(sel):null; refresh(); msg(sel.length?'Layer selected – drag a corner square to resize, the round handle to rotate':'This layer is empty'); }
   function selAll(){ sel=strokes.filter(inScope); selBox=sel.length?boxOf(sel):null; refresh(); msg(sel.length+' selected'); }
@@ -234,11 +280,12 @@
   }
   var SKEY='ritlager-versioner:'+location.origin+location.pathname+location.search;
   function pack(withRef){
-    return {v:1,t:Date.now(),c:contrast,ref:(withRef&&ref)?{src:ref.c.toDataURL('image/png'),sx:ref.sx,sy:ref.sy,w:ref.w,h:ref.h,k:ref.k}:undefined,under:under?{src:under.src,x:under.x,y:under.y}:null,layers:layers.map(function(L){ return {id:L.id,name:L.name,vis:L.vis,op:L.op,bm:L.bm||'source-over'}; }),act:act,strokes:strokes.map(function(s){ var o={}; for(var k in s) if(k!=='pts'&&k!=='sm') o[k]=s[k];
+    return {v:1,t:Date.now(),c:contrast,ref:(withRef&&ref)?{src:ref.c.toDataURL('image/png'),sx:ref.sx,sy:ref.sy,w:ref.w,h:ref.h,k:ref.k}:undefined,under:under?{src:under.src,x:under.x,y:under.y}:null,layers:layers.map(function(L){ return {id:L.id,name:L.name,vis:L.vis,op:L.op,bm:L.bm||'source-over'}; }),act:act,images:(function(){ var o={}; strokes.forEach(function(st){ if(st.iid&&imgs[st.iid]&&!o[st.iid]) o[st.iid]={src:imgs[st.iid].src,w:imgs[st.iid].w,h:imgs[st.iid].h}; }); return o; })(),strokes:strokes.map(function(s){ var o={}; for(var k in s) if(k!=='pts'&&k!=='sm') o[k]=s[k];
       o.pts=s.pts.map(function(p){ return [Math.round(p.x*10)/10,Math.round(p.y*10)/10,Math.round(p.p*100)/100]; }); return o; })};
   }
   function unpack(d){
     if(!d||!d.strokes) return -1;
+    imgs={}; if(d.images) Object.keys(d.images).forEach(function(k){ imgs[k]={src:d.images[k].src,w:d.images[k].w,h:d.images[k].h}; });
     strokes=d.strokes.map(function(o){ o.pts=o.pts.map(function(p){ return {x:p[0],y:p[1],p:p[2]}; }); return o; });
     layers = (d.layers&&d.layers.length) ? d.layers.map(function(L){ return {id:L.id,name:L.name,vis:L.vis!==false,op:L.op==null?100:L.op,bm:L.bm||'source-over'}; }) : [{id:1,name:'Layer 1',vis:true,op:100}];
     act = d.act&&layers.some(function(L){ return L.id===d.act; }) ? d.act : layers[layers.length-1].id;
@@ -409,6 +456,20 @@
     tc.globalCompositeOperation='destination-in'; tc.fillStyle=tc.createPattern(grain(),'repeat'); tc.fillRect(bx,by,bw,bh);
     c.drawImage(t,bx,by);
   }
+  var imgs={};
+  function ensureImg(iid){ var o=imgs[iid]; if(!o) return null; if(!o.img){ var im=new Image(); o.img=im; im.onload=function(){ o.w=im.naturalWidth||o.w; o.h=im.naturalHeight||o.h; rebuild(); }; im.src=o.src; } return (o.img.complete&&o.img.naturalWidth)?o.img:null; }
+  function renderImage(c,s){
+    var im=ensureImg(s.iid); if(!im) return; var p=s.pts[0];
+    c.save(); c.globalAlpha=s.ink==null?1:s.ink; c.translate(p.x,p.y); if(s.rot) c.rotate(s.rot);
+    c.scale(s.size*(s.fx?-1:1),s.size*(s.fy?-1:1)); c.drawImage(im,s.fx?-im.naturalWidth:0,s.fy?-im.naturalHeight:0); c.restore();
+  }
+  function renderCut(c,s){
+    c.save(); c.globalCompositeOperation='destination-out'; c.fillStyle='#000'; c.beginPath();
+    if(s.keep==='out') c.rect(-1e5,-1e5,2e5,2e5);
+    s.pts.forEach(function(p,i){ if(i) c.lineTo(p.x,p.y); else c.moveTo(p.x,p.y); }); c.closePath();
+    if(s.feather>0){ var OFF=20000; c.shadowColor='#000'; c.shadowBlur=s.feather*rscale; c.shadowOffsetX=OFF*rscale; c.translate(-OFF,0); }
+    c.fill('evenodd'); c.restore();
+  }
   var FONTS={sans:'"Geosans Light","Avenir","Avenir Next","Nunito Sans",system-ui,sans-serif',serif:'Georgia,"Times New Roman",serif',mono:'"SF Mono",Menlo,Consolas,monospace',hand:'"Segoe Print","Bradley Hand","Comic Sans MS",cursive',display:'Impact,"Arial Black",sans-serif'};
   function textFont(s){ return (s.it?'italic ':'')+(s.bd?'700 ':'300 ')+s.size+'px '+(FONTS[s.ff]||FONTS.sans); }
   function renderText(c,s){
@@ -425,6 +486,8 @@
   }
   function render(c,s){
     if(s.tool==='text'){ renderText(c,s); return; }
+    if(s.tool==='image'){ renderImage(c,s); return; }
+    if(s.tool==='cut'){ renderCut(c,s); return; }
     c.save();
     c.globalCompositeOperation = s.tool==='eraser' ? 'destination-out' : 'source-over';
     c.strokeStyle = c.fillStyle = s.color; c.lineCap = c.lineJoin = 'round';
@@ -509,6 +572,7 @@
     if(!drawing || e.pointerType==='touch') return;
     if(e.pointerType==='mouse' && e.button!==0) return;
     if(tool==='text'){ textDown(e); return; }
+    if(tool==='cut'){ cutDown(e); return; }
     if(tool==='select'){ selDown(e); return; }
     cv.setPointerCapture(e.pointerId);
     if(!getLayer(act).vis){ msg('This layer is hidden – show it to draw on it'); return; }
@@ -588,12 +652,6 @@
   var txBd=chk(rText,'Bold',false), txIt=chk(rText,'Italic',false);
   rText.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. Colour and opacity come from Colour; use the Select tool to move, resize or rotate it.'));
   bar.appendChild(rText);
-
-  sec('Presets');
-  var preBox=el('div','display:flex;flex-wrap:wrap;gap:5px;'); bar.appendChild(preBox);
-  var rPn=row(); var preName=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;flex:1;min-width:0;box-sizing:border-box;'); preName.type='text'; preName.placeholder='Name, e.g. Fine ink'; rPn.appendChild(preName);
-  rPn.appendChild(btn('+ Save',function(){ var n=(preName.value||'').trim().slice(0,24)||('Preset '+(loadPre().length+1)); var a=loadPre(); a.push({n:n,s:getSettings(false)}); savePre(a); preName.value=''; drawPre(); msg('Saved preset "'+n+'"'); },'Saves the current tool, colour, thickness and pen settings as a one-click preset'));
-  bar.appendChild(rPn);
 
   sec('Colour');
   var r3=row(), sw=[];
@@ -696,6 +754,12 @@
   rPm.appendChild(pm); bar.appendChild(rPm);
   var rSm=row(); lab(rSm,'Stabilise'); var sm=slider(rSm,0,90,35,100); sm.title='Smooths out shaky strokes'; bar.appendChild(rSm);
 
+  sec('Presets');
+  var preBox=el('div','display:flex;flex-wrap:wrap;gap:5px;'); bar.appendChild(preBox);
+  var rPn=row(); var preName=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;flex:1;min-width:0;box-sizing:border-box;'); preName.type='text'; preName.placeholder='Name, e.g. Fine ink'; rPn.appendChild(preName);
+  rPn.appendChild(btn('+ Save',function(){ var n=(preName.value||'').trim().slice(0,24)||('Preset '+(loadPre().length+1)); var a=loadPre(); a.push({n:n,s:getSettings(false)}); savePre(a); preName.value=''; drawPre(); msg('Saved preset "'+n+'"'); },'Saves the current tool, colour, thickness and pen settings as a one-click preset'));
+  bar.appendChild(rPn);
+
   sec('Undo and canvas');
   var r7=row();
   r7.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
@@ -708,7 +772,7 @@
   var rSm1=row();
   var bPick=btn('↖ Pick',function(){ selMode='pick'; setTool('select'); },'Click a stroke to select it, then drag to move it'), bRect=btn('▭ Rectangle',function(){ selMode='rect'; setTool('select'); },'Drag a rectangle around the strokes you want (V)'), bLas=btn('Lasso',function(){ selMode='lasso'; setTool('select'); },'Draw around the strokes you want');
   rSm1.appendChild(bPick); rSm1.appendChild(bRect); rSm1.appendChild(bLas); bar.appendChild(rSm1);
-  function markSel(){ var on=tool==='select'; mark(bPick,on&&selMode==='pick'); mark(bRect,on&&selMode==='rect'); mark(bLas,on&&selMode==='lasso'); }
+  function markSel(){ var on=tool==='select'; mark(bPick,on&&selMode==='pick'); mark(bRect,on&&selMode==='rect'); mark(bLas,on&&selMode==='lasso'); var cn=tool==='cut'; mark(bCutR,cn&&cutMode==='rect'); mark(bCutL,cn&&cutMode==='lasso'); }
   var rSm2=row(); lab(rSm2,'Select from');
   var scSel=el('select',BTN+'padding:3px 6px;');
   [['active','Active layer'],['all','All visible layers']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; scSel.appendChild(op); });
@@ -724,6 +788,23 @@
   rSm5.appendChild(btn('Apply',function(){ var sc=(+scIn.value||100)/100, dg=+roIn.value||0; selXform(sc,dg); scIn.value=100; roIn.value=0; },'Scale and/or rotate the selection around its centre'));
   bar.appendChild(rSm5);
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'));
+
+  sec('Images');
+  var rIm=row();
+  var imf=el('input'); imf.type='file'; imf.accept='image/*'; imf.style.display='none';
+  imf.addEventListener('change',function(){ var f=imf.files[0]; if(f) importImageFile(f); imf.value=''; });
+  rIm.appendChild(imf); rIm.appendChild(btn('Import image…',function(){ imf.click(); },'Add a picture from your computer to the active layer'));
+  bar.appendChild(rIm);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','You can also drop an image file onto the page or paste a copied image with Ctrl+V. The picture lands on the active layer and works like any object: move, resize and rotate with the Select tool, rub out with the Eraser, or use Cut out.'));
+
+  sec('Cut out');
+  var rCt=row();
+  var bCutR=btn('▭ Rectangle',function(){ cutMode='rect'; setTool('cut'); },'Drag a rectangle to cut'), bCutL=btn('Lasso',function(){ cutMode='lasso'; setTool('cut'); },'Draw around the area to cut');
+  rCt.appendChild(bCutR); rCt.appendChild(bCutL); bar.appendChild(rCt);
+  var rCk=row(); lab(rCk,'Cut');
+  var cutKeep=el('select',BTN+'padding:3px 6px;'); [['in','Erase inside'],['out','Erase outside (keep inside)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; cutKeep.appendChild(op); }); rCk.appendChild(cutKeep); bar.appendChild(rCk);
+  var rCf=row(); lab(rCf,'Soft edge'); var cutFeather=slider(rCf,0,40,0,110); cutFeather.title='0 = hard edge; higher = feathered edge'; bar.appendChild(rCf);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick Rectangle or Lasso, then draw the shape on the page. The cut applies to the active layer (pictures, drawing and text) and can be undone. To move a cut-out together with its picture later, use Layer in the Select tool.'));
 
   sec('Layers');
   var layerBox=el('div','display:flex;flex-direction:column;gap:5px;'); bar.appendChild(layerBox);
@@ -898,10 +979,11 @@
   function setTool(t){
     if(t!=='select'&&tool==='select'){ clearSel(); refresh(); cv.style.cursor=DOTS; }
     if(t==='select') cv.style.cursor=baseCur();
-    tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text') lastDraw=t;
+    if(t==='cut'&&tool!=='cut') clearSel();
+    tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut') lastDraw=t;
     mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); show(rText,t==='text'); markSel();
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rArrow, t==='line');
-    var pressOK = t!=='line'&&t!=='select'&&t!=='text'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
+    var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
   function setColor(c){ color=c; if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
   function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click in RC'); }
@@ -1023,7 +1105,6 @@
     if(mod&&drawing&&tool==='select'){
       if(k==='c'){ e.preventDefault(); selCopy(); return; }
       if(k==='x'){ e.preventDefault(); selCut(); return; }
-      if(k==='v'){ e.preventDefault(); selPaste(); return; }
       if(k==='a'){ e.preventDefault(); selAll(); return; }
       if(k==='d'){ e.preventDefault(); selDup(); return; }
     }
@@ -1084,7 +1165,7 @@
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Effect tools':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Effect tools':'Edit','Images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
