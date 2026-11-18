@@ -59,6 +59,7 @@
   // an edit that replaces the stroke list: undoable as one step
   function opSnap(fn){ var prev=strokes; strokes=prev.slice(); fn(); ulog.push({t:'s',prev:prev}); redo=[]; rebuild(); }
   function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; }
+  function scaleTextProps(n,st,k){ if(st.tool!=='text') return; ['bw','ls','ol','sh'].forEach(function(p){ if(st[p]) n[p]=st[p]*k; }); }
   function isObj(st){ return st.tool==='text'||st.tool==='image'; }
   function objCorners(st){ if(st.tool==='text') return textBox(st); var im=imgs[st.iid]||{w:100,h:100}, w=im.w*st.size, h=im.h*st.size, co=Math.cos(st.rot||0), si=Math.sin(st.rot||0), p=st.pts[0]; return [[0,0],[w,0],[w,h],[0,h]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; }); }
   function selPts(st){ if(!isObj(st)) return st.pts; var q=objCorners(st); q.push({x:(q[0].x+q[2].x)/2,y:(q[0].y+q[2].y)/2}); return q; }
@@ -100,16 +101,16 @@
   var tEd=null;
   function openText(x,y,orig){
     commitText();
-    var fs=orig?orig.size:(+txSize.value||32), ff=orig?orig.ff:curFF(), it=orig?orig.it:txIt.checked, bd=orig?orig.bd:txBd.checked, col=orig?orig.color:color;
+    var P=orig?orig:curProps(), fs=P.size, ff=P.ff, it=P.it, bd=P.bd, col=P.color;
     var ta=document.createElement('textarea');
-    ta.style.cssText='position:absolute;left:'+x+'px;top:'+y+'px;z-index:'+(Z+1)+';margin:0;padding:0;border:1px dashed #888;background:rgba(255,255,255,.35);outline:none;resize:none;overflow:hidden;white-space:pre;color:'+col+';font:'+textFont({size:fs,ff:ff,it:it,bd:bd})+';line-height:1.25;min-width:140px;';
+    ta.style.cssText='position:absolute;left:'+x+'px;top:'+y+'px;z-index:'+(Z+1)+';margin:0;padding:0;border:1px dashed #888;background:rgba(255,255,255,.35);outline:none;resize:none;overflow:hidden;white-space:pre;color:'+col+';font:'+textFont({size:fs,ff:ff,it:it,bd:bd})+';line-height:'+(P.lh||1.25)+';letter-spacing:'+(P.ls||0)+'px;text-align:'+(P.al||'left')+';min-width:140px;'+(P.bw>0?'white-space:pre-wrap;width:'+P.bw+'px;':'')+(P.ol>0?'-webkit-text-stroke:'+Math.min(P.ol,3)+'px '+(P.olc||'#fff')+';':'');
     ta.rows=1; ta.value=orig?orig.text:''; ta.spellcheck=false;
-    function fit(){ ta.style.height='auto'; ta.style.height=Math.max(fs*1.25,ta.scrollHeight)+'px'; ta.style.width='auto'; ta.style.width=Math.max(140,ta.scrollWidth+8)+'px'; }
+    function fit(){ ta.style.height='auto'; ta.style.height=Math.max(fs*1.25,ta.scrollHeight)+'px'; if(!(P.bw>0)){ ta.style.width='auto'; ta.style.width=Math.max(140,ta.scrollWidth+8)+'px'; } }
     ta.addEventListener('input',fit);
     ta.addEventListener('keydown',function(e){ e.stopPropagation(); if(e.key==='Escape'){ if(tEd) tEd.cancel=true; ta.blur(); } else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); ta.blur(); } },true);
     ta.addEventListener('blur',function(){ commitText(); });
     (cv.parentNode||de).appendChild(ta);
-    tEd={ta:ta,x:x,y:y,orig:orig,fs:fs,ff:ff,it:it,bd:bd,color:col,cancel:false,prev:null};
+    tEd={ta:ta,x:x,y:y,orig:orig,P:P,cancel:false,prev:null};
     if(orig){ tEd.prev=strokes; strokes=strokes.filter(function(st){ return st!==orig; }); rebuild(); }
     fit(); setTimeout(function(){ ta.focus(); },0);
   }
@@ -118,7 +119,7 @@
     var prev=t.prev||strokes;
     if(t.cancel||(!val&&!t.orig)){ if(t.prev){ strokes=t.prev; rebuild(); } return; }
     strokes=prev.slice(); var ns=null;
-    if(val) ns=t.orig?Object.assign({},t.orig,{text:val}):{l:act,tool:'text',text:val,ff:t.ff,it:t.it,bd:t.bd,size:t.fs,color:t.color,ink:+ink.value/100,pts:[{x:t.x,y:t.y,p:1}]};
+    if(val) ns=t.orig?Object.assign({},t.orig,{text:val}):Object.assign({},t.P,{l:act,tool:'text',text:val,ink:+ink.value/100,pts:[{x:t.x,y:t.y,p:1}]});
     if(t.orig){ var i=strokes.indexOf(t.orig); if(i>=0){ if(ns) strokes[i]=ns; else strokes.splice(i,1); } } else if(ns) strokes.push(ns);
     ulog.push({t:'s',prev:prev}); redo=[]; clearSel(); rebuild();
   }
@@ -174,7 +175,7 @@
       if(!e.shiftKey){ var u=Math.abs(c.gx-c.ax)>=Math.abs(c.gy-c.ay)?Math.abs(sx):Math.abs(sy); sx=(sx<0?-1:1)*u; sy=(sy<0?-1:1)*u; }
       if(Math.abs(sx)<0.05) sx=(sx<0?-1:1)*0.05; if(Math.abs(sy)<0.05) sy=(sy<0?-1:1)*0.05;
       selDrag.moved=true; selCur=[];
-      strokes=selOrig.map(function(st){ if(sel.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; n.size=st.size*Math.sqrt(Math.abs(sx*sy)); n.pts=st.pts.map(function(p){ return {x:c.ax+(p.x-c.ax)*sx,y:c.ay+(p.y-c.ay)*sy,p:p.p}; }); selCur.push(n); return n; });
+      strokes=selOrig.map(function(st){ if(sel.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; n.size=st.size*Math.sqrt(Math.abs(sx*sy)); scaleTextProps(n,st,Math.sqrt(Math.abs(sx*sy))); n.pts=st.pts.map(function(p){ return {x:c.ax+(p.x-c.ax)*sx,y:c.ay+(p.y-c.ay)*sy,p:p.p}; }); selCur.push(n); return n; });
       selBox=boxOf(selCur); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild); return;
     }
     var dx=q.x-selDrag.x, dy=q.y-selDrag.y; if(!selDrag.moved&&Math.abs(dx)+Math.abs(dy)<2) return; selDrag.moved=true;
@@ -270,7 +271,7 @@
   function selXform(scale,deg){
     if(!sel.length){ msg('Select something first'); return; }
     var cx=(selBox.x0+selBox.x1)/2, cy=(selBox.y0+selBox.y1)/2, a=deg*Math.PI/180, co=Math.cos(a), si=Math.sin(a), old=sel, made=[];
-    opSnap(function(){ strokes=strokes.map(function(st){ if(old.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; n.size=st.size*scale;
+    opSnap(function(){ strokes=strokes.map(function(st){ if(old.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; n.size=st.size*scale; scaleTextProps(n,st,scale);
       n.pts=st.pts.map(function(p){ var dx=(p.x-cx)*scale, dy=(p.y-cy)*scale; return {x:cx+dx*co-dy*si,y:cy+dx*si+dy*co,p:p.p}; }); if(isObj(st)) n.rot=(st.rot||0)+a; made.push(n); return n; }); sel=made; selCur=made; selBox=boxOf(made); });
   }
   function selLayer(){ setTool('select'); sel=strokes.filter(function(st){ return layerOf(st)===act; }); selBox=sel.length?boxOf(sel):null; refresh(); msg(sel.length?'Layer selected – drag a corner square to resize, the round handle to rotate':'This layer is empty'); }
@@ -510,16 +511,30 @@
   var FONTS={sans:'"Geosans Light","Avenir","Avenir Next","Nunito Sans",system-ui,sans-serif',serif:'Georgia,"Times New Roman",serif',mono:'"SF Mono",Menlo,Consolas,monospace',hand:'"Segoe Print","Bradley Hand","Comic Sans MS",cursive',display:'Impact,"Arial Black",sans-serif',avenir:'"Avenir","Avenir Next","Nunito Sans",sans-serif',helvetica:'"Helvetica Neue",Helvetica,Arial,sans-serif',futura:'Futura,"Century Gothic","Trebuchet MS",sans-serif',gill:'"Gill Sans","Gill Sans MT",Calibri,sans-serif',verdana:'Verdana,Geneva,sans-serif',garamond:'Garamond,"Hoefler Text","Palatino Linotype",serif',palatino:'Palatino,"Book Antiqua","Palatino Linotype",serif',times:'"Times New Roman",Times,serif',didot:'Didot,"Bodoni MT","Playfair Display",serif',courier:'"Courier New",Courier,monospace',typewriter:'"American Typewriter","Courier New",monospace',marker:'"Marker Felt","Chalkduster","Comic Sans MS",cursive',script:'"Brush Script MT","Snell Roundhand","Lucida Handwriting",cursive',impact:'Impact,"Arial Black","Haettenschweiler",sans-serif'};
   function fontStack(ff){ if(ff&&ff.slice(0,2)==='c:'){ var nm=ff.slice(2).replace(/["\\]/g,''); return '"'+nm+'",sans-serif'; } return FONTS[ff]||FONTS.sans; }
   function textFont(s){ return (s.it?'italic ':'')+(s.bd?'700 ':'300 ')+s.size+'px '+fontStack(s.ff); }
+  var mctx=document.createElement('canvas').getContext('2d');
+  function layoutText(s){
+    mctx.font=textFont(s); try{ mctx.letterSpacing=(s.ls||0)+'px'; }catch(e){}
+    var lh=s.size*(s.lh||1.25), lines=[];
+    s.text.split('\n').forEach(function(par){
+      if(!(s.bw>0)){ lines.push(par); return; }
+      var cur=''; par.split(' ').forEach(function(w){ var t=cur?cur+' '+w:w; if(cur&&mctx.measureText(t).width>s.bw){ lines.push(cur); cur=w; } else cur=t; }); lines.push(cur);
+    });
+    var w=s.bw>0?s.bw:0, ws=lines.map(function(l){ return mctx.measureText(l).width; }); if(!w) ws.forEach(function(x){ w=Math.max(w,x); });
+    return {lines:lines,ws:ws,w:w,h:lines.length*lh,lh:lh};
+  }
   function renderText(c,s){
-    var p=s.pts[0]; c.save(); c.globalAlpha=s.ink==null?1:s.ink; c.fillStyle=s.color; c.textBaseline='top'; c.font=textFont(s);
-    c.translate(p.x,p.y); if(s.rot) c.rotate(s.rot);
-    s.text.split('\n').forEach(function(ln,i){ c.fillText(ln,0,i*s.size*1.25); });
+    var p=s.pts[0], L=layoutText(s); c.save(); c.globalAlpha=s.ink==null?1:s.ink; c.textBaseline='top'; c.font=textFont(s); try{ c.letterSpacing=(s.ls||0)+'px'; }catch(e){}
+    c.translate(p.x,p.y); if(s.rot) c.rotate(s.rot); c.lineJoin='round';
+    if(s.sh>0){ c.shadowColor='rgba(0,0,0,.5)'; c.shadowBlur=s.sh*rscale; c.shadowOffsetX=s.sh*0.4*rscale; c.shadowOffsetY=s.sh*0.4*rscale; }
+    L.lines.forEach(function(ln,i){
+      var x=s.al==='center'?(L.w-L.ws[i])/2:(s.al==='right'?L.w-L.ws[i]:0), y=i*L.lh;
+      if(s.ol>0){ c.strokeStyle=s.olc||'#ffffff'; c.lineWidth=s.ol*2; c.strokeText(ln,x,y); }
+      c.fillStyle=s.color; c.fillText(ln,x,y);
+    });
     c.restore();
   }
-  var mctx=document.createElement('canvas').getContext('2d');
   function textBox(s){
-    mctx.font=textFont(s); var lines=s.text.split('\n'), w=0; lines.forEach(function(l){ w=Math.max(w,mctx.measureText(l).width); });
-    var h=lines.length*s.size*1.25, co=Math.cos(s.rot||0), si=Math.sin(s.rot||0), p=s.pts[0];
+    var L=layoutText(s), w=L.w, h=L.h, co=Math.cos(s.rot||0), si=Math.sin(s.rot||0), p=s.pts[0];
     return [[0,0],[w,0],[w,h],[0,h]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; });
   }
   function render(c,s){
@@ -671,7 +686,7 @@
   bar.appendChild(head);
 
   function sec(t){ var d=el('div','font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-top:3px;border-top:1px solid #e4e4e4;padding-top:6px;cursor:pointer;user-select:none;',t); d.setAttribute('data-sec',t); d._t=t; d._open=true; d._hidden=false; bar.appendChild(d); return d; }
-  function applySec(h){ if(!h._wrap) return; h.textContent=(h._open?'▾ ':'▸ ')+h._t; h.style.display=h._hidden?'none':'block'; h._wrap.style.display=(h._open&&!h._hidden)?'flex':'none'; }
+  function applySec(h){ if(!h._wrap) return; h.textContent=(h._open?'▾ ':'▸ ')+h._t; h.style.display=(h._hidden||h._flat)?'none':'block'; h._wrap.style.display=(h._open&&!h._hidden)?'flex':'none'; }
   function lab(r,t){ r.appendChild(el('span','font-size:12px;color:#666;',t)); }
   function slider(r,min,max,val,w){ var i=el('input','width:'+w+'px;accent-color:#111;'); i.type='range'; i.min=min; i.max=max; i.value=val; r.appendChild(i); return i; }
   function chk(r,txt,on,tip){ var l=el('label','font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;'); var i=el('input'); i.type='checkbox'; i.checked=on; l.appendChild(i); l.appendChild(document.createTextNode(txt)); if(tip) l.title=tip; r.appendChild(l); return i; }
@@ -795,15 +810,47 @@
   sec('Text');
   var rTt=row(); rTt.appendChild(bTxt); bar.appendChild(rTt);
   var rText=row(); lab(rText,'Font');
-  var FOPTS=[['sans','Geosans Light / Avenir'],['avenir','Avenir'],['helvetica','Helvetica'],['futura','Futura'],['gill','Gill Sans'],['verdana','Verdana'],['serif','Georgia (serif)'],['garamond','Garamond'],['palatino','Palatino'],['times','Times'],['didot','Didot'],['mono','Mono'],['courier','Courier'],['typewriter','Typewriter'],['hand','Handwriting'],['marker','Marker'],['script','Script'],['display','Display'],['impact','Impact'],['custom','Other font on my computer…']];
+  var FOPTS=[['sans','Geosans Light / Avenir'],['avenir','Avenir'],['helvetica','Helvetica'],['futura','Futura'],['gill','Gill Sans'],['verdana','Verdana'],['serif','Georgia (serif)'],['garamond','Garamond'],['palatino','Palatino'],['times','Times'],['didot','Didot'],['mono','Mono'],['courier','Courier'],['typewriter','Typewriter'],['hand','Handwriting'],['marker','Marker'],['script','Script'],['display','Display'],['impact','Impact'],['custom','Other font (type its name)…']];
   var txFont=el('select',BTN+'padding:3px 6px;'); FOPTS.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
   var txCustom=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 6px;width:100%;box-sizing:border-box;display:none;'); txCustom.type='text'; txCustom.placeholder='Exact font name, e.g. Geosans Light'; rText.appendChild(txCustom);
-  txFont.addEventListener('change',function(){ txCustom.style.display=txFont.value==='custom'?'':'none'; });
   function curFF(){ return txFont.value==='custom'&&txCustom.value.trim()?'c:'+txCustom.value.trim():(txFont.value==='custom'?'sans':txFont.value); }
-  var txSize=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:50px;box-sizing:border-box;'); txSize.type='number'; txSize.value=32; txSize.min=4; txSize.max=400; txSize.title='Text size in px'; rText.appendChild(txSize); lab(rText,'px');
-  var txBd=chk(rText,'Bold',false), txIt=chk(rText,'Italic',false);
-  rText.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Fonts come from your own computer, so the same text looks different on a computer without that font (exported PNGs keep the look). Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. Colour and opacity come from Colour; use the Select tool to move, resize or rotate it.'));
   bar.appendChild(rText);
+  var INP='font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;';
+  var rT2=row();
+  var txSize=el('input',INP+'width:56px;'); txSize.type='number'; txSize.value=32; txSize.min=4; txSize.max=600; txSize.title='Text size in px'; rT2.appendChild(txSize); lab(rT2,'px');
+  var txBd=chk(rT2,'Bold',false), txIt=chk(rT2,'Italic',false);
+  var txCol=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txCol.type='color'; txCol.value='#111111'; txCol.title='Text colour'; rT2.appendChild(txCol);
+  bar.appendChild(rT2);
+  var rT3=row(); lab(rT3,'Align'); var txAl=el('select',BTN+'padding:3px 6px;'); [['left','Left'],['center','Centre'],['right','Right']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txAl.appendChild(op); }); rT3.appendChild(txAl);
+  lab(rT3,'Wrap'); var txBw=el('input',INP+'width:60px;'); txBw.type='number'; txBw.min=0; txBw.max=3000; txBw.value=0; txBw.title='Line width in px where the text wraps to a new line. 0 = no wrapping'; rT3.appendChild(txBw); lab(rT3,'px (0 = off)');
+  bar.appendChild(rT3);
+  var rT4=row(); lab(rT4,'Letter spacing'); var txLs=slider(rT4,-5,40,0,110); bar.appendChild(rT4);
+  var rT5=row(); lab(rT5,'Line height'); var txLh=slider(rT5,80,250,125,110); txLh.title='in % of the text size'; bar.appendChild(rT5);
+  var rT6=row(); lab(rT6,'Outline'); var txOl=slider(rT6,0,20,0,90); var txOlc=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txOlc.type='color'; txOlc.value='#ffffff'; txOlc.title='Outline colour'; rT6.appendChild(txOlc); bar.appendChild(rT6);
+  var rT7=row(); lab(rT7,'Shadow'); var txSh=slider(rT7,0,30,0,110); bar.appendChild(rT7);
+  function curProps(){ return {ff:curFF(),size:+txSize.value||32,it:txIt.checked,bd:txBd.checked,color:txCol.value,al:txAl.value,bw:+txBw.value||0,ls:+txLs.value,lh:(+txLh.value||125)/100,ol:+txOl.value,olc:txOlc.value,sh:+txSh.value}; }
+  // changing a setting also updates the selected text(s)
+  function applyTextProps(){
+    var texts=sel.filter(function(st){ return st.tool==='text'; }); if(!texts.length) return; var P=curProps();
+    var map=new Map(); opSnap(function(){ strokes=strokes.map(function(st){ if(texts.indexOf(st)<0) return st; var n=Object.assign({},st,P); delete n.sm; n.ink=st.ink; map.set(st,n); return n; }); });
+    sel=sel.map(function(st){ return map.get(st)||st; }); selCur=sel; selBox=boxOf(sel); refresh();
+  }
+  [txFont,txAl].forEach(function(x){ x.addEventListener('change',function(){ txCustom.style.display=txFont.value==='custom'?'':'none'; applyTextProps(); }); });
+  [txSize,txBw,txCustom,txCol,txOlc].forEach(function(x){ x.addEventListener('change',applyTextProps); });
+  [txBd,txIt].forEach(function(x){ x.addEventListener('change',applyTextProps); });
+  [txLs,txLh,txOl,txSh].forEach(function(x){ x.addEventListener('change',applyTextProps); });
+  // load a font file from the computer (remembered in this browser)
+  var rT8=row(); var fif=el('input'); fif.type='file'; fif.accept='.ttf,.otf,.woff,.woff2'; fif.style.display='none'; rT8.appendChild(fif);
+  rT8.appendChild(btn('Load font file…',function(){ fif.click(); },'Choose a .ttf, .otf or .woff file from your computer to use as a typeface'));
+  function fdb(cb){ try{ var r=indexedDB.open('ritlager-fonts',1); r.onupgradeneeded=function(){ r.result.createObjectStore('f'); }; r.onsuccess=function(){ cb(r.result); }; r.onerror=function(){ cb(null); }; }catch(e){ cb(null); } }
+  function addFontOpt(name){ if(Array.prototype.some.call(txFont.options,function(o){ return o.value==='c:'+name; })) return; var op=el('option',null,name+' (loaded)'); op.value='c:'+name; txFont.insertBefore(op,txFont.lastChild); }
+  function useFont(name,buf){ try{ var ff=new FontFace(name,buf); return ff.load().then(function(){ document.fonts.add(ff); addFontOpt(name); }); }catch(e){ return Promise.reject(e); } }
+  fif.addEventListener('change',function(){ var f=fif.files[0]; if(!f) return; var name=f.name.replace(/\.[^.]+$/,'').replace(/[^\w \-]/g,'').slice(0,40)||'MyFont'; var fr=new FileReader();
+    fr.onload=function(){ useFont(name,fr.result).then(function(){ txFont.value='c:'+name; msg('Font "'+name+'" loaded – now selected for new text'); fdb(function(db){ if(db){ try{ db.transaction('f','readwrite').objectStore('f').put(fr.result,name); }catch(e){} } }); },function(){ msg('Could not load that font file'); }); };
+    fr.readAsArrayBuffer(f); fif.value=''; });
+  fdb(function(db){ if(!db) return; try{ var st=db.transaction('f').objectStore('f'), rq=st.openCursor(); rq.onsuccess=function(){ var c=rq.result; if(c){ useFont(c.key,c.value.slice?c.value.slice(0):c.value); c.continue(); } }; }catch(e){} });
+  bar.appendChild(rT8);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'));
 
   sec('Undo and canvas');
   var r7=row();
@@ -1230,8 +1277,10 @@
         k.addEventListener('click',function(){ k._open=!k._open; st[k._t]=k._open?1:0; saveSt(); applySec(k); });
       } else if(curH){ wrap.appendChild(k); }
     });
+    var cnt={}; hs.forEach(function(h){ var g=GROUP[h._t]||'More'; cnt[g]=(cnt[g]||0)+1; });
+    hs.forEach(function(h){ if(cnt[GROUP[h._t]||'More']===1){ h._flat=true; h._open=true; } });
     hs.forEach(applySec); gs.forEach(applyGrp);
-    var allBtn=btn('⇕',function(){ var anyOpen=gs.some(function(g){ return g._open; })||hs.some(function(h){ return h._open&&!h._hidden; }); gs.forEach(function(g){ g._open=!anyOpen; st['grp:'+g._t]=g._open?1:0; applyGrp(g); }); hs.forEach(function(h){ h._open=!anyOpen; st[h._t]=h._open?1:0; applySec(h); }); saveSt(); },'Collapse / expand all menus');
+    var allBtn=btn('⇕',function(){ var anyOpen=gs.some(function(g){ return g._open; })||hs.some(function(h){ return h._open&&!h._hidden&&!h._flat; }); gs.forEach(function(g){ g._open=!anyOpen; st['grp:'+g._t]=g._open?1:0; applyGrp(g); }); hs.forEach(function(h){ if(h._flat) return; h._open=!anyOpen; st[h._t]=h._open?1:0; applySec(h); }); saveSt(); },'Collapse / expand all menus');
     hg.insertBefore(allBtn,hg.firstChild);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);

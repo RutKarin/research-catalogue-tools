@@ -16,7 +16,7 @@ Features:
 - Select tool (pick, rectangle, lasso): move, resize, flip, duplicate, cut, copy, paste (Ctrl+X/C/V), undo/redo
 - Layers with opacity and blend modes (multiply, screen, overlay …), export as one image or one PNG per layer
 - Images: import, drop or paste pictures; Cut out (rectangle or lasso, erase inside or outside, soft edge)
-- Text tool; transform (resize, rotate, numeric scale) for selections and whole layers
+- Text menu: fonts incl. your own font files, colour, outline, shadow, align, wrap, spacing; transform (resize, rotate, numeric scale) for selections and whole layers
 - Nested foldable menus (Draw, Edit, Layers, Export and save); remembers your settings; one-click presets and saved colours
 - Pipette with hex and rgb (screen picker in Chrome/Edge)
 - Autosave, named versions, editable project files, open an old PNG as underlay
