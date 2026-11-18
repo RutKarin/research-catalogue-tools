@@ -1201,7 +1201,7 @@
   var rA2=row(); rA2.appendChild(btn('+ Add this frame',function(){ aAdd(strokes); },'Takes a picture of the drawing as it is now – draw, add, change, add… for hand-made animation')); bar.appendChild(rA2);
   var rA3=row(); lab(rA3,'Size'); var aW=el('select',BTN+'padding:3px 6px;'); [[320,'320 px wide'],[480,'480 px wide'],[640,'640 px wide'],[800,'800 px wide'],[1000,'1000 px wide']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aW.appendChild(op); }); aW.value=640; rA3.appendChild(aW);
   var aCrop=chk(rA3,'Drawn area only',true,'Cut away empty space around the drawing'); bar.appendChild(rA3);
-  var rA4=row(); lab(rA4,'Background'); var aBg=el('select',BTN+'padding:3px 6px;'); [['white','White'],['transparent','Transparent'],['color','Colour']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aBg.appendChild(op); }); rA4.appendChild(aBg);
+  var rA4=row(); lab(rA4,'Background'); var aBg=el('select',BTN+'padding:3px 6px;'); [['transparent','Transparent'],['white','White'],['color','Colour']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aBg.appendChild(op); }); rA4.appendChild(aBg);
   var aBgc=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;display:none;'); aBgc.type='color'; aBgc.value='#f4efe6'; rA4.appendChild(aBgc); aBg.addEventListener('change',function(){ aBgc.style.display=aBg.value==='color'?'inline-block':'none'; }); bar.appendChild(rA4);
   var aStrip=el('div','display:flex;flex-wrap:wrap;gap:5px;max-height:240px;overflow-y:auto;'); bar.appendChild(aStrip);
   var aCount=el('div','font-size:11.5px;color:#666;','No frames yet'); bar.appendChild(aCount);
