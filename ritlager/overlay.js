@@ -830,6 +830,8 @@
 
   var r1=row(); var bDraw=btn('Draw',function(){setDrawing(true);},'Draw on the page (D)'), bPass=btn('Click',function(){setDrawing(false);},'Click through to the page (D)');
   r1.appendChild(bDraw); r1.appendChild(bPass);
+  r1.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
+  r1.appendChild(btn('↷',function(){ redoFn(); },'Redo (Ctrl+Y)'));
   r1.appendChild(btn('Erase all',function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – ↶ undoes'); } else msg('Nothing to erase'); },'Careful: erases everything you have drawn on all layers (↶ undoes)'));
   bar.appendChild(r1);
 
