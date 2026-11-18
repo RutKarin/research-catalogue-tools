@@ -827,7 +827,7 @@
     sh('rect',{x:33.4,y:-24,width:5.2,height:88,fill:'#111',stroke:'#111','stroke-width':0.9}); sh('polygon',{points:'33.4,64 38.6,64 36,82',fill:'#fff',stroke:'#111','stroke-width':0.9,'stroke-linejoin':'round'}); sh('polygon',{points:'34.4,71 37.6,71 36,82',fill:'#111'}); sh('rect',{x:33.4,y:-30,width:5.2,height:6,rx:2,fill:'#111',stroke:'#111','stroke-width':0.9});
     w.appendChild(pn); head.appendChild(w);
   })();
-  var hide = btn('Hide', function(){ api.toggle(); }, 'Hide/show (D toggles draw/click)'); hide.style.padding='4px 8px'; hide.style.fontSize='12px';
+  var hide = btn('Hide', function(){ api.toggle(); }, 'Hide/show (D toggles draw/click)'); hide.style.padding='4px 8px'; hide.style.fontSize='12px'; hide.style.background='#efefef'; hide.style.color='#555'; hide.style.borderColor='#efefef';
   var hg=row(); hg.style.position='relative'; hg.style.top='6px'; hg.style.flexWrap='nowrap'; hg.style.gap='3px'; head.style.flexWrap='nowrap'; var quick=null;
   head.appendChild(hg);
   bar.appendChild(head);
@@ -866,7 +866,7 @@
     document.documentElement.appendChild(svBox);
     setTimeout(function(){ function away(ev){ if(svBox&&!svBox.contains(ev.target)){ svBox.remove(); svBox=null; } document.removeEventListener('pointerdown',away,true); } document.addEventListener('pointerdown',away,true); },0);
   }
-  function markTop(){ var m=drawing&&tool==='select', er=drawing&&tool==='eraser'; mark(bDraw,drawing&&!m&&!er); mark(bMove,m); mark(bEr,er); mark(bPass,!drawing); }
+  function markTop(){ var m=drawing&&tool==='select', er=drawing&&tool==='eraser'; mark(bDraw,drawing&&!m&&!er); mark(bMove,m); mark(bEr,er); var pg=!drawing; bPass.style.background=pg?'#111':'#efefef'; bPass.style.color=pg?'#fff':'#555'; bPass.style.borderColor=pg?'#111':'#efefef'; }
   var origR1=r1.appendChild.bind(r1); r1.appendChild=function(n){ n.style.flex='1 1 0'; n.style.justifyContent='center'; n.style.minWidth='0'; n.style.padding='5px 0'; return origR1(n); };
   r1.appendChild(bDraw); r1.appendChild(bMove); r1.appendChild(bEr); hg.appendChild(bPass); hg.appendChild(hide);
   r1.appendChild(iconBtn('Undo',['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],function(){ undo(); },'Undo (Ctrl+Z)'));
