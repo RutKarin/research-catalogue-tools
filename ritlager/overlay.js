@@ -59,7 +59,7 @@
   // an edit that replaces the stroke list: undoable as one step
   function opSnap(fn){ var prev=strokes; strokes=prev.slice(); fn(); ulog.push({t:'s',prev:prev}); redo=[]; rebuild(); }
   function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; }
-  function scaleTextProps(n,st,k){ if(st.tool!=='text') return; ['bw','ls','ol','sh','bxl','bxp','fat','sb','ob'].forEach(function(p){ if(st[p]) n[p]=st[p]*k; }); }
+  function scaleTextProps(n,st,k){ if(st.tool!=='text') return; ['bw','ls','ol','sh','bxl','bxp','fat','sb','ob','bxs'].forEach(function(p){ if(st[p]) n[p]=st[p]*k; }); }
   function isObj(st){ return st.tool==='text'||st.tool==='image'; }
   function objCorners(st){ if(st.tool==='text') return textBox(st); var im=imgs[st.iid]||{w:100,h:100}, w=im.w*st.size, h=im.h*st.size, co=Math.cos(st.rot||0), si=Math.sin(st.rot||0), p=st.pts[0]; return [[0,0],[w,0],[w,h],[0,h]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; }); }
   function selPts(st){ if(!isObj(st)) return st.pts; var q=objCorners(st); q.push({x:(q[0].x+q[2].x)/2,y:(q[0].y+q[2].y)/2}); return q; }
@@ -529,15 +529,17 @@
   }
   function renderText(c,s){
     var p=s.pts[0], L=layoutText(s), base=s.ink==null?1:s.ink, OFF=20000, fa=s.fa==null?100:s.fa, tO=(s.to==null?100:s.to)/100, oO=(s.oo==null?100:s.oo)/100, sb=s.sb||0, ob=s.ob||0;
-    function pass(blur,colour,alpha,draw){
+    function pass(blur,colour,alpha,draw,isBox){
       c.save(); c.globalAlpha=base*alpha; c.lineJoin='round';
       if(blur>0){ c.translate(-OFF,0); c.shadowColor=colour; c.shadowBlur=blur*rscale; c.shadowOffsetX=OFF*rscale; }
-      else if(s.sh>0){ c.shadowColor='rgba(0,0,0,.5)'; c.shadowBlur=s.sh*rscale; c.shadowOffsetX=s.sh*0.4*rscale; c.shadowOffsetY=s.sh*0.4*rscale; }
+      else if(blur===0&&s.sh>0&&(!s.bx||isBox)){ c.shadowColor='rgba(0,0,0,.5)'; c.shadowBlur=s.sh*rscale; c.shadowOffsetX=s.sh*0.4*rscale; c.shadowOffsetY=s.sh*0.4*rscale; }
       c.translate(p.x,p.y); if(s.rot) c.rotate(s.rot); c.textBaseline='top'; c.font=textFont(s); try{ c.letterSpacing=(s.ls||0)+'px'; }catch(e){}
       draw(); c.restore();
     }
     function lines(fn){ L.lines.forEach(function(ln,i){ fn(ln,s.al==='center'?(L.w-L.ws[i])/2:(s.al==='right'?L.w-L.ws[i]:0),i*L.lh); }); }
-    if(s.bx){ var pd=s.bxp==null?8:s.bxp; pass(0,'#000',1,function(){ c.fillStyle=s.bxc||'#ffffff'; c.strokeStyle=s.bxlc||'#111111'; c.lineWidth=s.bxl||0; c.fillRect(-pd,-pd,L.w+2*pd,L.h+2*pd); c.shadowColor='transparent'; if(s.bxl>0) c.strokeRect(-pd,-pd,L.w+2*pd,L.h+2*pd); }); }
+    if(s.bx){ var pd=s.bxp==null?8:s.bxp, bo=(s.bxo==null?100:s.bxo)/100;
+      pass(s.bxs||0,s.bxc||'#ffffff',bo,function(){ c.fillStyle=s.bxc||'#ffffff'; c.fillRect(-pd,-pd,L.w+2*pd,L.h+2*pd); },true);
+      if(s.bxl>0) pass(-1,'#000',bo,function(){ c.strokeStyle=s.bxlc||'#111111'; c.lineWidth=s.bxl; c.strokeRect(-pd,-pd,L.w+2*pd,L.h+2*pd); }); }
     var ocol=s.olc||'#e0245e', hasOl=s.ol>0||fa<100;
     function fillP(a){ pass(sb,s.color,a,function(){ c.fillStyle=s.color; lines(function(ln,x,y){ c.fillText(ln,x,y); }); }); }
     function olP(){ pass(ob,ocol,oO,function(){ c.strokeStyle=ocol; c.lineWidth=(fa<100?(s.ol>0?s.ol*2:2):s.ol*2)+(s.fat||0); lines(function(ln,x,y){ c.strokeText(ln,x,y); }); }); }
@@ -819,45 +821,47 @@
   rPn.appendChild(btn('+ Save',function(){ var n=(preName.value||'').trim().slice(0,24)||('Preset '+(loadPre().length+1)); var a=loadPre(); a.push({n:n,s:getSettings(false)}); savePre(a); preName.value=''; drawPre(); msg('Saved preset "'+n+'"'); },'Saves the current tool, colour, thickness and pen settings as a one-click preset'));
   bar.appendChild(rPn);
 
-  sec('Text');
-  var rTt=row(); rTt.appendChild(bTxt); bar.appendChild(rTt);
+  var rTt=row(); rTt.appendChild(bTxt);
   var rText=row(); lab(rText,'Font');
   var FOPTS=[['sans','Geosans Light / Avenir'],['avenir','Avenir'],['helvetica','Helvetica'],['futura','Futura'],['gill','Gill Sans'],['verdana','Verdana'],['serif','Georgia (serif)'],['garamond','Garamond'],['palatino','Palatino'],['times','Times'],['didot','Didot'],['mono','Mono'],['courier','Courier'],['typewriter','Typewriter'],['hand','Handwriting'],['marker','Marker'],['script','Script'],['display','Display'],['impact','Impact'],['custom','Installed font…']];
   var txFont=el('select',BTN+'padding:3px 6px;'); FOPTS.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
   var txCustom=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 6px;width:100%;box-sizing:border-box;display:none;'); txCustom.type='text'; txCustom.placeholder='Type the font name, e.g. Geosans Light'; rText.appendChild(txCustom);
   function curFF(){ return txFont.value==='custom'&&txCustom.value.trim()?'c:'+txCustom.value.trim():(txFont.value==='custom'?'sans':txFont.value); }
-  bar.appendChild(rText);
+ 
   var INP='font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;';
   var rT2=row();
   var txSize=el('input',INP+'width:56px;'); txSize.type='number'; txSize.value=32; txSize.min=4; txSize.max=600; txSize.title='Text size in px'; rT2.appendChild(txSize); lab(rT2,'px');
   var txBd=chk(rT2,'Bold',false), txIt=chk(rT2,'Italic',false);
   var txCol=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txCol.type='color'; txCol.value='#111111'; txCol.title='Text colour'; rT2.appendChild(txCol);
-  bar.appendChild(rT2);
-  var rTw=row(); lab(rTw,'Weight'); var txWt=slider(rTw,100,900,300,100); txWt.step=100; txWt.title='Thinner ← → thicker. Works with fonts that have several weights (e.g. Avenir, Helvetica)'; bar.appendChild(rTw);
-  var rTf=row(); lab(rTf,'Thicken'); var txFat=slider(rTf,0,12,0,100); txFat.title='Makes any font thicker by adding to its outline'; bar.appendChild(rTf);
+ 
+  var rTw=row(); lab(rTw,'Weight'); var txWt=slider(rTw,100,900,300,100); txWt.step=100; txWt.title='Thinner ← → thicker. Works with fonts that have several weights (e.g. Avenir, Helvetica)';
+  var rTf=row(); lab(rTf,'Thicken'); var txFat=slider(rTf,0,12,0,100); txFat.title='Makes any font thicker by adding to its outline';
   var rT3=row(); lab(rT3,'Align'); var txAl=el('select',BTN+'padding:3px 6px;'); [['left','Left'],['center','Centre'],['right','Right']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txAl.appendChild(op); }); rT3.appendChild(txAl);
   lab(rT3,'Wrap'); var txBw=el('input',INP+'width:60px;'); txBw.type='number'; txBw.min=0; txBw.max=3000; txBw.value=0; txBw.title='Line width in px where the text wraps to a new line. 0 = no wrapping'; rT3.appendChild(txBw); lab(rT3,'px (0 = off)');
-  bar.appendChild(rT3);
-  var rT4=row(); lab(rT4,'Letter spacing'); var txLs=slider(rT4,-5,40,0,110); bar.appendChild(rT4);
-  var rT5=row(); lab(rT5,'Line height'); var txLh=slider(rT5,80,250,125,110); txLh.title='in % of the text size'; bar.appendChild(rT5);
-  var rT6=row(); lab(rT6,'Outline'); var txOl=slider(rT6,0,20,0,90); var txOlc=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txOlc.type='color'; txOlc.value='#e0245e'; txOlc.title='Outline colour'; rT6.appendChild(txOlc); bar.appendChild(rT6);
-  var rTa=row(); lab(rTa,'Fill inside'); var txFa=slider(rTa,0,100,100,110); txFa.title='100 = solid letters. Lower = see-through inside; 0 = only the outline is drawn'; bar.appendChild(rTa);
-  var rTb=row(); lab(rTb,'Letter softness'); var txSb=slider(rTb,0,25,0,100); txSb.title='Blurs the edges of the letters'; bar.appendChild(rTb);
-  var rTc=row(); lab(rTc,'Text opacity'); var txTo=slider(rTc,0,100,100,110); bar.appendChild(rTc);
-  var rTd=row(); lab(rTd,'Outline softness'); var txOb=slider(rTd,0,25,0,100); txOb.title='Blurs the outline'; bar.appendChild(rTd);
-  var rTe=row(); lab(rTe,'Outline opacity'); var txOo=slider(rTe,0,100,100,110); bar.appendChild(rTe);
-  var rT7=row(); lab(rT7,'Shadow'); var txSh=slider(rT7,0,30,0,110); bar.appendChild(rT7);
+ 
+  var rT4=row(); lab(rT4,'Letter spacing'); var txLs=slider(rT4,-5,40,0,110);
+  var rT5=row(); lab(rT5,'Line height'); var txLh=slider(rT5,80,250,125,110); txLh.title='in % of the text size';
+  var rO0=row(); var txOlOn=chk(rO0,'Outline',false,'A line around every letter'); var rT6=row(); lab(rT6,'Width'); var txOl=slider(rT6,1,20,4,90); var txOlc=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txOlc.type='color'; txOlc.value='#e0245e'; txOlc.title='Outline colour'; rO0.appendChild(txOlc);
+  var rTa=row(); lab(rTa,'Fill inside'); var txFa=slider(rTa,0,100,100,110); txFa.title='100 = solid letters. Lower = see-through inside; 0 = only the outline is drawn';
+  var rTb=row(); lab(rTb,'Letter softness'); var txSb=slider(rTb,0,25,0,100); txSb.title='Blurs the edges of the letters';
+  var rTc=row(); lab(rTc,'Text opacity'); var txTo=slider(rTc,0,100,100,110);
+  var rTd=row(); lab(rTd,'Softness'); var txOb=slider(rTd,0,25,0,100); txOb.title='Blurs the outline';
+  var rTe=row(); lab(rTe,'Opacity'); var txOo=slider(rTe,0,100,100,110);
+  var rS0=row(); var txShOn=chk(rS0,'Shadow',false,'Drop shadow behind the text'); var rT7=row(); lab(rT7,'Size'); var txSh=slider(rT7,1,30,8,110);
   var COLS='width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;';
-  var rT9=row(); var txBx=chk(rT9,'Box behind text',false,'Fill and border around the text'); var txBxc=el('input',COLS); txBxc.type='color'; txBxc.value='#ffffff'; txBxc.title='Fill colour inside the box'; rT9.appendChild(txBxc); bar.appendChild(rT9);
-  var rT10=row(); lab(rT10,'Box border'); var txBxl=slider(rT10,0,16,2,80); var txBxlc=el('input',COLS); txBxlc.type='color'; txBxlc.value='#111111'; txBxlc.title='Border colour'; rT10.appendChild(txBxlc); bar.appendChild(rT10);
-  var rT11=row(); lab(rT11,'Box padding'); var txBxp=slider(rT11,0,60,8,110); bar.appendChild(rT11);
-  function curProps(){ return {ff:curFF(),size:+txSize.value||32,it:txIt.checked,bd:txBd.checked,fa:+txFa.value,sb:+txSb.value,to:+txTo.value,ob:+txOb.value,oo:+txOo.value,wt:+txWt.value,fat:+txFat.value,color:txCol.value,al:txAl.value,bw:+txBw.value||0,ls:+txLs.value,lh:(+txLh.value||125)/100,ol:+txOl.value,olc:txOlc.value,sh:+txSh.value,bx:txBx.checked,bxc:txBxc.value,bxl:+txBxl.value,bxlc:txBxlc.value,bxp:+txBxp.value}; }
+  var rT9=row(); var txBx=chk(rT9,'Box behind text',false,'A coloured box with an optional border behind the text'); var txBxc=el('input',COLS); txBxc.type='color'; txBxc.value='#ffffff'; txBxc.title='Fill colour inside the box'; rT9.appendChild(txBxc);
+  var rBs=row(); lab(rBs,'Softness'); var txBxs=slider(rBs,0,30,0,110); txBxs.title='Blurs the edge of the box'; var rBo=row(); lab(rBo,'Opacity'); var txBxo=slider(rBo,0,100,100,110);
+  var rT10=row(); lab(rT10,'Border'); var txBxl=slider(rT10,0,16,2,80); var txBxlc=el('input',COLS); txBxlc.type='color'; txBxlc.value='#111111'; txBxlc.title='Border colour'; rT10.appendChild(txBxlc);
+  var rT11=row(); lab(rT11,'Padding'); var txBxp=slider(rT11,0,60,8,110);
+  function curProps(){ return {ff:curFF(),size:+txSize.value||32,it:txIt.checked,bd:txBd.checked,fa:+txFa.value,sb:+txSb.value,to:+txTo.value,ob:+txOb.value,oo:+txOo.value,wt:+txWt.value,fat:+txFat.value,color:txCol.value,al:txAl.value,bw:+txBw.value||0,ls:+txLs.value,lh:(+txLh.value||125)/100,ol:txOlOn.checked?Math.max(1,+txOl.value):0,olc:txOlc.value,sh:txShOn.checked?Math.max(1,+txSh.value):0,bxs:+txBxs.value,bxo:+txBxo.value,bx:txBx.checked,bxc:txBxc.value,bxl:+txBxl.value,bxlc:txBxlc.value,bxp:+txBxp.value}; }
   // changing a setting also updates the selected text(s)
+  function showR(rows,on){ rows.forEach(function(r){ r.style.display=on?'flex':'none'; }); }
+  function syncVis(){ showR([rT6,rTd,rTe],txOlOn.checked); showR([rT7],txShOn.checked); showR([rT10,rBs,rBo,rT11],txBx.checked); }
   function setControls(P){
     var known=Array.prototype.some.call(txFont.options,function(o){ return o.value===P.ff; });
     if(known){ txFont.value=P.ff; txCustom.style.display='none'; } else if(P.ff&&P.ff.slice(0,2)==='c:'){ txFont.value='custom'; txCustom.value=P.ff.slice(2); txCustom.style.display=''; }
     txSize.value=Math.round(P.size); txIt.checked=!!P.it; txBd.checked=!!P.bd; txWt.value=P.wt||(P.bd?700:300); txFat.value=P.fat||0; txFa.value=P.fa==null?100:P.fa; txSb.value=P.sb||0; txTo.value=P.to==null?100:P.to; txOb.value=P.ob||0; txOo.value=P.oo==null?100:P.oo; txCol.value=P.color||'#111111'; txAl.value=P.al||'left'; txBw.value=Math.round(P.bw||0);
-    txLs.value=P.ls||0; txLh.value=Math.round((P.lh||1.25)*100); txOl.value=P.ol||0; txOlc.value=P.olc||'#e0245e'; txSh.value=P.sh||0;
+    txLs.value=P.ls||0; txLh.value=Math.round((P.lh||1.25)*100); txOlOn.checked=P.ol>0; txOl.value=P.ol>0?P.ol:4; txOlc.value=P.olc||'#e0245e'; txShOn.checked=P.sh>0; txSh.value=P.sh>0?P.sh:8; txBxs.value=P.bxs||0; txBxo.value=P.bxo==null?100:P.bxo; syncVis();
     txBx.checked=!!P.bx; txBxc.value=P.bxc||'#ffffff'; txBxl.value=P.bxl==null?2:P.bxl; txBxlc.value=P.bxlc||'#111111'; txBxp.value=P.bxp==null?8:P.bxp;
   }
   function applyTextProps(){
@@ -869,9 +873,10 @@
   [txFont,txAl].forEach(function(x){ x.addEventListener('change',function(){ txCustom.style.display=txFont.value==='custom'?'':'none'; applyTextProps(); }); });
   [txSize,txBw,txCustom,txCol,txOlc,txBxc,txBxlc].forEach(function(x){ x.addEventListener('change',applyTextProps); });
   txBd.addEventListener('change',function(){ txWt.value=txBd.checked?700:300; });
-  [txBd,txIt,txBx].forEach(function(x){ x.addEventListener('change',applyTextProps); });
-  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat,txFa,txSb,txTo,txOb,txOo].forEach(function(x){ x.addEventListener('change',applyTextProps); });
-  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat,txFa,txSb,txTo,txOb,txOo].forEach(function(x){ x.addEventListener('input',function(){ if(tEd) applyTextProps(); }); });
+  [txOlOn,txShOn,txBx].forEach(function(x){ x.addEventListener('change',syncVis); });
+  [txBd,txIt,txBx,txOlOn,txShOn].forEach(function(x){ x.addEventListener('change',applyTextProps); });
+  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat,txFa,txSb,txTo,txOb,txOo,txBxs,txBxo].forEach(function(x){ x.addEventListener('change',applyTextProps); });
+  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat,txFa,txSb,txTo,txOb,txOo,txBxs,txBxo].forEach(function(x){ x.addEventListener('input',function(){ if(tEd) applyTextProps(); }); });
   function rasterizeText(){
     var texts=sel.filter(function(st){ return st.tool==='text'; }); if(!texts.length){ msg('Select a text first (Select tool)'); return; }
     var map=new Map();
@@ -886,7 +891,7 @@
       var n={l:st.l,tool:'image',iid:iid,size:1/k,rot:0,ink:st.ink==null?1:st.ink,color:'#000',pts:[{x:x0,y:y0,p:1}]}; map.set(st,n); return n; }); });
     sel=sel.map(function(st){ return map.get(st)||st; }); selCur=sel; selBox=boxOf(sel); refresh(); msg('Text turned into a picture – you can now erase, cut or move parts of it');
   }
-  var rT12=row(); rT12.appendChild(btn('Turn selected text into picture',rasterizeText,'Select a text with the Select tool first. The text becomes a picture you can erase, cut out and lift parts of – but it can no longer be edited as text')); bar.appendChild(rT12);
+  var rT12=row(); rT12.appendChild(btn('Turn selected text into picture',rasterizeText,'Select a text with the Select tool first. The text becomes a picture you can erase, cut out and lift parts of – but it can no longer be edited as text'));
   // load a font file from the computer (remembered in this browser)
   var rT8=row(); var fif=el('input'); fif.type='file'; fif.accept='.ttf,.otf,.woff,.woff2'; fif.style.display='none'; rT8.appendChild(fif);
   rT8.appendChild(btn('Load font file…',function(){ fif.click(); },'Choose a .ttf, .otf or .woff file from your computer to use as a typeface'));
@@ -897,9 +902,17 @@
     fr.onload=function(){ useFont(name,fr.result).then(function(){ txFont.value='c:'+name; msg('Font "'+name+'" loaded – now selected for new text'); fdb(function(db){ if(db){ try{ db.transaction('f','readwrite').objectStore('f').put(fr.result,name); }catch(e){} } }); },function(){ msg('Could not load that font file'); }); };
     fr.readAsArrayBuffer(f); fif.value=''; });
   fdb(function(db){ if(!db) return; try{ var st=db.transaction('f').objectStore('f'), rq=st.openCursor(); rq.onsuccess=function(){ var c=rq.result; if(c){ useFont(c.key,c.value.slice?c.value.slice(0):c.value); c.continue(); } }; }catch(e){} });
-  bar.appendChild(rT8);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'));
+ 
 
+  sec('Type'); [rTt,rText,rT2,rTw,rTf,rTc,rTb,rTa].forEach(function(r){ bar.appendChild(r); });
+  sec('Layout'); [rT3,rT4,rT5].forEach(function(r){ bar.appendChild(r); });
+  sec('Outline'); [rO0,rT6,rTd,rTe].forEach(function(r){ bar.appendChild(r); });
+  sec('Shadow'); [rS0,rT7].forEach(function(r){ bar.appendChild(r); });
+  sec('Box'); [rT9,rT10,rBs,rBo,rT11].forEach(function(r){ bar.appendChild(r); });
+  syncVis();
+  sec('Fonts and convert'); [rT8,rT12].forEach(function(r){ bar.appendChild(r); });
+
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'));
   sec('Undo and canvas');
   var r7=row();
   r7.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
@@ -1304,8 +1317,8 @@
   // ---- collapsible menus: groups containing sections (remembered between visits) ----
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
-    var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Text':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
