@@ -829,7 +829,9 @@
   function chk(r,txt,on,tip){ var l=el('label','font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;'); var i=el('input'); i.type='checkbox'; i.checked=on; l.appendChild(i); l.appendChild(document.createTextNode(txt)); if(tip) l.title=tip; r.appendChild(l); return i; }
 
   var r1=row(); var bDraw=btn('Draw',function(){setDrawing(true);},'Draw on the page (D)'), bPass=btn('Click',function(){setDrawing(false);},'Click through to the page (D)');
-  r1.appendChild(bDraw); r1.appendChild(bPass); bar.appendChild(r1);
+  r1.appendChild(bDraw); r1.appendChild(bPass);
+  r1.appendChild(btn('Erase all',function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – ↶ undoes'); } else msg('Nothing to erase'); },'Careful: erases everything you have drawn on all layers (↶ undoes)'));
+  bar.appendChild(r1);
 
   sec('Drawing tools');
   var r2=row();
