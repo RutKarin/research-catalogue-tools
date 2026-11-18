@@ -4,7 +4,7 @@ Small, free tools for working with webpages and [Research Catalogue](https://www
 
 ## Ritlager (“drawing layer”)
 
-Ritlager is a browser tool (a bookmarklet) for drawing over web pages. It is designed for creating freehand drawings and visuals that can be exported for use on webpages and Research Catalogue. It puts a transparent drawing layer over any page, so you can draw by hand with a pen tablet and place the result back into the page or exposition, over or under other objects.
+Ritlager is a browser tool (a bookmarklet) for drawing over web pages. It is designed for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. It puts a transparent drawing layer over any page, so you can draw by hand with a pen tablet and place the result back into the page, over or under other objects.
 
 **Exports:** images as **PNG** (transparent background), **JPG** and **TIFF** (with DPI), at 1×–6× resolution, one image or one file per layer; animations as **GIF** or **WebM video**. RC accepts png, jpg, tiff, svg and gif in its media repository.
 
