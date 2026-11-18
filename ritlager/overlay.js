@@ -1755,7 +1755,7 @@
     var REPO='https://github.com/RutKarin/research-catalogue-tools';
     var d=el('div','font-size:11px;color:#888;line-height:1.4;margin-top:10px;padding-top:8px;border-top:1px solid #e4e4e4;');
     function lnk(t,h){ var a=el('a','color:#111;text-decoration:underline;cursor:pointer;',t); a.href=h; a.target='_blank'; a.rel='noopener noreferrer'; return a; }
-    var top=el('div',''); top.appendChild(lnk('Ritlager',REPO)); top.appendChild(document.createTextNode(' · © 2026 Rut Karin Zettergren · ')); top.appendChild(lnk('MIT licence',REPO+'/blob/main/LICENSE')); d.appendChild(top);
+    var top=el('div',''); top.appendChild(lnk('Ritlager',REPO)); top.appendChild(document.createTextNode(' · © 2026 Rut Karin Zettergren ')); var mit=el('span','display:inline-block;border:1px solid #999;border-radius:4px;padding:0 4px;font-size:10px;line-height:14px;color:#555;vertical-align:1px;','MIT'); mit.title='MIT licence: free to use, change and share'; top.appendChild(mit); d.appendChild(top);
     var more=el('div','margin-top:4px;display:none;');
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save and open) to keep your work.'));
     var tg=el('span','color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:2px;','More info ▸');
