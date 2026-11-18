@@ -828,7 +828,7 @@
     w.appendChild(pn); head.appendChild(w);
   })();
   var hide = btn('Hide', function(){ api.toggle(); }, 'Hide/show (D toggles draw/click)'); hide.style.padding='4px 8px'; hide.style.fontSize='12px';
-  var hg=row(); hg.style.flexWrap='nowrap'; hg.style.gap='3px'; head.style.flexWrap='nowrap'; var quick=null;
+  var hg=row(); hg.style.position='relative'; hg.style.top='6px'; hg.style.flexWrap='nowrap'; hg.style.gap='3px'; head.style.flexWrap='nowrap'; var quick=null;
   head.appendChild(hg);
   bar.appendChild(head);
 
