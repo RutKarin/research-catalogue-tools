@@ -683,12 +683,6 @@
   var bPen=btn('Pen',function(){setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){setTool('brush');},'Brush (P)'),
       bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bTxt=btn('Text',function(){setTool('text');},'Text (T): click where the text should go');
   r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bTxt); bar.appendChild(r2);
-  var rText=row(); lab(rText,'Font');
-  var txFont=el('select',BTN+'padding:3px 6px;'); [['sans','Sans'],['serif','Serif'],['mono','Mono'],['hand','Handwriting'],['display','Display']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
-  var txSize=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:50px;box-sizing:border-box;'); txSize.type='number'; txSize.value=32; txSize.min=4; txSize.max=400; txSize.title='Text size in px'; rText.appendChild(txSize); lab(rText,'px');
-  var txBd=chk(rText,'Bold',false), txIt=chk(rText,'Italic',false);
-  rText.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. Colour and opacity come from Colour; use the Select tool to move, resize or rotate it.'));
-  bar.appendChild(rText);
 
   sec('Colour');
   var r3=row(), sw=[];
@@ -825,6 +819,14 @@
   rSm5.appendChild(btn('Apply',function(){ var sc=(+scIn.value||100)/100, dg=+roIn.value||0; selXform(sc,dg); scIn.value=100; roIn.value=0; },'Scale and/or rotate the selection around its centre'));
   bar.appendChild(rSm5);
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'));
+
+  sec('Text');
+  var rText=row(); lab(rText,'Font');
+  var txFont=el('select',BTN+'padding:3px 6px;'); [['sans','Sans'],['serif','Serif'],['mono','Mono'],['hand','Handwriting'],['display','Display']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txFont.appendChild(op); }); rText.appendChild(txFont);
+  var txSize=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:50px;box-sizing:border-box;'); txSize.type='number'; txSize.value=32; txSize.min=4; txSize.max=400; txSize.title='Text size in px'; rText.appendChild(txSize); lab(rText,'px');
+  var txBd=chk(rText,'Bold',false), txIt=chk(rText,'Italic',false);
+  rText.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. Colour and opacity come from Colour; use the Select tool to move, resize or rotate it.'));
+  bar.appendChild(rText);
 
   sec('Cut out');
   var rCt=row();
@@ -1018,7 +1020,7 @@
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
     tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut') lastDraw=t;
-    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); show(rText,t==='text'); markSel();
+    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rArrow, t==='line');
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
@@ -1202,7 +1204,7 @@
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Text':'Edit','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
