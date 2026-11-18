@@ -13,7 +13,7 @@ Features:
 - Pen, brush, line (with arrowhead) and eraser; pen styles: round, square, flat, pencil, marker, ink, watercolour
 - Pressure sensitivity with a pen tablet, stabilising, sharp–soft, contrast, thin-line modes
 - Export PNG with transparent, white or custom background, or on top of a screenshot of the page
-- Select tool: move, resize (corner handles), cut, copy and paste strokes (Ctrl+X/C/V), undo/redo
+- Select tool (pick, rectangle, lasso): move, resize, flip, duplicate, cut, copy, paste (Ctrl+X/C/V), undo/redo
 - Layers with per-layer opacity, export as one image or one PNG per layer
 - Foldable toolbar sections; remembers your settings; one-click presets and saved colours
 - Pipette with hex and rgb (screen picker in Chrome/Edge)
