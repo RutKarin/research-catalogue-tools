@@ -14,7 +14,8 @@ Features:
 - Pressure sensitivity with a pen tablet, stabilising, sharp–soft, contrast, thin-line modes
 - Export PNG with transparent, white or custom background, or on top of a screenshot of the page
 - Effects menu: Dodge and Burn brushes; layer effects Blur, Glow and Drop shadow
-- Export as PNG, JPG or TIFF at 1×–6× resolution
+- Export as PNG, JPG or TIFF at 1×–6× resolution, with DPI
+- Retouch brushes: Blur, Sharpen, Smudge, Clone
 - Animate menu: replay or hand-made frames, preview, remove frames, save GIF or WebM video
 - Airbrush (soft spray with hardness, build-up and opacity)
 - Select tool (pick, rectangle, lasso): move, resize, flip, duplicate, cut, copy, paste (Ctrl+X/C/V), undo/redo

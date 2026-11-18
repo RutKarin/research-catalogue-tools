@@ -66,7 +66,7 @@
   function objCorners(st){ if(st.tool==='text') return textBox(st); var im=imgs[st.iid]||{w:100,h:100}, w=im.w*st.size, h=im.h*st.size, co=Math.cos(st.rot||0), si=Math.sin(st.rot||0), p=st.pts[0]; return [[0,0],[w,0],[w,h],[0,h]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; }); }
   function selPts(st){ if(!isObj(st)) return st.pts; var q=objCorners(st); q.push({x:(q[0].x+q[2].x)/2,y:(q[0].y+q[2].y)/2}); return q; }
   function strokeBox(st){ if(isObj(st)){ var q=objCorners(st), a=1e9,b=1e9,c2=-1e9,d=-1e9; q.forEach(function(p){ a=Math.min(a,p.x); c2=Math.max(c2,p.x); b=Math.min(b,p.y); d=Math.max(d,p.y); }); return {x0:a-3,y0:b-3,x1:c2+3,y1:d+3}; }
-    var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,r=(st.tool==='air'?(st.size||2)*1.5:(st.size||2)/2)+3; st.pts.forEach(function(p){ if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; }); return {x0:x0-r,y0:y0-r,x1:x1+r,y1:y1+r}; }
+    var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,r=(st.tool==='air'||st.tool==='px'?(st.size||2)*1.5:(st.size||2)/2)+3; st.pts.forEach(function(p){ if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; }); return {x0:x0-r,y0:y0-r,x1:x1+r,y1:y1+r}; }
   function boxOf(list){ var b=null; list.forEach(function(st){ var c=strokeBox(st); if(!b) b=c; else { b.x0=Math.min(b.x0,c.x0); b.y0=Math.min(b.y0,c.y0); b.x1=Math.max(b.x1,c.x1); b.y1=Math.max(b.y1,c.y1); } }); return b; }
   function inBox(b,q){ return b&&q.x>=b.x0&&q.x<=b.x1&&q.y>=b.y0&&q.y<=b.y1; }
   function cloneStroke(st,dx,dy){ var n=Object.assign({},st); n.pts=st.pts.map(function(p){ return {x:p.x+(dx||0),y:p.y+(dy||0),p:p.p}; }); delete n.sm; return n; }
@@ -158,7 +158,7 @@
   function hitStroke(st,q){
     if(st.tool==='cut') return false;
     if(isObj(st)){ var c=objCorners(st); return pip(q.x,q.y,c); }
-    var r=(st.tool==='air'?(st.size||2)*1.5:(st.size||2)/2)+5, p=st.pts; if(!p.length) return false;
+    var r=(st.tool==='air'||st.tool==='px'?(st.size||2)*1.5:(st.size||2)/2)+5, p=st.pts; if(!p.length) return false;
     if(p.length===1) return Math.hypot(q.x-p[0].x,q.y-p[0].y)<=r;
     for(var i=1;i<p.length;i++) if(distSeg(q,p[i-1],p[i])<=r) return true; return false;
   }
@@ -310,7 +310,7 @@
   function layerHasFx(L){ var f=L&&L.fx; return !!(f&&(f.blur>0||f.glow||f.sh)); }
   function fxOf(L){ return L.fx||(L.fx={blur:0,glow:0,gsz:12,gamt:100,gcol:'#ffd24d',sh:0,shb:8,shx:6,shy:6,shamt:60,shcol:'#000000'}); }
   function anyFx(){ return layers.some(layerHasFx)||strokes.some(function(st){ return st.fx; }); }
-  function plainLayers(){ return layers.length===1&&layers[0].op>=100&&(!layers[0].bm||layers[0].bm==='source-over')&&!anyFx(); }
+  function plainLayers(){ return layers.length===1&&layers[0].op>=100&&(!layers[0].bm||layers[0].bm==='source-over')&&!anyFx()&&!anyPx(); }
   function drawLayerFx(target,L){
     var f=L.fx, k=rscale||1, OFF=20000, a0=L.op/100, bm=L.bm||'source-over';
     target.save(); target.setTransform(1,0,0,1,0,0); target.globalCompositeOperation=bm;
@@ -594,7 +594,64 @@
     for(var i=1;i<pts.length;i++){ var p0=pts[i-1],p1=pts[i], d=Math.hypot(p1.x-p0.x,p1.y-p0.y), n=Math.max(1,Math.ceil(d/step)); for(var k=(i===1?0:1);k<=n;k++){ var t=k/n; dab(p0.x+(p1.x-p0.x)*t,p0.y+(p1.y-p0.y)*t,(p0.p==null?1:p0.p)+((p1.p==null?1:p1.p)-(p0.p==null?1:p0.p))*t); } }
     c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=s.ink==null?1:s.ink; if(s.fx) c.globalCompositeOperation='source-atop'; c.drawImage(airC,0,0); c.restore();
   }
+  function anyPx(){ return strokes.some(function(st){ return st.tool==='px'; }); }
+  function boxPass(src,dst,n,len,r,stride,lineStride){
+    var inv=1/(2*r+1), l, ch, i, j, o, sum, a2, b2;
+    for(l=0;l<n;l++) for(ch=0;ch<4;ch++){
+      o=l*lineStride+ch; sum=0;
+      for(i=-r;i<=r;i++){ j=i<0?0:(i>=len?len-1:i); sum+=src[o+j*stride]; }
+      for(i=0;i<len;i++){ dst[o+i*stride]=sum*inv; a2=i+r+1; b2=i-r; if(a2>=len) a2=len-1; if(b2<0) b2=0; sum+=src[o+a2*stride]-src[o+b2*stride]; }
+    }
+  }
+  function blurPre(a,w,h,r,passes){ var t=new Float32Array(a.length); for(var p=0;p<passes;p++){ boxPass(a,t,h,w,r,4,w*4); boxPass(t,a,w,h,r,w*4,4); } }
+  function preOf(id){ var d=id.data, f=new Float32Array(d.length); for(var i=0;i<d.length;i+=4){ var a=d[i+3]/255; f[i]=d[i]*a; f[i+1]=d[i+1]*a; f[i+2]=d[i+2]*a; f[i+3]=d[i+3]; } return f; }
+  function canvasOfPre(f,w,h){
+    var cv2=document.createElement('canvas'); cv2.width=w; cv2.height=h; var g=cv2.getContext('2d'), id=g.createImageData(w,h), d=id.data;
+    for(var i=0;i<f.length;i+=4){ var a=Math.max(0,Math.min(255,f[i+3])); if(a<0.5){ d[i]=d[i+1]=d[i+2]=d[i+3]=0; continue; } var q=255/a; d[i]=Math.max(0,Math.min(255,f[i]*q)); d[i+1]=Math.max(0,Math.min(255,f[i+1]*q)); d[i+2]=Math.max(0,Math.min(255,f[i+2]*q)); d[i+3]=a; }
+    g.putImageData(id,0,0); return cv2;
+  }
+  function stampOf(R,hard){
+    var st=document.createElement('canvas'); st.width=st.height=R*2; var x=st.getContext('2d'), g=x.createRadialGradient(R,R,0,R,R,R);
+    g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(Math.min(.98,hard),'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(0,0,R*2,R*2); return st;
+  }
+  function renderPx(c,s){
+    var m=c.getTransform?c.getTransform():{a:1,b:0,c:0,d:1,e:0,f:0}, k=Math.abs(m.a)||1, cw=c.canvas.width, chh=c.canvas.height, pts=s.pts; if(!pts||!pts.length) return;
+    var r=Math.max(2,(s.size||2)*1.5)*k, hard=Math.max(0,Math.min(100,s.hard==null?30:s.hard))/100, str=s.ink==null?1:s.ink, kind=s.kind, i;
+    var dp=pts.map(function(p){ return {x:m.a*p.x+m.c*p.y+m.e,y:m.b*p.x+m.d*p.y+m.f}; });
+    var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; dp.forEach(function(p){ if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; });
+    var pad=Math.ceil(r)+2; x0=Math.max(0,Math.floor(x0-pad)); y0=Math.max(0,Math.floor(y0-pad)); x1=Math.min(cw,Math.ceil(x1+pad)); y1=Math.min(chh,Math.ceil(y1+pad));
+    var rw=x1-x0, rh=y1-y0; if(rw<2||rh<2) return;
+    function walk(fn,step){ fn(dp[0]); for(var q=1;q<dp.length;q++){ var p0=dp[q-1],p1=dp[q], d=Math.hypot(p1.x-p0.x,p1.y-p0.y), n=Math.max(1,Math.ceil(d/step)); for(var t=1;t<=n;t++) fn({x:p0.x+(p1.x-p0.x)*t/n,y:p0.y+(p1.y-p0.y)*t/n}); } }
+    function blendIn(srcC,mk){
+      var g=srcC.getContext('2d'); g.globalCompositeOperation='destination-in'; g.globalAlpha=1; g.drawImage(mk,0,0);
+      c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=str; c.globalCompositeOperation='destination-out'; c.drawImage(mk,x0,y0); c.globalCompositeOperation='lighter'; c.drawImage(srcC,x0,y0); c.restore();
+    }
+    function maskC(){ var mk=document.createElement('canvas'); mk.width=rw; mk.height=rh; var g=mk.getContext('2d'), R=Math.min(128,Math.max(4,Math.ceil(r))), st=stampOf(R,hard); g.globalAlpha=.35; walk(function(p){ g.drawImage(st,p.x-x0-r,p.y-y0-r,2*r,2*r); },Math.max(1,r*.12)); return mk; }
+    if(kind==='blur'||kind==='sharpen'){
+      var id=c.getImageData(x0,y0,rw,rh), o=preOf(id), b=Float32Array.from(o), rb=Math.max(1,Math.round((kind==='blur'?(s.amt||6)*.55:1.5)*k));
+      blurPre(b,rw,rh,rb,3);
+      var out=b;
+      if(kind==='sharpen'){ var am=(s.amt||6)/10; out=new Float32Array(o.length); for(i=0;i<o.length;i+=4){ var al=Math.max(0,Math.min(255,o[i+3]+am*(o[i+3]-b[i+3]))); out[i+3]=al; for(var q=0;q<3;q++){ var v=o[i+q]+am*(o[i+q]-b[i+q]); out[i+q]=Math.max(0,Math.min(al,v)); } } }
+      blendIn(canvasOfPre(out,rw,rh),maskC());
+    } else if(kind==='clone'){
+      var sc=document.createElement('canvas'); sc.width=rw; sc.height=rh;
+      sc.getContext('2d').drawImage(c.canvas,x0+(s.dx||0)*k,y0+(s.dy||0)*k,rw,rh,0,0,rw,rh);
+      blendIn(sc,maskC());
+    } else if(kind==='smudge'){
+      var sz=Math.min(600,Math.ceil(r*2)+2), R2=sz/2, fe=document.createElement('canvas'); fe.width=fe.height=sz; var fg=fe.getContext('2d'), st2=stampOf(Math.max(4,Math.ceil(R2)),hard); fg.drawImage(st2,0,0,sz,sz);
+      var P=document.createElement('canvas'); P.width=P.height=sz; var pg=P.getContext('2d'), G=document.createElement('canvas'); G.width=G.height=sz; var gg=G.getContext('2d'), Q=document.createElement('canvas'); Q.width=Q.height=sz; var qg=Q.getContext('2d'), first=true, carry=Math.min(.95,.5+str*.45);
+      walk(function(p){
+        var gx=Math.round(p.x-R2), gy=Math.round(p.y-R2);
+        gg.globalCompositeOperation='source-over'; gg.clearRect(0,0,sz,sz); gg.drawImage(c.canvas,gx,gy,sz,sz,0,0,sz,sz);
+        if(first){ pg.clearRect(0,0,sz,sz); pg.drawImage(G,0,0); first=false; return; }
+        qg.globalCompositeOperation='source-over'; qg.clearRect(0,0,sz,sz); qg.drawImage(P,0,0); qg.globalCompositeOperation='destination-in'; qg.drawImage(fe,0,0);
+        c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=Math.min(1,str*1.1); c.globalCompositeOperation='destination-out'; c.drawImage(fe,gx,gy); c.globalCompositeOperation='lighter'; c.drawImage(Q,gx,gy); c.restore();
+        pg.globalCompositeOperation='destination-out'; pg.globalAlpha=1-carry; pg.fillStyle='#000'; pg.fillRect(0,0,sz,sz); pg.globalCompositeOperation='lighter'; pg.globalAlpha=1-carry; pg.drawImage(G,0,0); pg.globalAlpha=1; pg.globalCompositeOperation='source-over';
+      },Math.max(1.5,r*.25));
+    }
+  }
   function render(c,s){
+    if(s.tool==='px'){ renderPx(c,s); return; }
     if(s.tool==='text'){ renderText(c,s); return; }
     if(s.tool==='image'){ renderImage(c,s); return; }
     if(s.tool==='cut'){ renderCut(c,s); return; }
@@ -651,9 +708,17 @@
   }
   function rescan(){ if(scPos){ scPos.style.position=''; scPos=null; } SC=findScroller(); placeCanvas(); measure(); setSize(); }
   function rebuild(){ bctx.clearRect(0,0,W,H); compose(bctx,function(){}); refresh(); persist(); }
+  var cloneSrc=null, cloneOff=null, cloneSet=false;
+  function drawCloneMarkOff(){ if(cloneSet) cloneSet=false; }
+  function drawCloneMark(){
+    if(tool!=='clone'||!cloneSrc) return; var x=cloneSrc.x, y=cloneSrc.y;
+    if(cur&&cur.tool==='px'&&cur.kind==='clone'){ var l=cur.pts[cur.pts.length-1]; x=l.x+cur.dx; y=l.y+cur.dy; }
+    ctx.save(); ctx.lineWidth=1.5; ctx.strokeStyle='#e0245e'; ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI*2); ctx.moveTo(x-14,y); ctx.lineTo(x+14,y); ctx.moveTo(x,y-14); ctx.lineTo(x,y+14); ctx.stroke(); ctx.restore();
+  }
   function refresh(){
     ctx.clearRect(0,0,W,H); ctx.drawImage(base,0,0);
-    if(!cur){ drawSelOverlay(); return; }
+    if(!cur){ drawSelOverlay(); drawCloneMark(); return; }
+    if(cur.tool==='px'){ render(ctx,cur); drawSelOverlay(); drawCloneMark(); return; }
     var L=getLayer(layerOf(cur));
     if(cur.tool!=='eraser'&&L.op<100){
       if(tmp.width!==W||tmp.height!==H){ tmp.width=W; tmp.height=H; }
@@ -685,12 +750,15 @@
     if(tool==='text'){ textDown(e); return; }
     if(tool==='cut'){ cutDown(e); return; }
     if(tool==='select'){ selDown(e); return; }
+    if(tool==='clone'&&(e.altKey||cloneSet)){ var qs=pos(e); cloneSrc={x:qs.x,y:qs.y}; cloneOff=null; cloneSet=false; msg('Clone source set. Now paint where the copy should appear. Alt+click picks a new source.',4500); e.preventDefault(); refresh(); return; }
+    if(tool==='clone'&&!cloneSrc){ msg('First Alt+click (or press “Set source” and click) on the spot you want to copy from',5000); return; }
     cv.setPointerCapture(e.pointerId);
     if(!getLayer(act).vis){ msg('This layer is hidden – show it to draw on it'); return; }
     var q=pos(e);
-    var isFx=(tool==='dodge'||tool==='burn');
-    cur={l:act,tool:(tool==='brush'?'pen':(isFx?'air':tool)),fx:isFx?tool:undefined,color:isFx?(tool==='dodge'?'#ffffff':'#000000'):color,size:size,soft:+soft.value,sens:+sens.value/100,ink:isFx?(+fxExp.value/100):(+ink.value/100),pressure:pr.checked, brush:tool==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
+    var isFx=(tool==='dodge'||tool==='burn'), isPx=(tool==='blur'||tool==='sharpen'||tool==='smudge'||tool==='clone');
+    cur={l:act,tool:(tool==='brush'?'pen':(isFx?'air':(isPx?'px':tool))),fx:isFx?tool:undefined,color:isFx?(tool==='dodge'?'#ffffff':'#000000'):color,size:size,soft:+soft.value,sens:+sens.value/100,ink:isFx?(+fxExp.value/100):(+ink.value/100),pressure:pr.checked, brush:tool==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
          arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value,pts:[q],sm:{x:q.x,y:q.y,p:q.p}};
+    if(isPx){ cur.kind=tool; cur.hard=+pxHard.value; cur.ink=+pxStr.value/100; cur.amt=+pxAmt.value; cur.pressure=false; if(tool==='clone'){ if(!cloneOff) cloneOff={dx:cloneSrc.x-q.x,dy:cloneSrc.y-q.y}; cur.dx=cloneOff.dx; cur.dy=cloneOff.dy; } }
     e.preventDefault(); refresh();
   });
   cv.addEventListener('pointermove', function(e){
@@ -721,7 +789,7 @@
     if(!cur) return;
     delete cur.sm; strokes.push(cur); if(cur.tool!=='eraser') tgt=[cur]; ulog.push({t:'d'}); redo=[];
     var L=getLayer(layerOf(cur)), fast = layers.length===1 ? L.op>=100 : (cur.tool!=='eraser'&&L.op>=100&&L.id===topVisibleId());
-    if(layerHasFx(L)||cur.fx) fast=false;
+    if(layerHasFx(L)||cur.fx||cur.tool==='px') fast=false;
     if(fast){ render(bctx,cur); cur=null; refresh(); persist(); } else { cur=null; rebuild(); }
   }
   function endAny(e){ if(ug){ ug=null; persist(); return; } if(selDrag){ selUp(); return; } end(e); }
@@ -1006,7 +1074,7 @@
   function changeSel(kind,arg){
     if(quietChg) return false;
     var base=targets(); if(!base.length) return false;
-    var ok=function(st){ if(st.tool==='cut') return false; if(kind==='style') return st.tool==='pen'||st.tool==='line'||st.tool==='air'; if(kind==='tool') return (st.tool==='pen'||st.tool==='air')&&!st.fx; if(kind==='color') return st.tool!=='image'&&st.tool!=='eraser'&&!st.fx; if(kind==='size') return st.tool!=='image'&&st.tool!=='text'; return true; };
+    var ok=function(st){ if(st.tool==='cut') return false; if(kind==='style') return st.tool==='pen'||st.tool==='line'||st.tool==='air'; if(kind==='tool') return (st.tool==='pen'||st.tool==='air')&&!st.fx; if(kind==='color') return st.tool!=='image'&&st.tool!=='eraser'&&!st.fx&&st.tool!=='px'; if(kind==='size') return st.tool!=='image'&&st.tool!=='text'; return true; };
     var list=base.filter(ok); if(!list.length) return false;
     var map=new Map();
     function penProps(n){ n.nib=nibSel.value; n.soft=+soft.value; n.dry=+dry.value/100; n.hair=hair.checked; }
@@ -1050,6 +1118,15 @@
   var rDb=row(); var bDodge=btn('Dodge (lighter)',function(){ setTool('dodge'); },'Paint over your drawing to make it lighter'), bBurn=btn('Burn (darker)',function(){ setTool('burn'); },'Paint over your drawing to make it darker'); rDb.appendChild(bDodge); rDb.appendChild(bBurn); bar.appendChild(rDb);
   var rDe=row(); lab(rDe,'Exposure'); var fxExp=slider(rDe,2,100,25,110); liveVal(fxExp); fxExp.title='How strong each stroke is'; bar.appendChild(rDe);
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Paint over what you have drawn on the active layer: Dodge lightens it, Burn darkens it. It only changes drawn pixels, never the page behind. Size comes from Thickness; softness and build-up from the Airbrush sliders that appear when the tool is chosen.'));
+
+  sec('Retouch');
+  var rRt=row(); var bBlurT=btn('Blur',function(){ setTool('blur'); },'Paint to blur what you have drawn on the active layer'), bSharpT=btn('Sharpen',function(){ setTool('sharpen'); },'Paint to make soft edges crisper'), bSmudgeT=btn('Smudge',function(){ setTool('smudge'); },'Drag the paint along, like a finger in wet paint'), bCloneT=btn('Clone',function(){ setTool('clone'); },'Copy one part of the layer to another. Alt+click the source first');
+  [bBlurT,bSharpT,bSmudgeT,bCloneT].forEach(function(b){ rRt.appendChild(b); }); bar.appendChild(rRt);
+  var rP1=row(); lab(rP1,'Strength'); var pxStr=slider(rP1,5,100,60,110); liveVal(pxStr); bar.appendChild(rP1);
+  var rP2=row(); lab(rP2,'Amount'); var pxAmt=slider(rP2,1,40,6,110); pxAmt.title='Blur: how far it spreads. Sharpen: how much crisper.'; bar.appendChild(rP2);
+  var rP3=row(); lab(rP3,'Hardness'); var pxHard=slider(rP3,0,100,30,110); liveVal(pxHard); bar.appendChild(rP3);
+  var rP4=row(); rP4.appendChild(btn('Set clone source',function(){ cloneSet=true; setTool('clone'); msg('Now click on the spot you want to copy from'); },'Or hold Alt and click with the Clone tool')); bar.appendChild(rP4);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'));
 
   sec('Layer effects');
   var fxName=el('div','font-size:12px;color:#444;','');
@@ -1291,14 +1368,15 @@
   var cr={ get checked(){ return csel.value==='crop'; } };
   var rLy=row(); lab(rLy,'Layers');
   var lySel=el('select',BTN+'padding:3px 6px;');
-  [['all','All in one image'],['each','Each layer as its own PNG'],['active','Active layer only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; lySel.appendChild(op); });
-  lySel.title='Use “Each layer” to get one PNG per layer, e.g. one to place over objects in RC and one under.';
+  [['all','All in one image'],['each','Each layer as its own image'],['active','Active layer only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; lySel.appendChild(op); });
+  lySel.title='Use “Each layer” to get one image file per layer, e.g. one to place over objects in RC and one under.';
   rLy.appendChild(lySel); bar.appendChild(rLy);
   var rFm=row(); lab(rFm,'File type');
   var fmSel=el('select',BTN+'padding:3px 6px;');
   [['png','PNG (sharp, can be transparent)'],['jpg','JPG (small file, no transparency)'],['tif','TIFF (for print and archive)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; fmSel.appendChild(op); });
   rFm.appendChild(fmSel); bar.appendChild(rFm);
   var rQ=row(); lab(rQ,'JPG quality'); var jq=slider(rQ,10,100,92,110); liveVal(jq); rQ.style.display='none'; bar.appendChild(rQ);
+  var rDpi=row(); lab(rDpi,'DPI (print size)'); var dpiEl=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;width:70px;box-sizing:border-box;'); dpiEl.type='number'; dpiEl.min=36; dpiEl.max=1200; dpiEl.value=300; dpiEl.title='Stored in the file so Photoshop, InDesign and printers know the print size. It does not change the number of pixels – use Resolution for that.'; rDpi.appendChild(dpiEl); bar.appendChild(rDpi);
   var rRs=row(); lab(rRs,'Resolution');
   var rsSel=el('select',BTN+'padding:3px 6px;');
   [['1','1× (as on screen)'],['1.5','1.5×'],['2','2×'],['3','3×'],['4','4×'],['6','6×']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; rsSel.appendChild(op); });
@@ -1306,12 +1384,12 @@
   var rsInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(rsInfo);
   function expBox(){ var b={w:W,h:H}; if(csel.value==='crop'){ try{ var t=bounds(); if(t) b={w:Math.min(W,Math.ceil(t.w+16)),h:Math.min(H,Math.ceil(t.h+16))}; }catch(e){} } return b; }
   function fmtUpdate(){ var k=+rsSel.value, b=expBox(); rQ.style.display=fmSel.value==='jpg'?'flex':'none';
-    var w=Math.round(b.w*k), h=Math.round(b.h*k); rsInfo.textContent='The image will be about '+w+' × '+h+' px'+(fmSel.value==='jpg'&&bgSel.value==='none'?'. JPG cannot be transparent, so the background becomes white unless you choose another.':'.')+(w*h>1e8?' That is very large – the browser may refuse; choose a lower resolution.':'')+(bgSel.value==='shot'?' (With Screenshot background the resolution is the screenshot\'s own.)':'');
+    var w=Math.round(b.w*k), h=Math.round(b.h*k); rsInfo.textContent='The image will be about '+w+' × '+h+' px'+(fmSel.value!=='jpg'||true?' (at '+(+dpiEl.value||300)+' DPI = '+(w/(+dpiEl.value||300)*2.54).toFixed(1)+' × '+(h/(+dpiEl.value||300)*2.54).toFixed(1)+' cm)':'')+(fmSel.value==='jpg'&&bgSel.value==='none'?'. JPG cannot be transparent, so the background becomes white unless you choose another.':'.')+(w*h>1e8?' That is very large – the browser may refuse; choose a lower resolution.':'')+(bgSel.value==='shot'?' (With Screenshot background the resolution is the screenshot\'s own.)':'');
     var L={png:'PNG',jpg:'JPG',tif:'TIFF'}[fmSel.value]; if(typeof bSave!=='undefined'&&bSave) bSave.textContent='Export '+L; if(typeof quick!=='undefined'&&quick) quick.textContent='Export '+L; }
   var szHint=el('div','font-size:11px;color:#777;line-height:1.35;');
   function hint(){ szHint.textContent = csel.value==='crop' ? 'Strokes only: the image is cropped to the area around your strokes. Smaller file, but you have to place it yourself in RC.' : 'Whole page: the image is as large as the page. Place it at the page top-left in RC and the strokes line up exactly.'; }
   csel.addEventListener('change',hint); hint(); bar.appendChild(szHint);
-  [fmSel,rsSel,csel].forEach(function(x){ x.addEventListener('change',fmtUpdate); });
+  [fmSel,rsSel,csel].forEach(function(x){ x.addEventListener('change',fmtUpdate); }); dpiEl.addEventListener('input',fmtUpdate);
   var rBg=row(); lab(rBg,'Background');
   var bgSel=el('select',BTN+'padding:3px 6px;');
   [['none','Transparent'],['white','White'],['color','Custom colour'],['shot','Screenshot (reference)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; bgSel.appendChild(op); });
@@ -1430,8 +1508,8 @@
     if(t!=='select'&&tool==='select'){ clearSel(); refresh(); cv.style.cursor=DOTS; }
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
-    tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn') lastDraw=t;
-    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bSel0,t==='select'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
+    tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone') lastDraw=t;
+    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bBlurT,t==='blur'); mark(bSharpT,t==='sharpen'); mark(bSmudgeT,t==='smudge'); mark(bCloneT,t==='clone'); if(t!=='clone') drawCloneMarkOff(); mark(bSel0,t==='select'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'||t==='dodge'||t==='burn'); show(rAir2,t==='air'||t==='dodge'||t==='burn'); show(rArrow, t==='line');
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
@@ -1515,6 +1593,16 @@
       exportPng2(mode, lySel.value==='active' ? act : null);
     }catch(e){ msg('Export failed: '+(e&&e.message?e.message:e)+'. Try Image size: Strokes only.'); }
   }
+  var crcT=null; function crc32(u,a,b){ if(!crcT){ crcT=[]; for(var n=0;n<256;n++){ var c=n; for(var k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; crcT[n]=c>>>0; } } var c2=0xFFFFFFFF; for(var i=a;i<b;i++) c2=crcT[(c2^u[i])&255]^(c2>>>8); return (c2^0xFFFFFFFF)>>>0; }
+  function setDpi(bl,fmt,dpi,cb){
+    if(fmt==='tif'){ cb(bl); return; }
+    var fr=new FileReader(); fr.onload=function(){ try{
+      var u=new Uint8Array(fr.result), out=null;
+      if(fmt==='jpg'){ if(u[2]===0xFF&&u[3]===0xE0&&u[6]===0x4A&&u[7]===0x46){ u[13]=1; u[14]=dpi>>8; u[15]=dpi&255; u[16]=dpi>>8; u[17]=dpi&255; out=u; } }
+      else if(fmt==='png'&&u[1]===0x50){ var ppm=Math.round(dpi/0.0254), ch=new Uint8Array(21), v=new DataView(ch.buffer); v.setUint32(0,9); ch.set([0x70,0x48,0x59,0x73],4); v.setUint32(8,ppm); v.setUint32(12,ppm); ch[16]=1; v.setUint32(17,crc32(ch,4,17)); out=new Uint8Array(u.length+21); out.set(u.subarray(0,33)); out.set(ch,33); out.set(u.subarray(33),54); }
+      cb(out?new Blob([out],{type:bl.type}):bl); }catch(e){ cb(bl); } };
+    fr.onerror=function(){ cb(bl); }; fr.readAsArrayBuffer(bl);
+  }
   function encodeTiff(c,dpi){
     var w=c.width,h=c.height,d=c.getContext('2d').getImageData(0,0,w,h).data, n=w*h*4, off=206, buf=new ArrayBuffer(off+n), v=new DataView(buf), u=new Uint8Array(buf), p=8, i;
     u[0]=0x49; u[1]=0x49; v.setUint16(2,42,true); v.setUint32(4,8,true);
@@ -1555,8 +1643,8 @@
         saveBlob(bl,lastName,'('+out.width+' × '+out.height+' px'+(bgSel.value==='shot'?', with screenshot':(bgValue()||fmt==='jpg')?'':', transparent')+')');
       }
     };
-    if(fmt==='tif'){ try{ finish(encodeTiff(out,Math.round(72*kk))); }catch(e){ msg('TIFF failed: '+(e&&e.message?e.message:e)+'. Try a lower resolution.'); } }
-    else out.toBlob(finish,mime,fmt==='jpg'?(+jq.value/100):undefined);
+    var dpiV=Math.max(36,Math.min(1200,Math.round(+dpiEl.value)||300)); if(fmt==='tif'){ try{ finish(encodeTiff(out,dpiV)); }catch(e){ msg('TIFF failed: '+(e&&e.message?e.message:e)+'. Try a lower resolution.'); } }
+    else out.toBlob(function(bl){ if(!bl||mode==='copy'){ finish(bl); return; } setDpi(bl,fmt,dpiV,finish); },mime,fmt==='jpg'?(+jq.value/100):undefined);
   }
 
   // ---- tangenter ----
@@ -1632,7 +1720,7 @@
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
