@@ -14,8 +14,9 @@
 
   var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
   var base = document.createElement('canvas'), bctx = base.getContext('2d');
+  var DOTS="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg fill='black' stroke='white' stroke-width='1'%3E%3Ccircle cx='9' cy='16' r='1.4'/%3E%3Ccircle cx='23' cy='16' r='1.4'/%3E%3Ccircle cx='16' cy='9' r='1.4'/%3E%3Ccircle cx='16' cy='23' r='1.4'/%3E%3C/g%3E%3C/svg%3E\") 16 16, crosshair";
   cv.id = 'ritlager-canvas';
-  cv.style.cssText = 'position:absolute;left:0;top:0;z-index:'+Z+';touch-action:none;cursor:crosshair;margin:0;padding:0;border:0;';
+  cv.style.cssText = 'position:absolute;left:0;top:0;z-index:'+Z+';touch-action:none;cursor:'+DOTS+';margin:0;padding:0;border:0;';
   function setSize(){
     var keep = null;
     cv.width = base.width = W; cv.height = base.height = H;
@@ -473,9 +474,9 @@
     r.readAsDataURL(f); uf.value=''; });
   rU.appendChild(uf);
   rU.appendChild(btn('Open PNG…',function(){ uf.click(); },'Load an old image and keep drawing on top of it. The image becomes a fixed background and is included when you export PNG.'));
-  var bMove=btn('Move',function(){ if(!under){ msg('Open a PNG first'); return; } moveUnder=!moveUnder; mark(bMove,moveUnder); cv.style.cursor=moveUnder?'move':'crosshair'; msg(moveUnder?'Drag on the page to move the underlay':'Move off'); },'Drag the underlay with the pen to place it');
+  var bMove=btn('Move',function(){ if(!under){ msg('Open a PNG first'); return; } moveUnder=!moveUnder; mark(bMove,moveUnder); cv.style.cursor=moveUnder?'move':DOTS; msg(moveUnder?'Drag on the page to move the underlay':'Move off'); },'Drag the underlay with the pen to place it');
   rU.appendChild(bMove);
-  rU.appendChild(btn('Delete',function(){ if(!under) return; backupCurrent(); under=null; moveUnder=false; mark(bMove,false); cv.style.cursor='crosshair'; rebuild(); msg('Underlay removed'); }));
+  rU.appendChild(btn('Delete',function(){ if(!under) return; backupCurrent(); under=null; moveUnder=false; mark(bMove,false); cv.style.cursor=DOTS; rebuild(); msg('Underlay removed'); }));
   bar.appendChild(rU);
 
   sec('Save and open (editable)');
