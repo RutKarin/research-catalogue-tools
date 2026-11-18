@@ -14,7 +14,7 @@
 
   var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
   var base = document.createElement('canvas'), bctx = base.getContext('2d');
-  var DOTS="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg fill='black' stroke='white' stroke-width='1'%3E%3Ccircle cx='9' cy='16' r='1.4'/%3E%3Ccircle cx='23' cy='16' r='1.4'/%3E%3Ccircle cx='16' cy='9' r='1.4'/%3E%3Ccircle cx='16' cy='23' r='1.4'/%3E%3C/g%3E%3C/svg%3E\") 16 16, crosshair";
+  var DOTS="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg fill='%23222' stroke='white' stroke-opacity='.7' stroke-width='.6'%3E%3Ccircle cx='10' cy='16' r='.8'/%3E%3Ccircle cx='22' cy='16' r='.8'/%3E%3Ccircle cx='16' cy='10' r='.8'/%3E%3Ccircle cx='16' cy='22' r='.8'/%3E%3C/g%3E%3C/svg%3E\") 16 16, crosshair";
   cv.id = 'ritlager-canvas';
   cv.style.cssText = 'position:absolute;left:0;top:0;z-index:'+Z+';touch-action:none;cursor:'+DOTS+';margin:0;padding:0;border:0;';
   function setSize(){
