@@ -840,8 +840,8 @@
   function markTop(){ var m=drawing&&tool==='select'; mark(bDraw,drawing&&!m); mark(bMove,m); mark(bPass,!drawing); }
   r1.appendChild(bDraw); r1.appendChild(bMove); r1.appendChild(bPass);
   r1.appendChild(iconBtn('Undo',['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],function(){ undo(); },'Undo (Ctrl+Z)'));
-  r1.appendChild(iconBtn('Redo',['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],function(){ redoFn(); },'Redo (Ctrl+Y)'));
-  r1.appendChild(iconBtn('Erase all',['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6','M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'],function(){ eraseAll(); },'Erase all (Delete) – everything on all layers. Undo brings it back.'));
+  r1.appendChild(iconBtn('Redo',['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],function(){ redoFn(); },'Redo (Ctrl+Shift+Z)'));
+  r1.appendChild(iconBtn('Erase all',['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6','M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'],function(){ eraseAll(); },'Clear the whole drawing (Delete)'));
   bar.appendChild(r1);
 
   sec('Drawing tools');
