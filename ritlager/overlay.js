@@ -1199,7 +1199,9 @@
   var rA1b=row(); rA1b.appendChild(btn('Build-up from my drawing',function(){ aReplay(); },'Makes frames that show the drawing being drawn, stroke by stroke')); bar.appendChild(rA1b);
   var rA2=row(); rA2.appendChild(btn('+ Add this frame',function(){ aAdd(strokes); },'Takes a picture of the drawing as it is now – draw, add, change, add… for hand-made animation'));
   rA2.appendChild(btn('Clear last frame',function(){ if(!frames.length){ msg('No frames to clear'); return; } aPreview(false); frames.pop(); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Removes the last frame'));
-  rA2.appendChild(btn('Clear all',function(){ aPreview(false); frames=[]; aSel=-1; aDraw(); },'Remove all frames')); bar.appendChild(rA2);
+  rA2.appendChild(btn('Clear all',function(){ aPreview(false); frames=[]; aSel=-1; aDraw(); },'Remove all frames'));
+  rA2.appendChild(btn('Keep every 2nd',function(){ if(frames.length<3) return; frames=frames.filter(function(f,i){ return i%2===0; }); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Halves the number of frames (smaller file)'));
+  bar.appendChild(rA2);
   var rA3=row(); lab(rA3,'Size'); var aW=el('select',BTN+'padding:3px 6px;'); [[320,'320 px wide'],[480,'480 px wide'],[640,'640 px wide'],[800,'800 px wide'],[1000,'1000 px wide']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aW.appendChild(op); }); aW.value=640; rA3.appendChild(aW);
   var aCrop=chk(rA3,'Drawn area only',true,'Cut away empty space around the drawing'); bar.appendChild(rA3);
   var rA4=row(); lab(rA4,'Background'); var aBg=el('select',BTN+'padding:3px 6px;'); [['transparent','Transparent'],['white','White'],['color','Colour']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aBg.appendChild(op); }); rA4.appendChild(aBg);
@@ -1211,7 +1213,6 @@
   var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bar.appendChild(rAf);
   var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bar.appendChild(rAg);
   var rA7=row(); var bPlay=btn('▶ Preview',function(){ if(!aPlay&&!frames.length){ if(!strokes.length){ msg('Nothing to preview yet – draw something first'); return; } aReplay(); } if(!aPlay&&frames.length===1&&strokes.length>1) msg('Only 1 frame, so nothing moves. Press “Build-up from my drawing” to make many frames, or change the drawing and press “+ Add current drawing as frame” again.',7000); aPreview(!aPlay); try{ aPrev.scrollIntoView({block:'nearest'}); }catch(e){} },'Play the animation here. With no frames yet, it makes them from your drawing first.'); rA7.appendChild(bPlay);
-  rA7.appendChild(btn('Keep every 2nd',function(){ if(frames.length<3) return; frames=frames.filter(function(f,i){ return i%2===0; }); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Halves the number of frames (smaller file)'));
   bar.appendChild(rA7);
   var aPrev=document.createElement('canvas'); aPrev.width=240; aPrev.height=160; aPrev.style.cssText='width:100%;border:1px solid #ddd;border-radius:6px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/14px 14px;display:none;'; bar.appendChild(aPrev);
   var rA8=row(); rA8.appendChild(btn('Save GIF',function(){ aGif(); },'Animated GIF – works almost everywhere, max 256 colours')); rA8.appendChild(btn('Save video (WebM)',function(){ aWebm(); },'Smoother and smaller, Chrome/Edge/Firefox')); bar.appendChild(rA8);
