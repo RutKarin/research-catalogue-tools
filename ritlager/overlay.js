@@ -182,18 +182,55 @@
     strokes=selOrig.map(function(st){ if(sel.indexOf(st)<0) return st; var n=cloneStroke(st,dx,dy); selCur.push(n); return n; });
     selBox=boxOf(selCur); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild);
   }
+  // Lasso/rectangle over a picture: whole picture if fully enclosed, otherwise lift out just the enclosed part as a new picture
+  function selectImageParts(poly){
+    var out=[], todo=[];
+    strokes.forEach(function(st){ if(st.tool==='image'&&inScope(st)&&ensureImg(st.iid)) todo.push(st); });
+    var bx0=1e9,by0=1e9,bx1=-1e9,by1=-1e9; poly.forEach(function(p){ bx0=Math.min(bx0,p.x); by0=Math.min(by0,p.y); bx1=Math.max(bx1,p.x); by1=Math.max(by1,p.y); });
+    var changes=[];
+    todo.forEach(function(st){
+      var q=objCorners(st);
+      if(q.every(function(p){ return pip(p.x,p.y,poly); })){ out.push(st); return; }
+      var ib=strokeBox(st), x0=Math.max(bx0,ib.x0), y0=Math.max(by0,ib.y0), x1=Math.min(bx1,ib.x1), y1=Math.min(by1,ib.y1);
+      if(x1-x0<2||y1-y0<2) return;
+      var im=ensureImg(st.iid), W=im.naturalWidth, H=im.naturalHeight, k=Math.min(3,Math.max(1,1/Math.max(st.size,0.01)));
+      while((x1-x0)*k>4000||(y1-y0)*k>4000) k/=2;
+      var pw=Math.max(1,Math.round((x1-x0)*k)), ph=Math.max(1,Math.round((y1-y0)*k)), pc=document.createElement('canvas'); pc.width=pw; pc.height=ph; var px=pc.getContext('2d');
+      px.scale(k,k); px.translate(-x0,-y0); renderImage(px,Object.assign({},st,{ink:1}));
+      px.setTransform(1,0,0,1,0,0); px.globalCompositeOperation='destination-in'; px.scale(k,k); px.translate(-x0,-y0); px.beginPath(); poly.forEach(function(p,i){ if(i) px.lineTo(p.x,p.y); else px.moveTo(p.x,p.y); }); px.closePath(); px.fillStyle='#000'; px.fill();
+      var has=false; try{ var dd=px.getImageData(0,0,pw,ph).data; for(var i=3;i<dd.length;i+=4) if(dd[i]>8){ has=true; break; } }catch(e){ has=true; }
+      if(!has) return;
+      // remainder: original pixels with the enclosed area made transparent (polygon mapped into the picture's own pixel space)
+      var rc=document.createElement('canvas'); rc.width=W; rc.height=H; var rx=rc.getContext('2d'); rx.drawImage(im,0,0);
+      var co=Math.cos(-(st.rot||0)), si=Math.sin(-(st.rot||0)), o=st.pts[0], sx=st.size*(st.fx?-1:1), sy=st.size*(st.fy?-1:1);
+      rx.globalCompositeOperation='destination-out'; rx.fillStyle='#000'; rx.beginPath();
+      poly.forEach(function(p,i){ var dx=p.x-o.x, dy=p.y-o.y, u=(dx*co-dy*si)/sx, v=(dx*si+dy*co)/sy, X=st.fx?u+W:u, Y=st.fy?v+H:v; if(i) rx.lineTo(X,Y); else rx.moveTo(X,Y); });
+      rx.closePath(); rx.fill();
+      var rid='i'+Date.now().toString(36)+Math.floor(Math.random()*1e5).toString(36), pid=rid+'p';
+      var rsrc=rc.toDataURL('image/png'), psrc=pc.toDataURL('image/png');
+      imgs[rid]={src:rsrc,w:W,h:H}; imgs[pid]={src:psrc,w:pw,h:ph};
+      var rem=Object.assign({},st,{iid:rid,pts:[{x:o.x,y:o.y,p:1}]}); delete rem.sm;
+      var piece=Object.assign({},st,{iid:pid,size:1/k,rot:0,fx:false,fy:false,pts:[{x:x0,y:y0,p:1}]}); delete piece.sm;
+      changes.push({orig:st,rem:rem,piece:piece});
+    });
+    if(changes.length){
+      opSnap(function(){ changes.forEach(function(c){ strokes[strokes.indexOf(c.orig)]=c.rem; strokes.push(c.piece); out.push(c.piece); }); });
+    }
+    return out;
+  }
   function selUp(){
     var d=selDrag; selDrag=null;
     if(d.marq&&d.cut){ finishCut(); return; }
     if(d.marq){
-      var m=marq; marq=null; sel=[];
+      var m=marq; marq=null; sel=[]; var mpoly=null;
       if(m.lasso){
-        if(m.pts.length>=3) sel=strokes.filter(function(st){ return inScope(st)&&selPts(st).some(function(p){ return pip(p.x,p.y,m.pts); }); });
+        if(m.pts.length>=3){ mpoly=m.pts; sel=strokes.filter(function(st){ return st.tool!=='image'&&inScope(st)&&selPts(st).some(function(p){ return pip(p.x,p.y,m.pts); }); }); }
       } else {
         var x0=Math.min(m.x0,m.x1),x1=Math.max(m.x0,m.x1),y0=Math.min(m.y0,m.y1),y1=Math.max(m.y0,m.y1);
         if(x1-x0<4&&y1-y0<4){ for(var i=strokes.length-1;i>=0;i--){ if(inScope(strokes[i])&&inBox(strokeBox(strokes[i]),{x:x0,y:y0})){ sel=[strokes[i]]; break; } } }
-        else sel=strokes.filter(function(st){ return inScope(st)&&selPts(st).some(function(p){ return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1; }); });
+        else { mpoly=[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}]; sel=strokes.filter(function(st){ return st.tool!=='image'&&inScope(st)&&selPts(st).some(function(p){ return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1; }); }); }
       }
+      if(mpoly) sel=sel.concat(selectImageParts(mpoly));
       selBox=sel.length?boxOf(sel):null; msg(sel.length?sel.length+' stroke'+(sel.length>1?'s':'')+' selected':'Nothing selected (scope: '+(selScope==='all'?'all visible layers':'active layer')+')'); refresh(); return;
     }
     if(d.moved){ ulog.push({t:'s',prev:selOrig}); redo=[]; sel=selCur; selBox=boxOf(sel); persist(); }
@@ -789,14 +826,6 @@
   bar.appendChild(rSm5);
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick a selection mode, then drag around strokes. Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'));
 
-  sec('Images');
-  var rIm=row();
-  var imf=el('input'); imf.type='file'; imf.accept='image/*'; imf.style.display='none';
-  imf.addEventListener('change',function(){ var f=imf.files[0]; if(f) importImageFile(f); imf.value=''; });
-  rIm.appendChild(imf); rIm.appendChild(btn('Import image…',function(){ imf.click(); },'Add a picture from your computer to the active layer'));
-  bar.appendChild(rIm);
-  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','You can also drop an image file onto the page or paste a copied image with Ctrl+V. The picture lands on the active layer and works like any object: move, resize and rotate with the Select tool, rub out with the Eraser, or use Cut out.'));
-
   sec('Cut out');
   var rCt=row();
   var bCutR=btn('▭ Rectangle',function(){ cutMode='rect'; setTool('cut'); },'Drag a rectangle to cut'), bCutL=btn('Lasso',function(){ cutMode='lasso'; setTool('cut'); },'Draw around the area to cut');
@@ -805,6 +834,14 @@
   var cutKeep=el('select',BTN+'padding:3px 6px;'); [['in','Erase inside'],['out','Erase outside (keep inside)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; cutKeep.appendChild(op); }); rCk.appendChild(cutKeep); bar.appendChild(rCk);
   var rCf=row(); lab(rCf,'Soft edge'); var cutFeather=slider(rCf,0,40,0,110); cutFeather.title='0 = hard edge; higher = feathered edge'; bar.appendChild(rCf);
   bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Pick Rectangle or Lasso, then draw the shape on the page. The cut applies to the active layer (pictures, drawing and text) and can be undone. To move a cut-out together with its picture later, use Layer in the Select tool.'));
+
+  sec('Import images');
+  var rIm=row();
+  var imf=el('input'); imf.type='file'; imf.accept='image/*'; imf.style.display='none';
+  imf.addEventListener('change',function(){ var f=imf.files[0]; if(f) importImageFile(f); imf.value=''; });
+  rIm.appendChild(imf); rIm.appendChild(btn('Import image…',function(){ imf.click(); },'Add a picture from your computer to the active layer'));
+  bar.appendChild(rIm);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','You can also drop an image file onto the page or paste a copied image with Ctrl+V. The picture lands on the active layer and works like any object: move, resize and rotate with the Select tool, rub out with the Eraser, or use Cut out.'));
 
   sec('Layers');
   var layerBox=el('div','display:flex;flex-direction:column;gap:5px;'); bar.appendChild(layerBox);
@@ -1165,7 +1202,7 @@
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Effect tools':'Edit','Images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Undo and canvas':'Edit','Select tool':'Edit','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Layers':'Layers','Export (image for RC)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
