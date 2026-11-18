@@ -415,7 +415,7 @@
   sec('Colour');
   var r3=row(), sw=[];
   var cp=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); cp.type='color'; cp.value='#111111';
-  var CK='ritlager-colours', custom=[]; try{ custom=JSON.parse(localStorage.getItem(CK))||[]; }catch(e){}
+  var plusBtn=null, CK='ritlager-colours', custom=[]; try{ custom=JSON.parse(localStorage.getItem(CK))||[]; }catch(e){}
   function saveCustom(){ try{ localStorage.setItem(CK,JSON.stringify(custom)); }catch(e){} }
   function addSw(c,isCustom){
     var b=el('button','width:20px;height:20px;border-radius:50%;border:1px solid #888;padding:0;cursor:pointer;margin:0;background:'+c);
@@ -424,24 +424,24 @@
       if(isCustom&&e.altKey){ custom=custom.filter(function(x){ return x!==c; }); saveCustom(); sw=sw.filter(function(z){ return z[0]!==b; }); b.remove(); return; }
       setColor(c);
     });
-    r3.insertBefore(b,cp); sw.push([b,c]);
+    if(plusBtn) r3.insertBefore(b,plusBtn); else r3.appendChild(b); sw.push([b,c]);
   }
-  r3.appendChild(cp);
   ['#111111','#ffffff','#d6282b','#1f5fd1','#2a9d4a','#f2c200','#e66ab3'].forEach(function(c){ addSw(c,false); });
   custom.forEach(function(c){ addSw(c,true); });
   cp.addEventListener('input',function(){setColor(cp.value);});
-  r3.appendChild(btn('+',function(){ var c=color.length===7?color:cp.value; if(custom.indexOf(c)<0&&custom.length<14){ custom.push(c); saveCustom(); addSw(c,true); setColor(c); } },'Save the current colour as a swatch'));
+  plusBtn=btn('+',function(){ var c=color.length===7?color:cp.value; if(custom.indexOf(c)<0&&custom.length<14){ custom.push(c); saveCustom(); addSw(c,true); setColor(c); } },'Save the current colour as a swatch'); r3.appendChild(plusBtn);
   bar.appendChild(r3);
   var rHex=row(); rHex.style.flexWrap='nowrap';
-  var hexSw=el('span','display:inline-block;width:20px;height:20px;border-radius:5px;border:1px solid #888;flex:none;background:#111111;');
+  cp.style.cssText='width:38px;height:26px;padding:1px;border:1px solid #888;border-radius:6px;background:none;cursor:pointer;flex:none;'; cp.title='Current colour. Click this square to choose any colour you like';
   var hexIn=el('input','font:12px monospace;border:1px solid #c9c9c9;border-radius:6px;padding:4px 6px;width:74px;box-sizing:border-box;'); hexIn.type='text'; hexIn.value='#111111'; hexIn.maxLength=7; hexIn.spellcheck=false; hexIn.title='Colour code. Type a code like #d6282b and press Enter';
   hexIn.addEventListener('change',function(){ var v=hexIn.value.trim(); if(/^[0-9a-f]{6}$/i.test(v)) v='#'+v; if(/^#[0-9a-f]{6}$/i.test(v)) setColor(v.toLowerCase()); else hexIn.value=color; });
   var rgbEl=el('span','font-size:11px;color:#777;white-space:nowrap;','');
-  rHex.appendChild(hexSw); rHex.appendChild(hexIn);
+  rHex.appendChild(cp); rHex.appendChild(hexIn);
   rHex.appendChild(btn('Copy',function(){ var v=hexIn.value; try{ navigator.clipboard.writeText(v).then(function(){ msg('Copied '+v); },function(){ hexIn.select(); msg('Press Ctrl/Cmd+C to copy '+v); }); }catch(e){ hexIn.select(); msg('Press Ctrl/Cmd+C to copy '+v); } },'Copy the colour code'));
-  rHex.appendChild(btn('Pick',function(){ pickColour(); },'Pick a colour from the page or from your drawing (I)'));
+  rHex.appendChild(btn('Pipette',function(){ pickColour(); },'Pipette: pick a colour from the page or from your drawing (I)'));
   bar.appendChild(rHex);
   bar.appendChild(rgbEl);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'));
   var pickMode=false;
   function hex2(n){ return ('0'+n.toString(16)).slice(-2); }
   function pickColour(){
@@ -459,7 +459,7 @@
     try{ var p=ctx.getImageData(x,y,1,1).data; if(p[3]>0) d=p; }catch(x2){}
     if(!d&&ref){ var rx=Math.round((q.x-ref.sx)*ref.k), ry=Math.round((q.y-ref.sy)*ref.k);
       if(rx>=0&&ry>=0&&rx<ref.c.width&&ry<ref.c.height){ try{ d=ref.c.getContext('2d').getImageData(rx,ry,1,1).data; }catch(x3){} } }
-    if(!d||d[3]===0){ msg('Nothing to pick there. In this browser, first press “Capture screenshot” (under Export) to pick colours from the page.',5500); return; }
+    if(!d||d[3]===0){ msg('Nothing to pick there. In this browser, first press “Capture screenshot” (under Export) to use the pipette on the page.',5500); return; }
     var c='#'+hex2(d[0])+hex2(d[1])+hex2(d[2]); setColor(c); msg('Picked '+c.toUpperCase());
   }
   var r3b=row(); lab(r3b,'Opacity'); var ink=slider(r3b,5,100,100,100); ink.title='How dark/dense the colour is. 100 = full black';
@@ -689,7 +689,7 @@
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser'); show(rDry, t==='brush'); show(rArrow, t==='line');
     var pressOK = t!=='line'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
-  function setColor(c){ color=c; if(c.length===7){ cp.value=c; hexIn.value=c; hexSw.style.background=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
+  function setColor(c){ color=c; if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
   function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click in RC'); }
   setTool('pen'); setColor('#111111'); setSize2(3);
 
