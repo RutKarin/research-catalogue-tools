@@ -824,7 +824,7 @@
     var pn=document.createElementNS(NS,'svg'); pn.setAttribute('viewBox','0 0 72 72'); pn.style.cssText='overflow:visible;position:absolute;right:-21.5px;bottom:-9px;width:25px;height:25px;pointer-events:none;';
     var g=document.createElementNS(NS,'g'); g.setAttribute('transform','rotate(45 36 36)'); pn.appendChild(g);
     function sh(tag,at){ var n=document.createElementNS(NS,tag); for(var k in at) n.setAttribute(k,at[k]); g.appendChild(n); }
-    sh('rect',{x:33.5,y:-24,width:5,height:84,fill:'#111',stroke:'#111','stroke-width':1.6}); sh('polygon',{points:'33.5,56 38.5,56 36,82',fill:'#fff',stroke:'#111','stroke-width':1.6,'stroke-linejoin':'round'}); sh('polygon',{points:'34.9,72 37.1,72 36,82',fill:'#111'}); sh('rect',{x:33.5,y:-30,width:5,height:6,rx:2,fill:'#111',stroke:'#111','stroke-width':1.6});
+    sh('rect',{x:32.8,y:-24,width:6.4,height:88,fill:'#111',stroke:'#111','stroke-width':0.9}); sh('polygon',{points:'32.8,64 39.2,64 36,82',fill:'#fff',stroke:'#111','stroke-width':0.9,'stroke-linejoin':'round'}); sh('polygon',{points:'34,76 38,76 36,82',fill:'#111'}); sh('rect',{x:32.8,y:-30,width:6.4,height:6,rx:2,fill:'#111',stroke:'#111','stroke-width':0.9});
     w.appendChild(pn); head.appendChild(w);
   })();
   var hide = btn('Hide', function(){ api.toggle(); }, 'Hide/show (D toggles draw/click)'); hide.style.padding='4px 8px'; hide.style.fontSize='12px';
