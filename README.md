@@ -1,10 +1,10 @@
 # Research Catalogue tools
 
-Small, free tools for working with websites and expositions in [Research Catalogue](https://www.researchcatalogue.net/) (RC), designed by artist-researcher Rut Karin Zettergren. Everything runs locally in your browser; nothing is sent anywhere.
+Small, free tools for working with webpages and [Research Catalogue](https://www.researchcatalogue.net/) (RC), designed by artist-researcher Rut Karin Zettergren. Everything runs locally in your browser; nothing is sent anywhere.
 
 ## Ritlager (“drawing layer”)
 
-Ritlager is a browser tool (a bookmarklet) for drawing over web pages. It is designed for creating freehand drawings and visuals that can be exported for use on websites and in Research Catalogue expositions. It puts a transparent drawing layer over any page, so you can draw by hand with a pen tablet and place the result back into the page or exposition, over or under other objects.
+Ritlager is a browser tool (a bookmarklet) for drawing over web pages. It is designed for creating freehand drawings and visuals that can be exported for use on webpages and Research Catalogue. It puts a transparent drawing layer over any page, so you can draw by hand with a pen tablet and place the result back into the page or exposition, over or under other objects.
 
 **Exports:** images as **PNG** (transparent background), **JPG** and **TIFF** (with DPI), at 1×–6× resolution, one image or one file per layer; animations as **GIF** or **WebM video**. RC accepts png, jpg, tiff, svg and gif in its media repository.
 
