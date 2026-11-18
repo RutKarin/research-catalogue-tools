@@ -14,7 +14,8 @@ Features:
 - Pressure sensitivity with a pen tablet, stabilising, sharp–soft, contrast, thin-line modes
 - Export PNG with transparent, white or custom background, or on top of a screenshot of the page
 - Select tool (pick, rectangle, lasso): move, resize, flip, duplicate, cut, copy, paste (Ctrl+X/C/V), undo/redo
-- Layers with per-layer opacity, export as one image or one PNG per layer
+- Layers with opacity and blend modes (multiply, screen, overlay …), export as one image or one PNG per layer
+- Text tool; transform (resize, rotate, numeric scale) for selections and whole layers
 - Foldable toolbar sections; remembers your settings; one-click presets and saved colours
 - Pipette with hex and rgb (screen picker in Chrome/Edge)
 - Autosave, named versions, editable project files, open an old PNG as underlay
