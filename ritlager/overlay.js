@@ -1361,7 +1361,7 @@
   sec('Export (image)');
   var pgInfo=el('div','font-size:11.5px;color:#555;line-height:1.35;padding-bottom:2px;border-bottom:1px solid #e6e6e6;'); bar.appendChild(pgInfo);
   function pageNow(){ var w,h; if(SC){ w=SC.scrollWidth; h=SC.scrollHeight; } else { w=Math.max(de.scrollWidth,bd?bd.scrollWidth:0,de.clientWidth); h=Math.max(de.scrollHeight,bd?bd.scrollHeight:0,de.clientHeight); } return {w:w,h:h}; }
-  function updatePageInfo(){ var n=pageNow(), grew=(n.w>W+1||n.h>H+1); pgInfo.textContent='Page size: '+n.w+' × '+n.h+' px'+(grew?' – it has grown, Whole page measures it again when you export':''); }
+  function updatePageInfo(){ var n=pageNow(); pgInfo.textContent='Page size: '+n.w+' × '+n.h+' px'; }
   updatePageInfo(); setInterval(function(){ if(de.contains(bar)) updatePageInfo(); },1500);
   var rSz=row(); lab(rSz,'Image size');
   var csel=el('select',BTN+'padding:3px 6px;');
