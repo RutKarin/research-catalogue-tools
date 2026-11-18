@@ -1751,7 +1751,12 @@
     var allBtn=btn('⇕',function(){ var anyOpen=gs.some(function(g){ return g._open; })||hs.some(function(h){ return h._open&&!h._hidden&&!h._flat; }); gs.forEach(function(g){ g._open=!anyOpen; st['grp:'+g._t]=g._open?1:0; applyGrp(g); }); hs.forEach(function(h){ if(h._flat) return; h._open=!anyOpen; st[h._t]=h._open?1:0; applySec(h); }); saveSt(); },'Collapse / expand all menus');
     hg.insertBefore(allBtn,hg.firstChild);
   })();
-  bar.appendChild(el('div','font-size:11px;color:#888;line-height:1.4;margin-top:10px;padding-top:8px;border-top:1px solid #e4e4e4;','Ritlager is a browser tool for drawing over web pages, designed by Rut Karin Zettergren for creating freehand drawings and visuals that can be exported for use on websites and in Research Catalogue expositions.'));
+  (function(){
+    var d=el('div','font-size:11px;color:#888;line-height:1.4;margin-top:10px;padding-top:8px;border-top:1px solid #e4e4e4;');
+    var a=el('a','color:#111;text-decoration:underline;cursor:pointer;','Ritlager'); a.href='https://github.com/RutKarin/research-catalogue-tools'; a.target='_blank'; a.rel='noopener noreferrer';
+    d.appendChild(a); d.appendChild(document.createTextNode(' is a browser tool for drawing over web pages, designed by Rut Karin Zettergren for creating freehand drawings and visuals that can be exported for use on websites and in Research Catalogue expositions.'));
+    bar.appendChild(d);
+  })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   setSize(); setDrawing(true);
   var nRest=restore();
