@@ -828,7 +828,7 @@
     w.appendChild(pn); head.appendChild(w);
   })();
   var hide = btn('Close', function(){ api.toggle(); }, 'Close the toolbar and the drawing layer (click the extension or bookmark again to bring it back)'); hide.style.cssText+='height:16px;line-height:14px;border:0;border-radius:6px;background:#efefef;color:#777;font:300 10.5px system-ui,sans-serif;letter-spacing:.04em;padding:0 8px;cursor:pointer;';
-  var hg=row(); hg.style.position='relative'; hg.style.top='5px'; hg.style.flexWrap='nowrap'; hg.style.gap='3px'; head.style.flexWrap='nowrap'; var quick=null;
+  var hg=row(); hg.style.position='relative'; hg.style.top='8px'; hg.style.flexWrap='nowrap'; hg.style.gap='3px'; head.style.flexWrap='nowrap'; var quick=null;
   head.appendChild(hg);
   bar.appendChild(head);
 
