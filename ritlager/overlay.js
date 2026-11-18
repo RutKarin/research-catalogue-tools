@@ -806,8 +806,8 @@
   function el(t,css,txt){ var x=document.createElement(t); if(css) x.style.cssText=css; if(txt!=null) x.textContent=txt; return x; }
   function row(){ return el('div','display:flex;gap:5px;align-items:center;flex-wrap:wrap;'); }
   function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.padding='5px 6px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt);
-    if(title){ b.removeAttribute('title'); var tip=null;
-      b.addEventListener('mouseenter',function(){ var r=b.getBoundingClientRect(); tip=document.createElement('div'); tip.textContent=title; tip.style.cssText='position:fixed;z-index:2147483647;pointer-events:none;background:#111;color:#fff;font:300 12px system-ui,sans-serif;padding:4px 8px;border-radius:6px;max-width:220px;line-height:1.3;top:'+(r.bottom+6)+'px;'; document.documentElement.appendChild(tip); var w=tip.offsetWidth; tip.style.left=Math.max(4,Math.min(window.innerWidth-w-4,r.left+r.width/2-w/2))+'px'; });
+    b.removeAttribute('title'); if(title&&txt==='Erase all'){ var tip=null, tipT=0;
+      b.addEventListener('mouseenter',function(){ var r=b.getBoundingClientRect(); tip=document.createElement('div'); tip.textContent=title; tip.style.cssText='position:fixed;z-index:2147483647;pointer-events:none;background:#111;color:#fff;font:300 12px system-ui,sans-serif;padding:4px 8px;border-radius:6px;max-width:220px;line-height:1.3;top:'+(r.bottom+6)+'px;'; document.documentElement.appendChild(tip); clearTimeout(tipT); tipT=setTimeout(function(){ if(tip){ tip.remove(); tip=null; } },1800); var w=tip.offsetWidth; tip.style.left=Math.max(4,Math.min(window.innerWidth-w-4,r.left+r.width/2-w/2))+'px'; });
       b.addEventListener('mouseleave',function(){ if(tip){ tip.remove(); tip=null; } });
       b.addEventListener('pointerdown',function(){ if(tip){ tip.remove(); tip=null; } }); }
     return b; }
@@ -841,7 +841,7 @@
   r1.appendChild(bDraw); r1.appendChild(bMove); r1.appendChild(bPass);
   r1.appendChild(iconBtn('Undo',['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],function(){ undo(); },'Undo (Ctrl+Z)'));
   r1.appendChild(iconBtn('Redo',['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],function(){ redoFn(); },'Redo (Ctrl+Shift+Z)'));
-  r1.appendChild(iconBtn('Erase all',['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6','M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'],function(){ eraseAll(); },'Clear the whole drawing (Delete)'));
+  r1.appendChild(iconBtn('Erase all',['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6','M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'],function(){ eraseAll(); },'Clear the whole drawing'));
   bar.appendChild(r1);
 
   sec('Drawing tools');
