@@ -1800,9 +1800,10 @@
     var REPO='https://github.com/RutKarin/research-catalogue-tools';
     var d=el('div','font-size:11px;color:#888;line-height:1.5;margin-top:12px;padding:12px 0 6px;border-top:1px solid #e4e4e4;');
     function lnk(t,h){ var a=el('a','color:#111;text-decoration:underline;cursor:pointer;',t); a.href=h; a.target='_blank'; a.rel='noopener noreferrer'; return a; }
-    var top=el('div',''); top.appendChild(lnk('Ritlager',REPO)); top.appendChild(document.createTextNode(' · © 2026 Rut Karin Zettergren ')); var mit=el('span','display:inline-block;border:1px solid #d0d0d0;border-radius:3px;padding:0 3px;font-size:8.5px;line-height:11px;color:#aaa;vertical-align:middle;margin-left:2px;','MIT'); mit.title='MIT licence: free to use, change and share'; top.appendChild(mit); d.appendChild(top);
+    var top=el('div',''); top.appendChild(document.createTextNode('Ritlager · © 2026 Rut Karin Zettergren ')); var mit=el('span','display:inline-block;border:1px solid #d0d0d0;border-radius:3px;padding:0 3px;font-size:8.5px;line-height:11px;color:#aaa;vertical-align:middle;margin-left:2px;','MIT'); mit.title='MIT licence: free to use, change and share'; top.appendChild(mit); d.appendChild(top);
     var more=el('div','margin-top:4px;display:none;');
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save and open) to keep your work.'));
+    more.appendChild(document.createTextNode(' ')); more.appendChild(lnk('Ritlager on GitHub',REPO));
     var MANUAL=[
       ['## Shortcuts','Like Photoshop where possible. On a Mac, use Cmd instead of Ctrl.'],
       ['Tools','V select and move · H use the page (scroll and click) · D switch between draw and click · B pen · P brush · A airbrush · L line · E eraser · T text · I pipette'],
