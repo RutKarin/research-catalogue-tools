@@ -1,6 +1,6 @@
 # Research Catalogue tools
 
-Small, free tools for working with webpages and [Research Catalogue](https://www.researchcatalogue.net/) (RC), designed by artist-researcher Rut Karin Zettergren. Everything runs locally in your browser; nothing is sent anywhere.
+Small, free tools for working with webpages and [Research Catalogue](https://www.researchcatalogue.net/) (RC), designed by artist-researcher Rut Karin Zettergren. Your drawings stay on your own computer; nothing is uploaded.
 
 ## Ritlager (“drawing layer”)
 
