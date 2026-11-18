@@ -1216,7 +1216,7 @@
   var rA6=row(); lab(rA6,'Pause at end'); var aEnd=slider(rA6,0,3000,600,90); liveVal(aEnd,' ms'); var aLoop=chk(rA6,'Loop',true); bar.appendChild(rA6);
   var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bar.appendChild(rAf);
   var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bar.appendChild(rAg);
-  var rA7=row(); var bPlay=btn('▶ Preview',function(){ aPreview(!aPlay); },'Play the animation here'); rA7.appendChild(bPlay);
+  var rA7=row(); var bPlay=btn('▶ Preview',function(){ if(!aPlay&&!frames.length){ if(!strokes.length){ msg('Nothing to preview yet – draw something first'); return; } aReplay(); } aPreview(!aPlay); },'Play the animation here. With no frames yet, it makes them from your drawing first.'); rA7.appendChild(bPlay);
   rA7.appendChild(btn('Keep every 2nd',function(){ if(frames.length<3) return; frames=frames.filter(function(f,i){ return i%2===0; }); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Halves the number of frames (smaller file)'));
   rA7.appendChild(btn('Clear all',function(){ aPreview(false); frames=[]; aSel=-1; aDraw(); },'Remove all frames')); bar.appendChild(rA7);
   var aPrev=document.createElement('canvas'); aPrev.width=240; aPrev.height=160; aPrev.style.cssText='width:100%;border:1px solid #ddd;border-radius:6px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/14px 14px;display:none;'; bar.appendChild(aPrev);
