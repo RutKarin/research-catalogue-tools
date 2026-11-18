@@ -101,7 +101,7 @@
   var tEd=null;
   function styleTa(ta,P){
     ta.style.color=P.color; ta.style.font=textFont(P); ta.style.lineHeight=String(P.lh||1.25); ta.style.letterSpacing=(P.ls||0)+'px'; ta.style.textAlign=P.al||'left';
-    ta.style.whiteSpace=P.bw>0?'pre-wrap':'pre'; ta.style.width=P.bw>0?P.bw+'px':''; ta.style.webkitTextStroke=P.ol>0?Math.min(P.ol,3)+'px '+(P.olc||'#e0245e')+'':''; ta.style.background=P.bx?(P.bxc||'#fff'):'rgba(255,255,255,.35)';
+    ta.style.whiteSpace=P.bw>0?'pre-wrap':'pre'; ta.style.width=P.bw>0?P.bw+'px':''; ta.style.webkitTextFillColor=(P.fa!=null&&P.fa<50)?'transparent':''; ta.style.webkitTextStroke=P.ol>0?Math.min(P.ol,3)+'px '+(P.olc||'#e0245e')+'':''; ta.style.background=P.bx?(P.bxc||'#fff'):'rgba(255,255,255,.35)';
   }
   function openText(x,y,orig){
     commitText();
@@ -536,9 +536,15 @@
     if(s.sh>0&&!s.bx){ c.shadowColor='rgba(0,0,0,.5)'; c.shadowBlur=s.sh*rscale; c.shadowOffsetX=s.sh*0.4*rscale; c.shadowOffsetY=s.sh*0.4*rscale; }
     L.lines.forEach(function(ln,i){
       var x=s.al==='center'?(L.w-L.ws[i])/2:(s.al==='right'?L.w-L.ws[i]:0), y=i*L.lh;
-      if(s.ol>0){ c.strokeStyle=s.olc||'#e0245e'; c.lineWidth=s.ol*2+(s.fat||0); c.strokeText(ln,x,y); }
-      if(s.fat>0){ c.strokeStyle=s.color; c.lineWidth=s.fat; c.strokeText(ln,x,y); }
-      c.fillStyle=s.color; c.fillText(ln,x,y);
+      var fa=s.fa==null?100:s.fa;
+      if(fa<100){ // see-through inside: fill with reduced opacity, then a centred outline on top
+        var ga=c.globalAlpha; if(fa>0){ c.globalAlpha=ga*fa/100; c.fillStyle=s.color; c.fillText(ln,x,y); c.globalAlpha=ga; }
+        c.strokeStyle=s.olc||'#e0245e'; c.lineWidth=(s.ol>0?s.ol*2:2)+(s.fat||0); c.strokeText(ln,x,y);
+      } else {
+        if(s.ol>0){ c.strokeStyle=s.olc||'#e0245e'; c.lineWidth=s.ol*2+(s.fat||0); c.strokeText(ln,x,y); }
+        if(s.fat>0){ c.strokeStyle=s.color; c.lineWidth=s.fat; c.strokeText(ln,x,y); }
+        c.fillStyle=s.color; c.fillText(ln,x,y);
+      }
     });
     c.restore();
   }
@@ -839,17 +845,18 @@
   var rT4=row(); lab(rT4,'Letter spacing'); var txLs=slider(rT4,-5,40,0,110); bar.appendChild(rT4);
   var rT5=row(); lab(rT5,'Line height'); var txLh=slider(rT5,80,250,125,110); txLh.title='in % of the text size'; bar.appendChild(rT5);
   var rT6=row(); lab(rT6,'Outline'); var txOl=slider(rT6,0,20,0,90); var txOlc=el('input','width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;'); txOlc.type='color'; txOlc.value='#e0245e'; txOlc.title='Outline colour'; rT6.appendChild(txOlc); bar.appendChild(rT6);
+  var rTa=row(); lab(rTa,'Fill inside'); var txFa=slider(rTa,0,100,100,110); txFa.title='100 = solid letters. Lower = see-through inside; 0 = only the outline is drawn'; bar.appendChild(rTa);
   var rT7=row(); lab(rT7,'Shadow'); var txSh=slider(rT7,0,30,0,110); bar.appendChild(rT7);
   var COLS='width:30px;height:26px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;';
   var rT9=row(); var txBx=chk(rT9,'Box behind text',false,'Fill and border around the text'); var txBxc=el('input',COLS); txBxc.type='color'; txBxc.value='#ffffff'; txBxc.title='Fill colour inside the box'; rT9.appendChild(txBxc); bar.appendChild(rT9);
   var rT10=row(); lab(rT10,'Box border'); var txBxl=slider(rT10,0,16,2,80); var txBxlc=el('input',COLS); txBxlc.type='color'; txBxlc.value='#111111'; txBxlc.title='Border colour'; rT10.appendChild(txBxlc); bar.appendChild(rT10);
   var rT11=row(); lab(rT11,'Box padding'); var txBxp=slider(rT11,0,60,8,110); bar.appendChild(rT11);
-  function curProps(){ return {ff:curFF(),size:+txSize.value||32,it:txIt.checked,bd:txBd.checked,wt:+txWt.value,fat:+txFat.value,color:txCol.value,al:txAl.value,bw:+txBw.value||0,ls:+txLs.value,lh:(+txLh.value||125)/100,ol:+txOl.value,olc:txOlc.value,sh:+txSh.value,bx:txBx.checked,bxc:txBxc.value,bxl:+txBxl.value,bxlc:txBxlc.value,bxp:+txBxp.value}; }
+  function curProps(){ return {ff:curFF(),size:+txSize.value||32,it:txIt.checked,bd:txBd.checked,fa:+txFa.value,wt:+txWt.value,fat:+txFat.value,color:txCol.value,al:txAl.value,bw:+txBw.value||0,ls:+txLs.value,lh:(+txLh.value||125)/100,ol:+txOl.value,olc:txOlc.value,sh:+txSh.value,bx:txBx.checked,bxc:txBxc.value,bxl:+txBxl.value,bxlc:txBxlc.value,bxp:+txBxp.value}; }
   // changing a setting also updates the selected text(s)
   function setControls(P){
     var known=Array.prototype.some.call(txFont.options,function(o){ return o.value===P.ff; });
     if(known){ txFont.value=P.ff; txCustom.style.display='none'; } else if(P.ff&&P.ff.slice(0,2)==='c:'){ txFont.value='custom'; txCustom.value=P.ff.slice(2); txCustom.style.display=''; }
-    txSize.value=Math.round(P.size); txIt.checked=!!P.it; txBd.checked=!!P.bd; txWt.value=P.wt||(P.bd?700:300); txFat.value=P.fat||0; txCol.value=P.color||'#111111'; txAl.value=P.al||'left'; txBw.value=Math.round(P.bw||0);
+    txSize.value=Math.round(P.size); txIt.checked=!!P.it; txBd.checked=!!P.bd; txWt.value=P.wt||(P.bd?700:300); txFat.value=P.fat||0; txFa.value=P.fa==null?100:P.fa; txCol.value=P.color||'#111111'; txAl.value=P.al||'left'; txBw.value=Math.round(P.bw||0);
     txLs.value=P.ls||0; txLh.value=Math.round((P.lh||1.25)*100); txOl.value=P.ol||0; txOlc.value=P.olc||'#e0245e'; txSh.value=P.sh||0;
     txBx.checked=!!P.bx; txBxc.value=P.bxc||'#ffffff'; txBxl.value=P.bxl==null?2:P.bxl; txBxlc.value=P.bxlc||'#111111'; txBxp.value=P.bxp==null?8:P.bxp;
   }
@@ -863,8 +870,8 @@
   [txSize,txBw,txCustom,txCol,txOlc,txBxc,txBxlc].forEach(function(x){ x.addEventListener('change',applyTextProps); });
   txBd.addEventListener('change',function(){ txWt.value=txBd.checked?700:300; });
   [txBd,txIt,txBx].forEach(function(x){ x.addEventListener('change',applyTextProps); });
-  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat].forEach(function(x){ x.addEventListener('change',applyTextProps); });
-  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat].forEach(function(x){ x.addEventListener('input',function(){ if(tEd) applyTextProps(); }); });
+  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat,txFa].forEach(function(x){ x.addEventListener('change',applyTextProps); });
+  [txLs,txLh,txOl,txSh,txBxl,txBxp,txWt,txFat,txFa].forEach(function(x){ x.addEventListener('input',function(){ if(tEd) applyTextProps(); }); });
   function rasterizeText(){
     var texts=sel.filter(function(st){ return st.tool==='text'; }); if(!texts.length){ msg('Select a text first (Select tool)'); return; }
     var map=new Map();
