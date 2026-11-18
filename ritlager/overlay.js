@@ -43,7 +43,74 @@
   }
 
   var ref=null, rscale=1, under=null, moveUnder=false, contrast=0, tool='pen', color='#111111', size=6, drawing=true, visible=true;
-  var strokes=[], redo=[], cur=null, lastBlob=null;
+  var strokes=[], redo=[], ulog=[], cur=null, lastBlob=null;
+  var sel=[], selCur=[], selBox=null, selDrag=null, selOrig=null, marq=null, clip=[], pasteN=0;
+  function undo(){
+    var e=ulog.pop(); if(!e){ if(!strokes.length) return; e={t:'d'}; }
+    if(e.t==='d'){ var st=strokes.pop(); if(st) redo.push({t:'d',stroke:st}); }
+    else { redo.push({t:'s',strokes:strokes}); strokes=e.prev; }
+    clearSel(); rebuild();
+  }
+  function redoFn(){
+    var e=redo.pop(); if(!e) return;
+    if(e.t==='d'){ strokes.push(e.stroke); ulog.push({t:'d'}); } else { ulog.push({t:'s',prev:strokes}); strokes=e.strokes; }
+    clearSel(); rebuild();
+  }
+  // an edit that replaces the stroke list: undoable as one step
+  function opSnap(fn){ var prev=strokes; strokes=prev.slice(); fn(); ulog.push({t:'s',prev:prev}); redo=[]; rebuild(); }
+  function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; }
+  function strokeBox(st){ var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,r=(st.size||2)/2+3; st.pts.forEach(function(p){ if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; }); return {x0:x0-r,y0:y0-r,x1:x1+r,y1:y1+r}; }
+  function boxOf(list){ var b=null; list.forEach(function(st){ var c=strokeBox(st); if(!b) b=c; else { b.x0=Math.min(b.x0,c.x0); b.y0=Math.min(b.y0,c.y0); b.x1=Math.max(b.x1,c.x1); b.y1=Math.max(b.y1,c.y1); } }); return b; }
+  function inBox(b,q){ return b&&q.x>=b.x0&&q.x<=b.x1&&q.y>=b.y0&&q.y<=b.y1; }
+  function cloneStroke(st,dx,dy){ var n=Object.assign({},st); n.pts=st.pts.map(function(p){ return {x:p.x+(dx||0),y:p.y+(dy||0),p:p.p}; }); delete n.sm; return n; }
+  function selDown(e){
+    var q=cpt(e); cv.setPointerCapture(e.pointerId); e.preventDefault();
+    if(sel.length&&inBox(selBox,q)){ selOrig=strokes; selCur=sel; selDrag={x:q.x,y:q.y,moved:false}; return; }
+    sel=[]; selBox=null; marq={x0:q.x,y0:q.y,x1:q.x,y1:q.y}; selDrag={marq:true}; refresh();
+  }
+  function selMove(e){
+    var q=cpt(e);
+    if(selDrag.marq){ marq.x1=q.x; marq.y1=q.y; refresh(); return; }
+    var dx=q.x-selDrag.x, dy=q.y-selDrag.y; if(!selDrag.moved&&Math.abs(dx)+Math.abs(dy)<2) return; selDrag.moved=true;
+    var map=new Map(); selCur=[];
+    strokes=selOrig.map(function(st){ if(sel.indexOf(st)<0) return st; var n=cloneStroke(st,dx,dy); selCur.push(n); return n; });
+    selBox=boxOf(selCur); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild);
+  }
+  function selUp(){
+    var d=selDrag; selDrag=null;
+    if(d.marq){
+      var m=marq; marq=null; var x0=Math.min(m.x0,m.x1),x1=Math.max(m.x0,m.x1),y0=Math.min(m.y0,m.y1),y1=Math.max(m.y0,m.y1);
+      var L=getLayer(act); sel=[];
+      if(L.vis){
+        if(x1-x0<4&&y1-y0<4){ for(var i=strokes.length-1;i>=0;i--){ if(layerOf(strokes[i])===act&&inBox(strokeBox(strokes[i]),{x:x0,y:y0})){ sel=[strokes[i]]; break; } } }
+        else sel=strokes.filter(function(st){ return layerOf(st)===act&&st.pts.some(function(p){ return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1; }); });
+      }
+      selBox=sel.length?boxOf(sel):null; msg(sel.length?sel.length+' stroke'+(sel.length>1?'s':'')+' selected (Ctrl+C copy, Ctrl+X cut, Delete, drag to move)':'Nothing selected on the active layer'); refresh(); return;
+    }
+    if(d.moved){ ulog.push({t:'s',prev:selOrig}); redo=[]; sel=selCur; selBox=boxOf(sel); persist(); }
+    refresh();
+  }
+  function drawSelOverlay(){
+    var r=null; if(marq) r={x:Math.min(marq.x0,marq.x1),y:Math.min(marq.y0,marq.y1),w:Math.abs(marq.x1-marq.x0),h:Math.abs(marq.y1-marq.y0)}; else if(selBox) r={x:selBox.x0,y:selBox.y0,w:selBox.x1-selBox.x0,h:selBox.y1-selBox.y0};
+    if(!r) return;
+    ctx.save(); ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.setLineDash([]); ctx.strokeRect(r.x,r.y,r.w,r.h);
+    ctx.lineWidth=1.2; ctx.strokeStyle='#111'; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
+  }
+  function selCopy(){
+    if(!sel.length){ msg('Select something first (Select tool, drag a rectangle)'); return false; }
+    clip=sel.map(function(st){ return cloneStroke(st); }); pasteN=0;
+    try{ localStorage.setItem('ritlager-clip',JSON.stringify(clip.map(function(st){ var o=Object.assign({},st); o.pts=st.pts.map(function(p){ return [Math.round(p.x*10)/10,Math.round(p.y*10)/10,p.p]; }); return o; }))); }catch(e){}
+    msg('Copied '+sel.length+' stroke'+(sel.length>1?'s':'')); return true;
+  }
+  function selDelete(){ if(!sel.length) return; var del=sel; opSnap(function(){ strokes=strokes.filter(function(st){ return del.indexOf(st)<0; }); clearSel(); }); }
+  function selCut(){ if(selCopy()){ selDelete(); msg('Cut – paste with Ctrl+V'); } }
+  function selPaste(){
+    if(!clip.length){ try{ var raw=JSON.parse(localStorage.getItem('ritlager-clip')); if(raw&&raw.length) clip=raw.map(function(o){ o.pts=o.pts.map(function(p){ return {x:p[0],y:p[1],p:p[2]}; }); return o; }); }catch(e){} }
+    if(!clip.length){ msg('Nothing to paste – copy or cut something first'); return; }
+    var off=16*(++pasteN), made=[];
+    opSnap(function(){ made=clip.map(function(st){ var n=cloneStroke(st,off,off); n.l=act; return n; }); strokes=strokes.concat(made); sel=made; selCur=made; selBox=boxOf(made); });
+    setTool('select'); refresh(); msg('Pasted – drag to move it');
+  }
   var layers=[{id:1,name:'Layer 1',vis:true,op:100}], act=1, nextLid=2, tmp=document.createElement('canvas');
   function layerOf(s){ return s.l||layers[0].id; }
   function getLayer(id){ for(var i=0;i<layers.length;i++) if(layers[i].id===id) return layers[i]; return layers[layers.length-1]; }
@@ -87,7 +154,7 @@
     act = d.act&&layers.some(function(L){ return L.id===d.act; }) ? d.act : layers[layers.length-1].id;
     nextLid = layers.reduce(function(m,L){ return Math.max(m,L.id); },0)+1;
     if(typeof drawLayerUI==='function'&&layerBox) drawLayerUI();
-    contrast=+d.c||0; ctr.value=contrast; redo=[]; under=null;
+    contrast=+d.c||0; ctr.value=contrast; redo=[]; ulog=[]; clearSel(); under=null;
     if(d.under&&d.under.src){ var im=new Image(); im.onload=function(){ under={img:im,x:d.under.x||0,y:d.under.y||0,src:d.under.src}; rebuild(); }; im.src=d.under.src; }
     if(d.ref&&d.ref.src){ var ri=new Image(); ri.onload=function(){ var rc=document.createElement('canvas'); rc.width=ri.width; rc.height=ri.height; rc.getContext('2d').drawImage(ri,0,0); ref={c:rc,sx:d.ref.sx,sy:d.ref.sy,w:d.ref.w,h:d.ref.h,k:d.ref.k}; updateRefInfo(); }; ri.src=d.ref.src; }
     rebuild(); return strokes.length;
@@ -307,13 +374,14 @@
   function rebuild(){ bctx.clearRect(0,0,W,H); compose(bctx,function(){}); refresh(); persist(); }
   function refresh(){
     ctx.clearRect(0,0,W,H); ctx.drawImage(base,0,0);
-    if(!cur) return;
+    if(!cur){ drawSelOverlay(); return; }
     var L=getLayer(layerOf(cur));
     if(cur.tool!=='eraser'&&L.op<100){
       if(tmp.width!==W||tmp.height!==H){ tmp.width=W; tmp.height=H; }
       var tc=tmp.getContext('2d'); tc.setTransform(1,0,0,1,0,0); tc.clearRect(0,0,W,H); render(tc,cur);
       ctx.save(); ctx.globalAlpha=L.op/100; ctx.drawImage(tmp,0,0); ctx.restore();
     } else render(ctx,cur);
+    drawSelOverlay();
   }
 
   // ---- inmatning (dokumentkoordinater) ----
@@ -335,6 +403,7 @@
     if(pickMode){ doPick(e); e.preventDefault(); return; }
     if(!drawing || e.pointerType==='touch') return;
     if(e.pointerType==='mouse' && e.button!==0) return;
+    if(tool==='select'){ selDown(e); return; }
     cv.setPointerCapture(e.pointerId);
     if(!getLayer(act).vis){ msg('This layer is hidden – show it to draw on it'); return; }
     var q=pos(e);
@@ -344,6 +413,7 @@
   });
   cv.addEventListener('pointermove', function(e){
     if(ug){ var q1=cpt(e); under.x=Math.round(ug.x+q1.x-ug.px); under.y=Math.round(ug.y+q1.y-ug.py); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild); return; }
+    if(selDrag){ selMove(e); return; }
     dbg.textContent='Device: '+e.pointerType+' · pressure '+(e.pressure||0).toFixed(2)+(cur?(cur.usedSpeed?' · thickness from: speed':' · thickness from: pen pressure'):'');
     if(!cur) return;
     var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
@@ -366,11 +436,11 @@
   });
   function end(){
     if(!cur) return;
-    delete cur.sm; strokes.push(cur); redo=[];
+    delete cur.sm; strokes.push(cur); ulog.push({t:'d'}); redo=[];
     var L=getLayer(layerOf(cur)), fast = layers.length===1 ? L.op>=100 : (cur.tool!=='eraser'&&L.op>=100&&L.id===topVisibleId());
     if(fast){ render(bctx,cur); cur=null; refresh(); persist(); } else { cur=null; rebuild(); }
   }
-  function endAny(e){ if(ug){ ug=null; persist(); return; } end(e); }
+  function endAny(e){ if(ug){ ug=null; persist(); return; } if(selDrag){ selUp(); return; } end(e); }
   cv.addEventListener('pointerup', endAny); cv.addEventListener('pointercancel', endAny);
 
   // ---- verktygsfält ----
@@ -403,8 +473,12 @@
   sec('Tool');
   var r2=row();
   var bPen=btn('Pen',function(){setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){setTool('brush');},'Brush (P)'),
-      bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)');
-  r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bLine); r2.appendChild(bEr); bar.appendChild(r2);
+      bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bSel=btn('Select',function(){setTool('select');},'Select, move, cut, copy and paste strokes (S)');
+  r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bSel); bar.appendChild(r2);
+  var rSel=row();
+  rSel.appendChild(btn('Cut',function(){ selCut(); },'Cut (Ctrl+X)')); rSel.appendChild(btn('Copy',function(){ selCopy(); },'Copy (Ctrl+C)')); rSel.appendChild(btn('Paste',function(){ selPaste(); },'Paste (Ctrl+V)')); rSel.appendChild(btn('Delete',function(){ selDelete(); },'Delete the selected strokes (Delete key)'));
+  rSel.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Drag a rectangle around strokes on the active layer, or click one stroke. Drag inside the box to move. Esc deselects.'));
+  bar.appendChild(rSel);
 
   sec('Presets');
   var preBox=el('div','display:flex;flex-wrap:wrap;gap:5px;'); bar.appendChild(preBox);
@@ -515,9 +589,9 @@
 
   sec('Undo and canvas');
   var r7=row();
-  r7.appendChild(btn('↶',function(){ if(strokes.length){redo.push(strokes.pop()); rebuild();} },'Undo (Ctrl+Z)'));
-  r7.appendChild(btn('↷',function(){ if(redo.length){strokes.push(redo.pop()); rebuild();} },'Redo'));
-  r7.appendChild(btn('Clear',function(){ if(strokes.length){redo=strokes.slice().reverse(); strokes=[]; rebuild(); msg('Cleared – ↶ undoes');} }));
+  r7.appendChild(btn('↶',function(){ undo(); },'Undo (Ctrl+Z)'));
+  r7.appendChild(btn('↷',function(){ redoFn(); },'Redo (Ctrl+Y)'));
+  r7.appendChild(btn('Clear',function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Cleared – ↶ undoes'); } }));
   r7.appendChild(btn('Re-measure',function(){ rescan(); msg('Canvas is now '+W+' × '+H+' px'+(SC?' (inside the page’s scroll area)':'')); },'Resize the canvas if the page has grown longer'));
   bar.appendChild(r7);
 
@@ -536,7 +610,7 @@
       eye.addEventListener('change',function(){ L.vis=eye.checked; rebuild(); });
       r1.appendChild(btn('✕',function(){
         if(layers.length<2){ msg('At least one layer is needed'); return; }
-        backupCurrent(); strokes=strokes.filter(function(st){ return layerOf(st)!==L.id; }); redo=[];
+        backupCurrent(); strokes=strokes.filter(function(st){ return layerOf(st)!==L.id; }); redo=[]; ulog=[]; clearSel();
         layers.splice(layers.indexOf(L),1); if(act===L.id) act=layers[layers.length-1].id; drawLayerUI(); rebuild(); msg('Layer deleted (your previous drawing is saved as "Previous (auto)")');
       },'Delete this layer and its strokes'));
       var r2=row(); r2.style.flexWrap='nowrap'; lab(r2,'Opacity'); var op=slider(r2,0,100,L.op,70); op.title='Opacity of the whole layer';
@@ -660,7 +734,7 @@
     var over=!!v[n]; v[n]=pack(); if(putVers(v)){ fillVers(n); verName.value=''; msg((over?'Overwrote "':'Saved "')+n+'"'); }
   },'Saves what you have drawn as its own version with the name typed above'));
   rV2.appendChild(btn('Update',function(){ var n=verSel.value; if(!n){ msg('Choose which version to update'); return; } var v=getVers(); v[n]=pack(); if(putVers(v)){ fillVers(n); msg('Updated "'+n+'"'); } },'Overwrites the chosen version with what you have drawn now'));
-  rV2.appendChild(btn('New blank',function(){ backupCurrent(); strokes=[]; redo=[]; rebuild(); fillVers(); msg('Blank canvas (your previous drawing is saved as "Previous (auto)")'); }));
+  rV2.appendChild(btn('New blank',function(){ backupCurrent(); strokes=[]; redo=[]; ulog=[]; clearSel(); rebuild(); fillVers(); msg('Blank canvas (your previous drawing is saved as "Previous (auto)")'); }));
   rV2.appendChild(btn('Delete',function(){ var n=verSel.value; if(!n) return; var v=getVers(); v['Deleted (auto)']=v[n]; delete v[n]; putVers(v); fillVers(); msg('Deleted "'+n+'"'); }));
   bar.appendChild(rV2);
   var rV3=row();
@@ -684,10 +758,11 @@
   var lastDraw='pen';
   function show(e,on){ e.style.display = on?'flex':'none'; }
   function setTool(t){
-    tool=t; if(t!=='eraser') lastDraw=t;
-    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bLine,t==='line'); mark(bEr,t==='eraser');
-    show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser'); show(rDry, t==='brush'); show(rArrow, t==='line');
-    var pressOK = t!=='line'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
+    if(t!=='select'&&tool==='select'){ clearSel(); refresh(); }
+    tool=t; if(t!=='eraser'&&t!=='select') lastDraw=t;
+    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bSel,t==='select'); show(rSel,t==='select');
+    show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rArrow, t==='line');
+    var pressOK = t!=='line'&&t!=='select'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
   function setColor(c){ color=c; if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
   function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click in RC'); }
@@ -799,15 +874,25 @@
   }
 
   // ---- tangenter ----
-  function typing(t){ return t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable); }
+  function typing(t){ if(!t) return false; if(t.tagName==='TEXTAREA'||t.isContentEditable) return true; if(t.tagName==='INPUT'){ var ty=(t.type||'text').toLowerCase(); return ty==='text'||ty==='search'||ty==='number'||ty==='email'||ty==='url'||ty==='password'; } return false; }
   function onKey(e){
     if(!visible || typing(e.target)) return;
     var k=e.key.toLowerCase();
-    if((e.ctrlKey||e.metaKey)&&k==='z' && drawing){ e.preventDefault(); if(e.shiftKey){ if(redo.length){strokes.push(redo.pop()); rebuild();} } else if(strokes.length){ redo.push(strokes.pop()); rebuild(); } return; }
+    var mod=e.ctrlKey||e.metaKey;
+    if(mod&&k==='z'&&drawing){ e.preventDefault(); if(e.shiftKey) redoFn(); else undo(); return; }
+    if(mod&&k==='y'&&drawing){ e.preventDefault(); redoFn(); return; }
+    if(mod&&drawing&&tool==='select'){
+      if(k==='c'){ e.preventDefault(); selCopy(); return; }
+      if(k==='x'){ e.preventDefault(); selCut(); return; }
+      if(k==='v'){ e.preventDefault(); selPaste(); return; }
+      if(k==='a'){ e.preventDefault(); sel=strokes.filter(function(st){ return layerOf(st)===act; }); selBox=sel.length?boxOf(sel):null; refresh(); return; }
+    }
+    if(drawing&&tool==='select'&&(k==='delete'||k==='backspace')&&sel.length){ e.preventDefault(); selDelete(); return; }
+    if(drawing&&tool==='select'&&k==='escape'){ clearSel(); refresh(); return; }
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(k==='d') setDrawing(!drawing);
     else if(drawing){
-      if(k==='b') setTool('pen'); else if(k==='p') setTool('brush'); else if(k==='l') setTool('line'); else if(k==='e') setTool('eraser'); else if(k==='i') pickColour();
+      if(k==='b') setTool('pen'); else if(k==='p') setTool('brush'); else if(k==='l') setTool('line'); else if(k==='e') setTool('eraser'); else if(k==='i') pickColour(); else if(k==='s') setTool('select');
       else if(k==='['){ setSize2(size*0.8); }
       else if(k===']'){ setSize2(size*1.25); }
     }
