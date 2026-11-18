@@ -827,7 +827,7 @@
     sh('rect',{x:33.4,y:-24,width:5.2,height:88,fill:'#111',stroke:'#111','stroke-width':0.9}); sh('polygon',{points:'33.4,64 38.6,64 36,82',fill:'#fff',stroke:'#111','stroke-width':0.9,'stroke-linejoin':'round'}); sh('polygon',{points:'34.4,71 37.6,71 36,82',fill:'#111'}); sh('rect',{x:33.4,y:-30,width:5.2,height:6,rx:2,fill:'#111',stroke:'#111','stroke-width':0.9});
     w.appendChild(pn); head.appendChild(w);
   })();
-  var hide = btn('Close', function(){ api.toggle(); }, 'Close the toolbar and the drawing layer (click the extension or bookmark again to bring it back)'); hide.style.cssText+='height:16px;line-height:14px;border:0;border-radius:6px;background:#efefef;color:#777;font:300 10.5px system-ui,sans-serif;letter-spacing:.04em;padding:0 8px;cursor:pointer;';
+  var hide = btn('✕', function(){ api.toggle(); }, 'Close (click the extension or bookmark again to bring it back)'); hide.style.cssText+='height:16px;width:22px;line-height:14px;border:0;border-radius:6px;background:#efefef;color:#777;font:300 11px system-ui,sans-serif;padding:0;cursor:pointer;';
   var hg=row(); hg.style.position='relative'; hg.style.top='8px'; hg.style.flexWrap='nowrap'; hg.style.gap='3px'; head.style.flexWrap='nowrap'; var quick=null;
   head.appendChild(hg);
   bar.appendChild(head);
