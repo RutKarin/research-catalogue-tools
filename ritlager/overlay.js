@@ -64,7 +64,7 @@
   function objCorners(st){ if(st.tool==='text') return textBox(st); var im=imgs[st.iid]||{w:100,h:100}, w=im.w*st.size, h=im.h*st.size, co=Math.cos(st.rot||0), si=Math.sin(st.rot||0), p=st.pts[0]; return [[0,0],[w,0],[w,h],[0,h]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; }); }
   function selPts(st){ if(!isObj(st)) return st.pts; var q=objCorners(st); q.push({x:(q[0].x+q[2].x)/2,y:(q[0].y+q[2].y)/2}); return q; }
   function strokeBox(st){ if(isObj(st)){ var q=objCorners(st), a=1e9,b=1e9,c2=-1e9,d=-1e9; q.forEach(function(p){ a=Math.min(a,p.x); c2=Math.max(c2,p.x); b=Math.min(b,p.y); d=Math.max(d,p.y); }); return {x0:a-3,y0:b-3,x1:c2+3,y1:d+3}; }
-    var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,r=(st.size||2)/2+3; st.pts.forEach(function(p){ if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; }); return {x0:x0-r,y0:y0-r,x1:x1+r,y1:y1+r}; }
+    var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,r=(st.tool==='air'?(st.size||2)*1.5:(st.size||2)/2)+3; st.pts.forEach(function(p){ if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; }); return {x0:x0-r,y0:y0-r,x1:x1+r,y1:y1+r}; }
   function boxOf(list){ var b=null; list.forEach(function(st){ var c=strokeBox(st); if(!b) b=c; else { b.x0=Math.min(b.x0,c.x0); b.y0=Math.min(b.y0,c.y0); b.x1=Math.max(b.x1,c.x1); b.y1=Math.max(b.y1,c.y1); } }); return b; }
   function inBox(b,q){ return b&&q.x>=b.x0&&q.x<=b.x1&&q.y>=b.y0&&q.y<=b.y1; }
   function cloneStroke(st,dx,dy){ var n=Object.assign({},st); n.pts=st.pts.map(function(p){ return {x:p.x+(dx||0),y:p.y+(dy||0),p:p.p}; }); delete n.sm; return n; }
@@ -551,10 +551,26 @@
     var pd=s.bx?(s.bxp==null?8:s.bxp)+(s.bxl||0)/2:0;
     return [[-pd,-pd],[w+pd,-pd],[w+pd,h+pd],[-pd,h+pd]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; });
   }
+  var airC=null, airS=null;
+  function renderAir(c,s){
+    var cw=c.canvas.width, ch=c.canvas.height, m=c.getTransform?c.getTransform():null;
+    if(!airC) airC=document.createElement('canvas'); if(airC.width!==cw||airC.height!==ch){ airC.width=cw; airC.height=ch; }
+    var a=airC.getContext('2d'); a.setTransform(1,0,0,1,0,0); a.clearRect(0,0,cw,ch); if(m) a.setTransform(m);
+    var r=Math.max(1,s.size*1.5), hard=Math.max(0,Math.min(100,s.hard==null?20:s.hard))/100, flow=(s.flow==null?35:s.flow)/100;
+    var R=Math.min(96,Math.max(8,Math.round(r*(m?Math.max(Math.abs(m.a),1):1)))), st=document.createElement('canvas'); st.width=st.height=R*2; var x=st.getContext('2d');
+    x.fillStyle=s.color; x.fillRect(0,0,R*2,R*2); x.globalCompositeOperation='destination-in';
+    var g=x.createRadialGradient(R,R,0,R,R,R); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(Math.min(.98,hard),'rgba(0,0,0,'+(1-hard*.0)+')'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(0,0,R*2,R*2);
+    var step=Math.max(.6,r*(.12+.5*hard)), pts=s.pts, per=function(p){ return s.pressure===false?1:Math.max(.05,Math.min(1,p==null?1:p)); };
+    function dab(px,py,p){ a.globalAlpha=Math.min(1,flow*.35*(.3+.7*per(p))); a.drawImage(st,px-r,py-r,2*r,2*r); }
+    if(pts.length===1) dab(pts[0].x,pts[0].y,pts[0].p);
+    for(var i=1;i<pts.length;i++){ var p0=pts[i-1],p1=pts[i], d=Math.hypot(p1.x-p0.x,p1.y-p0.y), n=Math.max(1,Math.ceil(d/step)); for(var k=(i===1?0:1);k<=n;k++){ var t=k/n; dab(p0.x+(p1.x-p0.x)*t,p0.y+(p1.y-p0.y)*t,(p0.p==null?1:p0.p)+((p1.p==null?1:p1.p)-(p0.p==null?1:p0.p))*t); } }
+    c.save(); c.setTransform(1,0,0,1,0,0); c.globalAlpha=s.ink==null?1:s.ink; c.drawImage(airC,0,0); c.restore();
+  }
   function render(c,s){
     if(s.tool==='text'){ renderText(c,s); return; }
     if(s.tool==='image'){ renderImage(c,s); return; }
     if(s.tool==='cut'){ renderCut(c,s); return; }
+    if(s.tool==='air'){ renderAir(c,s); return; }
     c.save();
     c.globalCompositeOperation = s.tool==='eraser' ? 'destination-out' : 'source-over';
     c.strokeStyle = c.fillStyle = s.color; c.lineCap = c.lineJoin = 'round';
@@ -645,7 +661,7 @@
     if(!getLayer(act).vis){ msg('This layer is hidden – show it to draw on it'); return; }
     var q=pos(e);
     cur={l:act,tool:(tool==='brush'?'pen':tool),color:color,size:size,soft:+soft.value,sens:+sens.value/100,ink:+ink.value/100,pressure:pr.checked, brush:tool==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
-         arrow:ar.checked,pts:[q],sm:{x:q.x,y:q.y,p:q.p}};
+         arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value,pts:[q],sm:{x:q.x,y:q.y,p:q.p}};
     e.preventDefault(); refresh();
   });
   cv.addEventListener('pointermove', function(e){
@@ -712,7 +728,7 @@
   var r2=row();
   var bPen=btn('Pen',function(){setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){setTool('brush');},'Brush (P)'),
       bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bTxt=btn('Text tool (T)',function(){setTool('text');},'Text (T): click where the text should go');
-  r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bLine); r2.appendChild(bEr); bar.appendChild(r2);
+  var bAir=btn('Airbrush',function(){setTool('air');},'Airbrush (A): soft spray that builds up. Hardness sets how soft the edge is, Opacity how strong it can get'); r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bAir); r2.appendChild(bLine); r2.appendChild(bEr); bar.appendChild(r2);
 
   sec('Colour');
   var r3=row(), sw=[];
@@ -803,6 +819,8 @@
   nibSel.title='Round: soft round tip. Square: tip with corners. Flat: calligraphy nib, thin in one direction. Pencil: grainy, like pencil on paper. Marker: transparent highlighter. Ink: soft ink pen with drops and tapering ends. Watercolour: transparent wash with darker edges and pigment grain.';
   rNib.appendChild(nibSel); bar.appendChild(rNib);
   var rSoft=row(); lab(rSoft,'Sharp'); var soft=slider(rSoft,0,100,0,100); lab(rSoft,'Soft'); bar.appendChild(rSoft);
+  var rAir=row(); lab(rAir,'Hardness'); var airHard=slider(rAir,0,100,20,100); airHard.title='0 = very soft, 100 = hard edge'; bar.appendChild(rAir);
+  var rAir2=row(); lab(rAir2,'Build-up'); var airFlow=slider(rAir2,5,100,35,100); airFlow.title='How fast the colour builds up when you go over the same place'; bar.appendChild(rAir2);
   var rDry=row(); lab(rDry,'Brush dryness'); var dry=slider(rDry,0,100,30,90); bar.appendChild(rDry);
   var rArrow=row(); var ar=chk(rArrow,'Arrowhead on lines',false,'Adds an arrowhead at the end of straight lines drawn with the Line tool.'); bar.appendChild(rArrow);
 
@@ -1134,8 +1152,8 @@
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
     tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut') lastDraw=t;
-    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
-    show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rArrow, t==='line');
+    mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
+    show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'); show(rAir2,t==='air'); show(rArrow, t==='line');
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
   function setColor(c){ color=c; if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
@@ -1266,7 +1284,7 @@
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(k==='d') setDrawing(!drawing);
     else if(drawing){
-      if(k==='b') setTool('pen'); else if(k==='p') setTool('brush'); else if(k==='l') setTool('line'); else if(k==='e') setTool('eraser'); else if(k==='i') pickColour(); else if(k==='s'||k==='v') setTool('select'); else if(k==='t') setTool('text');
+      if(k==='b') setTool('pen'); else if(k==='p') setTool('brush'); else if(k==='a') setTool('air'); else if(k==='l') setTool('line'); else if(k==='e') setTool('eraser'); else if(k==='i') pickColour(); else if(k==='s'||k==='v') setTool('select'); else if(k==='t') setTool('text');
       else if(k==='['){ setSize2(size*0.8); }
       else if(k===']'){ setSize2(size*1.25); }
     }
@@ -1282,7 +1300,7 @@
   // ---- presets and remembered settings ----
   var thinSelRef=thinSel;
   function getSettings(all){
-    var o={tool:(tool==='eraser'?lastDraw:tool),color:color,size:+size.toFixed(2),nib:nibSel.value,soft:+soft.value,dry:+dry.value,ink:+ink.value,sens:+sens.value,pr:pr.checked,pm:pm.value,sm:+sm.value,thin:thinSel.value,arrow:ar.checked};
+    var o={tool:(tool==='eraser'?lastDraw:tool),color:color,size:+size.toFixed(2),nib:nibSel.value,soft:+soft.value,dry:+dry.value,ink:+ink.value,sens:+sens.value,pr:pr.checked,pm:pm.value,sm:+sm.value,thin:thinSel.value,arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value};
     if(all){ o.csel=csel.value; o.bg=bgSel.value; o.bgc=bgCol.value; o.ly=lySel.value; o.ask=askEl.checked; o.tool=tool; if(bar.style.left){ o.x=parseFloat(bar.style.left); o.y=parseFloat(bar.style.top); } }
     return o;
   }
@@ -1290,7 +1308,7 @@
     if(!o) return;
     if(o.nib) nibSel.value=o.nib; if(o.soft!=null) soft.value=o.soft; if(o.dry!=null) dry.value=o.dry; if(o.ink!=null) ink.value=o.ink;
     if(o.sens!=null) sens.value=o.sens; if(o.pr!=null) pr.checked=o.pr; if(o.pm) pm.value=o.pm; if(o.sm!=null) sm.value=o.sm;
-    if(o.thin) thinSel.value=o.thin; if(o.arrow!=null) ar.checked=o.arrow;
+    if(o.hard!=null) airHard.value=o.hard; if(o.flow!=null) airFlow.value=o.flow; if(o.thin) thinSel.value=o.thin; if(o.arrow!=null) ar.checked=o.arrow;
     if(o.csel){ csel.value=o.csel; hint(); } if(o.bg){ bgSel.value=o.bg; bgCol.style.display=bgSel.value==='color'?'inline-block':'none'; } if(o.bgc) bgCol.value=o.bgc;
     if(o.ly) lySel.value=o.ly; if(o.ask!=null) askEl.checked=o.ask;
     if(o.tool) setTool(o.tool); if(o.color) setColor(o.color); if(o.size!=null) setSize2(o.size);
