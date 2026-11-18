@@ -885,7 +885,7 @@
     try{ var p=ctx.getImageData(x,y,1,1).data; if(p[3]>0) d=p; }catch(x2){}
     if(!d&&ref){ var rx=Math.round((q.x-ref.sx)*ref.k), ry=Math.round((q.y-ref.sy)*ref.k);
       if(rx>=0&&ry>=0&&rx<ref.c.width&&ry<ref.c.height){ try{ d=ref.c.getContext('2d').getImageData(rx,ry,1,1).data; }catch(x3){} } }
-    if(!d||d[3]===0){ msg('Nothing to pick there. In this browser, first press “Capture screenshot” (under Export) to use the pipette on the page.',5500); return; }
+    if(!d||d[3]===0){ msg('Nothing to pick there. In this browser, first take a screenshot (Export → Background → Drawing on top of screenshot) to use the pipette on the page.',5500); return; }
     var c='#'+hex2(d[0])+hex2(d[1])+hex2(d[2]); setColor(c); msg('Picked '+c.toUpperCase());
   }
   var r3b=row(); lab(r3b,'Opacity'); var ink=slider(r3b,5,100,100,100); liveVal(ink); ink.addEventListener('change',function(){ changeSel('ink'); }); ink.title='How dark/dense the colour is. 100 = full black';
@@ -1394,14 +1394,11 @@
   function isShot(){ return bgSel.value==='shot'||bgSel.value==='shot2'; }
   [['none','Transparent'],['white','White'],['color','Custom colour'],['shot','Drawing on top of screenshot'],['shot2','Screenshot and drawing as two images']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; bgSel.appendChild(op); });
   var bgCol=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;display:none;'); bgCol.type='color'; bgCol.value='#f4efe6';
-  bgSel.addEventListener('change',function(){ if(typeof fmtUpdate==='function') fmtUpdate(); bgCol.style.display = bgSel.value==='color' ? 'inline-block' : 'none'; });
+  bgSel.addEventListener('change',function(){ if(typeof fmtUpdate==='function') fmtUpdate(); bgCol.style.display = bgSel.value==='color' ? 'inline-block' : 'none'; if(typeof updateRefInfo==='function') updateRefInfo(); if(isShot()&&!ref&&typeof captureRef==='function') captureRef(); });
   rBg.appendChild(bgSel); rBg.appendChild(bgCol); bar.appendChild(rBg);
-  var rRef=row();
-  rRef.appendChild(btn('Capture screenshot',function(){ captureRef(); },'Takes a screenshot of the page as it looks now (without the toolbar and the drawing layer). The browser asks whether to share the tab.'));
-  function saveRef(){ if(!ref){ msg('Capture a screenshot first'); return; } ref.c.toBlob(function(bl){ if(!bl){ msg('Could not create the image'); return; } saveBlob(bl,fname('reference-'+ref.c.width+'x'+ref.c.height,'.png','-reference'),'The reference image is saved.'); },'image/png'); }
-  bar.appendChild(rRef);
-  var refInfoEl=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(refInfoEl);
-  function updateRefInfo(){ refInfoEl.textContent = ref ? 'Screenshot: '+ref.c.width+' × '+ref.c.height+' px. Choose it under Background.' : 'No screenshot yet.'; }
+  function saveRef(){ if(!ref){ msg('Take a screenshot first: choose it under Background'); return; } ref.c.toBlob(function(bl){ if(!bl){ msg('Could not create the image'); return; } saveBlob(bl,fname('reference-'+ref.c.width+'x'+ref.c.height,'.png','-reference'),'The reference image is saved.'); },'image/png'); }
+  var refInfoEl=el('div','font-size:11px;color:#777;line-height:1.35;display:none;'); var refTxt=el('span'); var refNew=el('span','color:#111;text-decoration:underline;cursor:pointer;margin-left:6px;','Take a new one'); refNew.addEventListener('click',function(){ captureRef(); }); refInfoEl.appendChild(refTxt); refInfoEl.appendChild(refNew); bar.appendChild(refInfoEl);
+  function updateRefInfo(){ refTxt.textContent = ref ? 'Screenshot taken: '+ref.c.width+' × '+ref.c.height+' px.' : 'Waiting for a screenshot…'; refInfoEl.style.display = isShot() ? 'block' : 'none'; }
   updateRefInfo();
   function captureRef(){
     if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){ msg('Your browser cannot capture the screen here'); return; }
@@ -1416,11 +1413,11 @@
           stop(); hid.forEach(function(x){ x.style.visibility=''; });
           var kx=fw/iw, ky=fh/ih;
           if(!fw||Math.abs(kx/ky-1)>0.03){ msg('The screenshot seems to include the browser frame. Choose the tab, not the whole window.'); return; }
-          var rr=cv.getBoundingClientRect(); ref={c:c,sx:-rr.left,sy:-rr.top,w:iw,h:ih,k:kx}; updateRefInfo(); bgSel.value='shot'; bgCol.style.display='none';
-          msg('Reference image captured ('+fw+' × '+fh+' px). Background is now set to Screenshot.');
+          var rr=cv.getBoundingClientRect(); ref={c:c,sx:-rr.left,sy:-rr.top,w:iw,h:ih,k:kx}; if(!isShot()) bgSel.value='shot'; bgCol.style.display='none'; updateRefInfo();
+          msg('Screenshot taken ('+fw+' × '+fh+' px)');
         },350);
       }); };
-    }).catch(function(){ msg('Screen capture was cancelled or denied'); });
+    }).catch(function(){ msg('Screen capture was cancelled or denied'); if(!ref&&isShot()){ bgSel.value='none'; updateRefInfo(); if(typeof fmtUpdate==='function') fmtUpdate(); } });
   }
   function bgValue(){ return bgSel.value==='white' ? '#ffffff' : bgSel.value==='color' ? bgCol.value : null; }
   var rFn=row(); lab(rFn,'File name'); var fileNameEl=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;flex:1;min-width:0;box-sizing:border-box;'); fileNameEl.type='text'; fileNameEl.placeholder='optional, e.g. figure-1'; fileNameEl.title='Applies to exported PNG, reference image and project file'; rFn.appendChild(fileNameEl); bar.appendChild(rFn);
@@ -1617,7 +1614,7 @@
   function exportPng2(mode,only,label){
     var b, out, oc, kk=(mode==='copy'||isShot())?1:(+rsSel.value||1);
     if(isShot()){
-      if(!ref){ msg('Capture a screenshot first (Capture screenshot)'); return; }
+      if(!ref){ msg('Take a screenshot first: choose it under Background'); return; }
       out=document.createElement('canvas'); out.width=ref.c.width; out.height=ref.c.height; oc=out.getContext('2d');
       if(bgSel.value!=='shot2') oc.drawImage(ref.c,0,0);
       rscale=ref.k; compose(oc,function(c){ c.scale(ref.k,ref.k); c.translate(-ref.sx,-ref.sy); },only==null?null:only); rscale=1;
@@ -1769,7 +1766,7 @@
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
       ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
-      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Layers can be exported together or one image each. Capture screenshot takes a picture of the page. Under Background you can then export your drawing on top of it as one image, or the screenshot and the drawing as two separate images. Works best in Chrome and Edge; scroll to the right place first. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
+      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
     ];
     var man=el('div','margin-top:4px;display:none;');
     var kb=el('div','margin-bottom:6px;','Shortcuts: D draw/click, B pen, P brush, L line, E eraser, T text, A airbrush, S or V select, I pipette, [ ] thickness, Ctrl+Z undo, Ctrl+Y redo.');
