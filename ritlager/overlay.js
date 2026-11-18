@@ -152,14 +152,24 @@
     opSnap(function(){ strokes.push(st); });
     msg(cutKeep.value==='out'?'Cut out: everything outside the shape was erased on this layer':'Cut out: the inside of the shape was erased on this layer');
   }
+  function distSeg(p,a,b){ var dx=b.x-a.x, dy=b.y-a.y, l=dx*dx+dy*dy, t=l?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l)):0; return Math.hypot(p.x-(a.x+t*dx),p.y-(a.y+t*dy)); }
+  function hitStroke(st,q){
+    if(st.tool==='cut') return false;
+    if(isObj(st)){ var c=objCorners(st); return pip(q.x,q.y,c); }
+    var r=(st.tool==='air'?(st.size||2)*1.5:(st.size||2)/2)+5, p=st.pts; if(!p.length) return false;
+    if(p.length===1) return Math.hypot(q.x-p[0].x,q.y-p[0].y)<=r;
+    for(var i=1;i<p.length;i++) if(distSeg(q,p[i-1],p[i])<=r) return true; return false;
+  }
+  function pickAt(q){ for(var i=strokes.length-1;i>=0;i--){ if(inScope(strokes[i])&&hitStroke(strokes[i],q)) return strokes[i]; } return null; }
   function selDown(e){
     var q=cpt(e); cv.setPointerCapture(e.pointerId); e.preventDefault();
     if(sel.length&&rotAt(q)){ var rc={cx:(selBox.x0+selBox.x1)/2,cy:(selBox.y0+selBox.y1)/2}; rc.a0=Math.atan2(q.y-rc.cy,q.x-rc.cx); selOrig=strokes; selDrag={rot:rc,moved:false}; return; }
     if(sel.length){ var hi=handleAt(q); if(hi>=0){ var cs=corners(), g=cs[hi], a=cs[(hi+2)%4]; if(g.x!==a.x&&g.y!==a.y){ selOrig=strokes; selDrag={sc:{ax:a.x,ay:a.y,gx:g.x,gy:g.y},moved:false}; return; } } }
-    if(sel.length&&inBox(selBox,q)){ selOrig=strokes; selCur=sel; selDrag={x:q.x,y:q.y,moved:false}; return; }
+    var pk=selMode==='pick'?pickAt(q):null;
+    if(sel.length&&inBox(selBox,q)&&(selMode!=='pick'||!pk||sel.indexOf(pk)>=0)){ selOrig=strokes; selCur=sel; selDrag={x:q.x,y:q.y,moved:false}; return; }
     sel=[]; selBox=null;
     if(selMode==='pick'){
-      for(var i=strokes.length-1;i>=0;i--){ if(inScope(strokes[i])&&inBox(strokeBox(strokes[i]),q)){ sel=[strokes[i]]; break; } }
+      if(pk) sel=[pk];
       selBox=sel.length?boxOf(sel):null; if(sel.length){ selOrig=strokes; selCur=sel; selDrag={x:q.x,y:q.y,moved:false}; } else msg('Nothing there to pick'); refresh(); return;
     }
     if(selMode==='lasso') marq={lasso:true,pts:[{x:q.x,y:q.y}]}; else marq={x0:q.x,y0:q.y,x1:q.x,y1:q.y};
@@ -232,7 +242,7 @@
         if(m.pts.length>=3){ mpoly=m.pts; sel=strokes.filter(function(st){ return st.tool!=='image'&&inScope(st)&&selPts(st).some(function(p){ return pip(p.x,p.y,m.pts); }); }); }
       } else {
         var x0=Math.min(m.x0,m.x1),x1=Math.max(m.x0,m.x1),y0=Math.min(m.y0,m.y1),y1=Math.max(m.y0,m.y1);
-        if(x1-x0<4&&y1-y0<4){ for(var i=strokes.length-1;i>=0;i--){ if(inScope(strokes[i])&&inBox(strokeBox(strokes[i]),{x:x0,y:y0})){ sel=[strokes[i]]; break; } } }
+        if(x1-x0<4&&y1-y0<4){ var pk2=pickAt({x:x0,y:y0}); if(pk2) sel=[pk2]; }
         else { mpoly=[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}]; sel=strokes.filter(function(st){ return st.tool!=='image'&&inScope(st)&&selPts(st).some(function(p){ return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1; }); }); }
       }
       if(mpoly) sel=sel.concat(selectImageParts(mpoly));
@@ -969,13 +979,15 @@
     setTool('select'); sel=[strokes[i]]; selCur=sel; selBox=boxOf(sel); refresh(); setSelUI();
     msg('Last stroke selected – change Opacity, Colour or Thickness to change it, or drag it');
   }
-  function setSelUI(){ var t=sel.filter(function(st){ return st.tool==='text'; })[0]; if(t&&typeof setControls==='function') setControls(t); var a=sel.filter(function(st){ return st.tool!=='text'&&st.tool!=='image'&&st.tool!=='cut'; })[0]; if(a&&a.color&&a.color.length===7){ color=a.color; cp.value=a.color; hexIn.value=a.color; var n=parseInt(a.color.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; sw.forEach(function(q){ q[0].style.outline=q[1]===a.color?'2px solid #111':'none'; }); } if(sel[0]&&sel[0].ink!=null&&sel[0].tool!=='cut') ink.value=Math.round(sel[0].ink*100); if(a&&a.size&&a.tool!=='image'){ size=a.size; showSize(); } }
+  function styleListen(){ [nibSel,thinSel,soft,dry,ar,airHard,airFlow].forEach(function(x){ x.addEventListener('change',function(){ changeSel('style'); }); }); }
+  function setSelUI(){ var t=sel.filter(function(st){ return st.tool==='text'; })[0]; if(t&&typeof setControls==='function') setControls(t); var a=sel.filter(function(st){ return st.tool!=='text'&&st.tool!=='image'&&st.tool!=='cut'; })[0]; if(a&&a.color&&a.color.length===7){ color=a.color; cp.value=a.color; hexIn.value=a.color; var n=parseInt(a.color.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; sw.forEach(function(q){ q[0].style.outline=q[1]===a.color?'2px solid #111':'none'; }); } var ps=sel.filter(function(st){ return st.tool==='pen'||st.tool==='line'||st.tool==='air'; })[0]; if(ps){ if(ps.tool==='air'){ if(ps.hard!=null) airHard.value=ps.hard; if(ps.flow!=null) airFlow.value=ps.flow; } else { if(ps.nib) nibSel.value=ps.nib; if(ps.soft!=null) soft.value=ps.soft; if(ps.dry!=null) dry.value=Math.round(ps.dry*100); thinSel.value=ps.hair?'black':'smooth'; if(ps.arrow!=null) ar.checked=!!ps.arrow; } }
+    if(sel[0]&&sel[0].ink!=null&&sel[0].tool!=='cut') ink.value=Math.round(sel[0].ink*100); if(a&&a.size&&a.tool!=='image'){ size=a.size; showSize(); } }
   function changeSel(kind){
     if(tool!=='select'||!sel||!sel.length) return false;
-    var ok=function(st){ if(st.tool==='cut') return false; if(kind==='color') return st.tool!=='image'&&st.tool!=='eraser'; if(kind==='size') return st.tool!=='image'&&st.tool!=='text'; return true; };
+    var ok=function(st){ if(st.tool==='cut') return false; if(kind==='style') return st.tool==='pen'||st.tool==='line'||st.tool==='air'; if(kind==='color') return st.tool!=='image'&&st.tool!=='eraser'; if(kind==='size') return st.tool!=='image'&&st.tool!=='text'; return true; };
     var targets=sel.filter(ok); if(!targets.length) return false;
     var map=new Map();
-    opSnap(function(){ strokes=strokes.map(function(st){ if(targets.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; if(kind==='ink') n.ink=+ink.value/100; else if(kind==='color') n.color=color; else n.size=size; map.set(st,n); return n; }); });
+    opSnap(function(){ strokes=strokes.map(function(st){ if(targets.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; if(kind==='ink') n.ink=+ink.value/100; else if(kind==='color') n.color=color; else if(kind==='size') n.size=size; else { if(n.tool==='air'){ n.hard=+airHard.value; n.flow=+airFlow.value; } else { n.nib=nibSel.value; n.soft=+soft.value; n.dry=+dry.value/100; n.hair=hair.checked; if(n.tool==='line') n.arrow=ar.checked; } } map.set(st,n); return n; }); });
     sel=sel.map(function(st){ return map.get(st)||st; }); selCur=sel; selBox=boxOf(sel); refresh();
     msg('Changed '+targets.length+' selected stroke'+(targets.length>1?'s':'')+' – Ctrl+Z undoes');
     return true;
@@ -1339,7 +1351,7 @@
   }
   function setColor(c){ color=c; changeSel('color'); if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
   function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; mark(bDraw,d); mark(bPass,!d); msg(d?'Draw mode':'Click mode – you can click in RC'); }
-  setTool('pen'); setColor('#111111'); setSize2(3);
+  setTool('pen'); setColor('#111111'); setSize2(3); styleListen();
 
   // dra verktygsfältet
   var drag=null;
