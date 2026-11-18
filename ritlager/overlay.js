@@ -63,14 +63,26 @@
   function boxOf(list){ var b=null; list.forEach(function(st){ var c=strokeBox(st); if(!b) b=c; else { b.x0=Math.min(b.x0,c.x0); b.y0=Math.min(b.y0,c.y0); b.x1=Math.max(b.x1,c.x1); b.y1=Math.max(b.y1,c.y1); } }); return b; }
   function inBox(b,q){ return b&&q.x>=b.x0&&q.x<=b.x1&&q.y>=b.y0&&q.y<=b.y1; }
   function cloneStroke(st,dx,dy){ var n=Object.assign({},st); n.pts=st.pts.map(function(p){ return {x:p.x+(dx||0),y:p.y+(dy||0),p:p.p}; }); delete n.sm; return n; }
+  function corners(){ return selBox?[{x:selBox.x0,y:selBox.y0},{x:selBox.x1,y:selBox.y0},{x:selBox.x1,y:selBox.y1},{x:selBox.x0,y:selBox.y1}]:[]; }
+  function handleAt(q){ var c=corners(); for(var i=0;i<c.length;i++) if(Math.abs(q.x-c[i].x)<=9&&Math.abs(q.y-c[i].y)<=9) return i; return -1; }
+  function selCursor(q){ if(!sel.length) return DOTS; var h=handleAt(q); if(h>=0) return (h===0||h===2)?'nwse-resize':'nesw-resize'; return inBox(selBox,q)?'move':DOTS; }
   function selDown(e){
     var q=cpt(e); cv.setPointerCapture(e.pointerId); e.preventDefault();
+    if(sel.length){ var hi=handleAt(q); if(hi>=0){ var cs=corners(), g=cs[hi], a=cs[(hi+2)%4]; if(g.x!==a.x&&g.y!==a.y){ selOrig=strokes; selDrag={sc:{ax:a.x,ay:a.y,gx:g.x,gy:g.y},moved:false}; return; } } }
     if(sel.length&&inBox(selBox,q)){ selOrig=strokes; selCur=sel; selDrag={x:q.x,y:q.y,moved:false}; return; }
     sel=[]; selBox=null; marq={x0:q.x,y0:q.y,x1:q.x,y1:q.y}; selDrag={marq:true}; refresh();
   }
   function selMove(e){
     var q=cpt(e);
     if(selDrag.marq){ marq.x1=q.x; marq.y1=q.y; refresh(); return; }
+    if(selDrag.sc){
+      var c=selDrag.sc, sx=(q.x-c.ax)/(c.gx-c.ax), sy=(q.y-c.ay)/(c.gy-c.ay);
+      if(!e.shiftKey){ var u=Math.abs(c.gx-c.ax)>=Math.abs(c.gy-c.ay)?Math.abs(sx):Math.abs(sy); sx=(sx<0?-1:1)*u; sy=(sy<0?-1:1)*u; }
+      if(Math.abs(sx)<0.05) sx=(sx<0?-1:1)*0.05; if(Math.abs(sy)<0.05) sy=(sy<0?-1:1)*0.05;
+      selDrag.moved=true; selCur=[];
+      strokes=selOrig.map(function(st){ if(sel.indexOf(st)<0) return st; var n=Object.assign({},st); delete n.sm; n.size=st.size*Math.sqrt(Math.abs(sx*sy)); n.pts=st.pts.map(function(p){ return {x:c.ax+(p.x-c.ax)*sx,y:c.ay+(p.y-c.ay)*sy,p:p.p}; }); selCur.push(n); return n; });
+      selBox=boxOf(selCur); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild); return;
+    }
     var dx=q.x-selDrag.x, dy=q.y-selDrag.y; if(!selDrag.moved&&Math.abs(dx)+Math.abs(dy)<2) return; selDrag.moved=true;
     var map=new Map(); selCur=[];
     strokes=selOrig.map(function(st){ if(sel.indexOf(st)<0) return st; var n=cloneStroke(st,dx,dy); selCur.push(n); return n; });
@@ -94,7 +106,9 @@
     var r=null; if(marq) r={x:Math.min(marq.x0,marq.x1),y:Math.min(marq.y0,marq.y1),w:Math.abs(marq.x1-marq.x0),h:Math.abs(marq.y1-marq.y0)}; else if(selBox) r={x:selBox.x0,y:selBox.y0,w:selBox.x1-selBox.x0,h:selBox.y1-selBox.y0};
     if(!r) return;
     ctx.save(); ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.setLineDash([]); ctx.strokeRect(r.x,r.y,r.w,r.h);
-    ctx.lineWidth=1.2; ctx.strokeStyle='#111'; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
+    ctx.lineWidth=1.2; ctx.strokeStyle='#111'; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h);
+    if(!marq&&selBox){ ctx.setLineDash([]); corners().forEach(function(c){ ctx.fillStyle='#fff'; ctx.lineWidth=1.2; ctx.strokeStyle='#111'; ctx.fillRect(c.x-4,c.y-4,8,8); ctx.strokeRect(c.x-4,c.y-4,8,8); }); }
+    ctx.restore();
   }
   function selCopy(){
     if(!sel.length){ msg('Select something first (Select tool, drag a rectangle)'); return false; }
@@ -414,6 +428,7 @@
   cv.addEventListener('pointermove', function(e){
     if(ug){ var q1=cpt(e); under.x=Math.round(ug.x+q1.x-ug.px); under.y=Math.round(ug.y+q1.y-ug.py); cancelAnimationFrame(ugRaf); ugRaf=requestAnimationFrame(rebuild); return; }
     if(selDrag){ selMove(e); return; }
+    if(tool==='select'&&!moveUnder){ cv.style.cursor=selCursor(cpt(e)); }
     dbg.textContent='Device: '+e.pointerType+' · pressure '+(e.pressure||0).toFixed(2)+(cur?(cur.usedSpeed?' · thickness from: speed':' · thickness from: pen pressure'):'');
     if(!cur) return;
     var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
@@ -473,11 +488,11 @@
   sec('Tool');
   var r2=row();
   var bPen=btn('Pen',function(){setTool('pen');},'Pen (B)'), bBrush=btn('Brush',function(){setTool('brush');},'Brush (P)'),
-      bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bSel=btn('Select',function(){setTool('select');},'Select, move, cut, copy and paste strokes (S)');
+      bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bSel=btn('↖ Select',function(){setTool('select');},'Select, move, resize, cut, copy and paste strokes (V or S)');
   r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bSel); bar.appendChild(r2);
   var rSel=row();
   rSel.appendChild(btn('Cut',function(){ selCut(); },'Cut (Ctrl+X)')); rSel.appendChild(btn('Copy',function(){ selCopy(); },'Copy (Ctrl+C)')); rSel.appendChild(btn('Paste',function(){ selPaste(); },'Paste (Ctrl+V)')); rSel.appendChild(btn('Delete',function(){ selDelete(); },'Delete the selected strokes (Delete key)'));
-  rSel.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Drag a rectangle around strokes on the active layer, or click one stroke. Drag inside the box to move. Esc deselects.'));
+  rSel.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;width:100%;','Drag a rectangle around strokes on the active layer, or click one stroke. Drag inside the box to move, drag a corner square to resize (Shift = free stretch). Esc deselects.'));
   bar.appendChild(rSel);
 
   sec('Presets');
@@ -758,7 +773,7 @@
   var lastDraw='pen';
   function show(e,on){ e.style.display = on?'flex':'none'; }
   function setTool(t){
-    if(t!=='select'&&tool==='select'){ clearSel(); refresh(); }
+    if(t!=='select'&&tool==='select'){ clearSel(); refresh(); cv.style.cursor=DOTS; }
     tool=t; if(t!=='eraser'&&t!=='select') lastDraw=t;
     mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bSel,t==='select'); show(rSel,t==='select');
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rArrow, t==='line');
@@ -892,7 +907,7 @@
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(k==='d') setDrawing(!drawing);
     else if(drawing){
-      if(k==='b') setTool('pen'); else if(k==='p') setTool('brush'); else if(k==='l') setTool('line'); else if(k==='e') setTool('eraser'); else if(k==='i') pickColour(); else if(k==='s') setTool('select');
+      if(k==='b') setTool('pen'); else if(k==='p') setTool('brush'); else if(k==='l') setTool('line'); else if(k==='e') setTool('eraser'); else if(k==='i') pickColour(); else if(k==='s'||k==='v') setTool('select');
       else if(k==='['){ setSize2(size*0.8); }
       else if(k===']'){ setSize2(size*1.25); }
     }
