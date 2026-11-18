@@ -1775,6 +1775,7 @@
       ['## Shortcuts','Like Photoshop where possible. On a Mac, use Cmd instead of Ctrl.'],
       ['Tools','V select and move · H use the page (scroll and click) · D switch between draw and click · B pen · P brush · A airbrush · L line · E eraser · T text · I pipette'],
       ['Brush and colour','[ and ] thinner and thicker · 1–9 and 0 set opacity to 10–100% · X swap to the previous colour'],
+      ['Zoom','Use your browser\'s zoom: Ctrl and + or −, or Cmd on a Mac. The drawing follows the page.'],
       ['Edit','Ctrl+Z undo · Ctrl+Shift+Z or Ctrl+Y redo · Ctrl+A select all · Ctrl+D deselect · Ctrl+J duplicate · Ctrl+C, X, V copy, cut, paste · Delete removes the selection, or erases everything if nothing is selected (Undo brings it back) · Esc deselects'],
       ['## Draw','Pick a tool under Drawing tools (Pen, Brush, Airbrush, Line, Eraser) and draw on the page. Set colour, thickness and look. With a pen tablet, pressure changes the line. Presets save your favourite pen settings. Press D to switch between drawing and clicking on the page.'],
       ['Colour','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'],
