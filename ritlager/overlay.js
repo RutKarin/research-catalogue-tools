@@ -805,7 +805,12 @@
   var BTN = 'font:inherit;font-size:12.5px;color:#111;background:#fff;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;cursor:pointer;margin:0;';
   function el(t,css,txt){ var x=document.createElement(t); if(css) x.style.cssText=css; if(txt!=null) x.textContent=txt; return x; }
   function row(){ return el('div','display:flex;gap:5px;align-items:center;flex-wrap:wrap;'); }
-  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.padding='5px 6px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt); return b; }
+  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.padding='5px 6px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width','17'); sv.setAttribute('height','17'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt);
+    if(title){ b.removeAttribute('title'); var tip=null;
+      b.addEventListener('mouseenter',function(){ var r=b.getBoundingClientRect(); tip=document.createElement('div'); tip.textContent=title; tip.style.cssText='position:fixed;z-index:2147483647;pointer-events:none;background:#111;color:#fff;font:300 12px system-ui,sans-serif;padding:4px 8px;border-radius:6px;max-width:220px;line-height:1.3;top:'+(r.bottom+6)+'px;'; document.documentElement.appendChild(tip); var w=tip.offsetWidth; tip.style.left=Math.max(4,Math.min(window.innerWidth-w-4,r.left+r.width/2-w/2))+'px'; });
+      b.addEventListener('mouseleave',function(){ if(tip){ tip.remove(); tip=null; } });
+      b.addEventListener('pointerdown',function(){ if(tip){ tip.remove(); tip=null; } }); }
+    return b; }
   function btn(txt,fn,title){ var b=el('button',BTN,txt); b.type='button'; if(title) b.title=title; b.addEventListener('click',fn); return b; }
   function mark(b,on){ b.style.background=on?'#111':'#fff'; b.style.color=on?'#fff':'#111'; b.style.borderColor=on?'#111':'#c9c9c9'; }
 
@@ -829,13 +834,14 @@
   }
   function chk(r,txt,on,tip){ var l=el('label','font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;'); var i=el('input'); i.type='checkbox'; i.checked=on; l.appendChild(i); l.appendChild(document.createTextNode(txt)); if(tip) l.title=tip; r.appendChild(l); return i; }
 
-  var r1=row(); r1.style.flexWrap='nowrap'; r1.style.gap='4px'; var bDraw=iconBtn('Draw',['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z','m15 5 4 4'],function(){setDrawing(true);},'Draw (D) – pen and other drawing tools'), bPass=iconBtn('Click',['M22 14a8 8 0 0 1-8 8','M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1','M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10','M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],function(){setDrawing(false);},'Click on page (D)');
-  var bMove=iconBtn('Select',['M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z'],function(){ setDrawing(true); setTool('select'); },'Select and move (S or V)');
+  function eraseAll(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – Undo brings it back'); } else msg('Nothing to erase'); }
+  var r1=row(); r1.style.flexWrap='nowrap'; r1.style.gap='4px'; var bDraw=iconBtn('Draw',['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z','m15 5 4 4'],function(){setDrawing(true);},'Draw (D) – pen and other drawing tools'), bPass=iconBtn('Click',['M22 14a8 8 0 0 1-8 8','M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1','M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10','M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],function(){setDrawing(false);},'Click on page (H)');
+  var bMove=iconBtn('Select',['M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z'],function(){ setDrawing(true); setTool('select'); },'Select and move (V)');
   function markTop(){ var m=drawing&&tool==='select'; mark(bDraw,drawing&&!m); mark(bMove,m); mark(bPass,!drawing); }
   r1.appendChild(bDraw); r1.appendChild(bMove); r1.appendChild(bPass);
   r1.appendChild(iconBtn('Undo',['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],function(){ undo(); },'Undo (Ctrl+Z)'));
   r1.appendChild(iconBtn('Redo',['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],function(){ redoFn(); },'Redo (Ctrl+Y)'));
-  r1.appendChild(iconBtn('Erase all',['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6','M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'],function(){ if(strokes.length){ opSnap(function(){ strokes=[]; clearSel(); }); msg('Erased everything – Undo brings it back'); } else msg('Nothing to erase'); },'Erase all – careful: erases everything you have drawn on all layers (Undo brings it back)'));
+  r1.appendChild(iconBtn('Erase all',['M3 6h18','M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6','M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2','M10 11v6','M14 11v6'],function(){ eraseAll(); },'Erase all (Delete) – everything on all layers. Undo brings it back.'));
   bar.appendChild(r1);
 
   sec('Drawing tools');
@@ -1089,7 +1095,7 @@
     return true;
   }
   var rSm4=row();
-  rSm4.appendChild(btn('Duplicate',function(){ selDup(); },'Duplicate (Ctrl+D)')); rSm4.appendChild(btn('Flip ↔',function(){ selFlip(true); },'Mirror the selection left–right')); rSm4.appendChild(btn('Flip ↕',function(){ selFlip(false); },'Mirror the selection top–bottom')); rSm4.appendChild(btn('Layer',function(){ selLayer(); },'Select the whole active layer, then resize or rotate it')); rSm4.appendChild(btn('All',function(){ setTool('select'); selAll(); },'Select everything in scope (Ctrl+A)')); rSm4.appendChild(btn('Last stroke',function(){ selLast(); },'Select the stroke you drew last, then change its opacity, colour or thickness'));
+  rSm4.appendChild(btn('Duplicate',function(){ selDup(); },'Duplicate (Ctrl+J)')); rSm4.appendChild(btn('Flip ↔',function(){ selFlip(true); },'Mirror the selection left–right')); rSm4.appendChild(btn('Flip ↕',function(){ selFlip(false); },'Mirror the selection top–bottom')); rSm4.appendChild(btn('Layer',function(){ selLayer(); },'Select the whole active layer, then resize or rotate it')); rSm4.appendChild(btn('All',function(){ setTool('select'); selAll(); },'Select everything in scope (Ctrl+A)')); rSm4.appendChild(btn('Last stroke',function(){ selLast(); },'Select the stroke you drew last, then change its opacity, colour or thickness'));
   bar.appendChild(rSm4);
   var rSm5=row(); lab(rSm5,'Scale'); var scIn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:52px;box-sizing:border-box;'); scIn.type='number'; scIn.value=100; scIn.min=5; scIn.max=1000; rSm5.appendChild(scIn); lab(rSm5,'%');
   lab(rSm5,'Rotate'); var roIn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:52px;box-sizing:border-box;'); roIn.type='number'; roIn.value=0; roIn.min=-360; roIn.max=360; rSm5.appendChild(roIn); lab(rSm5,'°');
@@ -1518,7 +1524,8 @@
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'||t==='dodge'||t==='burn'); show(rAir2,t==='air'||t==='dodge'||t==='burn'); show(rArrow, t==='line');
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
-  function setColor(c){ color=c; changeSel('color'); if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
+  var prevColor='#ffffff';
+  function setColor(c){ if(c!==color&&color) prevColor=color; color=c; changeSel('color'); if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
   function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; markTop(); msg(d?'Draw mode':'Click mode – you can click on the page'); }
   setTool('pen'); setColor('#111111'); setSize2(3); styleListen();
 
@@ -1666,14 +1673,16 @@
       if(k==='c'){ e.preventDefault(); selCopy(); return; }
       if(k==='x'){ e.preventDefault(); selCut(); return; }
       if(k==='a'){ e.preventDefault(); selAll(); return; }
-      if(k==='d'){ e.preventDefault(); selDup(); return; }
+      if(k==='d'){ e.preventDefault(); clearSel(); refresh(); return; }
+      if(k==='j'){ e.preventDefault(); selDup(); return; }
     }
     if(drawing&&tool==='select'&&(k==='delete'||k==='backspace')&&sel.length){ e.preventDefault(); selDelete(); return; }
+    if(drawing&&!mod&&(k==='delete'||k==='backspace')){ e.preventDefault(); eraseAll(); return; }
     if(drawing&&tool==='select'&&k==='escape'){ clearSel(); refresh(); return; }
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     if(k==='d') setDrawing(!drawing);
     else if(drawing){
-      if(k==='b') setTool('pen'); else if(k==='p') setTool('brush'); else if(k==='a') setTool('air'); else if(k==='l') setTool('line'); else if(k==='e') setTool('eraser'); else if(k==='i') pickColour(); else if(k==='s'||k==='v') setTool('select'); else if(k==='t') setTool('text');
+      if(k==='b') setTool('pen'); else if(k==='p') setTool('brush'); else if(k==='a') setTool('air'); else if(k==='l') setTool('line'); else if(k==='e') setTool('eraser'); else if(k==='i') pickColour(); else if(k==='s'||k==='v') setTool('select'); else if(k==='h') setDrawing(false); else if(k==='x'){ setColor(prevColor); msg('Colour swapped'); } else if(/^[0-9]$/.test(k)){ var pc=k==='0'?100:+k*10; ink.value=pc; ink.dispatchEvent(new Event('input',{bubbles:true})); ink.dispatchEvent(new Event('change',{bubbles:true})); msg('Opacity '+pc+'%'); } else if(k==='t') setTool('text');
       else if(k==='['){ setSize2(size*0.8); }
       else if(k===']'){ setSize2(size*1.25); }
     }
@@ -1763,6 +1772,10 @@
     var more=el('div','margin-top:4px;display:none;');
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save and open) to keep your work.'));
     var MANUAL=[
+      ['## Shortcuts','Like Photoshop where possible. On a Mac, use Cmd instead of Ctrl.'],
+      ['Tools','V select and move · H hand (click on the page) · D switch between draw and click · B pen · P brush · A airbrush · L line · E eraser · T text · I pipette'],
+      ['Brush and colour','[ and ] thinner and thicker · 1–9 and 0 set opacity to 10–100% · X swap to the previous colour'],
+      ['Edit','Ctrl+Z undo · Ctrl+Shift+Z or Ctrl+Y redo · Ctrl+A select all · Ctrl+D deselect · Ctrl+J duplicate · Ctrl+C, X, V copy, cut, paste · Delete removes the selection, or erases everything if nothing is selected (Undo brings it back) · Esc deselects'],
       ['## Draw','Pick a tool under Drawing tools (Pen, Brush, Airbrush, Line, Eraser) and draw on the page. Set colour, thickness and look. With a pen tablet, pressure changes the line. Presets save your favourite pen settings. Press D to switch between drawing and clicking on the page.'],
       ['Colour','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'],
       ['## Text','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'],
@@ -1779,8 +1792,6 @@
       ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
     ];
     var man=el('div','margin-top:4px;display:none;');
-    var kb=el('div','margin-bottom:6px;','Shortcuts: D draw/click, B pen, P brush, L line, E eraser, T text, A airbrush, S or V select, I pipette, [ ] thickness, Ctrl+Z undo, Ctrl+Y redo.');
-    man.appendChild(kb);
     MANUAL.forEach(function(m){ var grp=m[0].indexOf('## ')===0; var h=el('div',grp?'font-weight:500;color:#111;font-size:13px;margin-top:14px;padding-top:6px;border-top:1px solid #e3e3e3;':'font-weight:400;color:#111;margin-top:6px;',grp?m[0].slice(3):m[0]); man.appendChild(h); man.appendChild(el('div','',m[1])); });
     var lk='color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:2px;';
     var tg=el('span',lk,'More info ▸'), tm=el('span',lk+'margin-left:12px;','User manual ▸');
