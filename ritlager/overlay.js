@@ -791,14 +791,16 @@
   var r4=row();
   var sz=el('input','width:150px;accent-color:#111;'); sz.type='range';
   var szv=el('span','font-size:12px;width:46px;','3.0');
-  var SMIN=0.2, SMAX=100, LR=Math.log(SMAX/SMIN);
+  var SMIN=0.2, SMAX=1000, LR=Math.log(SMAX/SMIN);
   sz.min=0; sz.max=100; sz.step=0.25;
-  function showSize(){ szv.textContent = (size<10 ? size.toFixed(1) : String(Math.round(size)))+' px'; }
+  function showSize(){ szv.textContent = (size<10 ? size.toFixed(1) : String(Math.round(size)))+' px'; if(szn&&document.activeElement!==szn) szn.value=size<10?size.toFixed(1):Math.round(size); }
   function setSize2(v){ size=Math.max(SMIN,Math.min(SMAX,v)); sz.value=100*Math.log(size/SMIN)/LR; showSize(); }
   sz.addEventListener('input',function(){ size=SMIN*Math.exp(LR*(+sz.value)/100); showSize(); });
-  r4.appendChild(sz); r4.appendChild(szv); bar.appendChild(r4);
+  var szn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:56px;box-sizing:border-box;'); szn.type='number'; szn.min=0.2; szn.max=1000; szn.step=1; szn.title='Type an exact size in px (up to 1000)';
+  szn.addEventListener('input',function(){ var v=+szn.value; if(v>=SMIN) setSize2(v); });
+  r4.appendChild(sz); r4.appendChild(szv); r4.appendChild(szn); bar.appendChild(r4); showSize();
   var rp=row();
-  [0.2,0.4,0.7,1,2,4,8,16,32,64].forEach(function(n){
+  [0.2,0.5,1,2,4,8,16,32,64,128,256,512].forEach(function(n){
     var b=el('button','border:1px solid #c9c9c9;background:#fff;border-radius:6px;cursor:pointer;margin:0;padding:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center;');
     b.type='button'; b.title=n+' px';
     var d=el('span','display:block;border-radius:50%;background:#111;width:'+Math.min(16,Math.max(2,n/2.4))+'px;height:'+Math.min(16,Math.max(2,n/2.4))+'px;');
