@@ -4,11 +4,13 @@ Small, free tools for working with webpages and [Research Catalogue](https://www
 
 ## Ritlager (“drawing layer”)
 
-Ritlager is a browser tool (a bookmarklet) for drawing over web pages. It is designed for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. It puts a transparent drawing layer over any page, so you can draw by hand with a pen tablet or a mouse and place the result back into the page, over or under other objects.
+Ritlager is a browser tool for drawing over web pages. It comes as a **browser extension** (a pen button in the toolbar of Chrome, Edge and Firefox) and as a **bookmarklet** (any browser, including Safari). It is designed for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. It puts a transparent drawing layer over any page, so you can draw by hand with a pen tablet or a mouse and place the result back into the page, over or under other objects.
 
 **Exports:** images as **PNG** (transparent background), **JPG** and **TIFF** (with DPI), at 1×–6× resolution, one image or one file per layer; animations as **GIF** or **WebM video**. RC accepts png, jpg, tiff, svg and gif in its media repository.
 
-**Install:** open the install page (`index.html`, served via GitHub Pages) and drag the button to your bookmarks bar. Then click the bookmark on any RC page.
+**Install:**
+- **Extension (Chrome, Edge, Firefox):** download the zip for your browser from [Releases](https://github.com/RutKarin/research-catalogue-tools/releases), unzip, and load it as an unpacked extension (Chrome/Edge: `chrome://extensions` or `edge://extensions` with Developer mode on; Firefox: `about:debugging`, Load Temporary Add-on). Then click the pen button, or press Alt+Shift+R, on any page. The extension only asks for `activeTab` and `scripting`, so it can only act on the page where you click it.
+- **Bookmarklet (any browser):** open the install page (`index.html`, served via GitHub Pages) and drag the button to your bookmarks bar. Then click the bookmark on any RC page.
 
 Features:
 
@@ -31,7 +33,19 @@ Features:
 
 **How saving works:** your drawing, named versions, settings and saved colours are stored in your own browser (in the site storage of the page you drew on), for each page separately. Nothing is saved online, and nothing follows you to another browser or computer. Clearing browser data or site data for that page removes them, so export a PNG or a project file for anything you want to keep. Imported pictures are saved with the drawing, so very large photos can fill the storage and stop autosave. Recommended: under about 1500 px on the long side and under 500 KB each (JPG is smaller than PNG). Exported images and files go to your Downloads folder, or a folder you choose (Chrome/Edge).
 
-Source: `ritlager/overlay.js` (readable) and `ritlager/overlay.min.js` (what the bookmark contains).
+Source: `ritlager/overlay.js` (readable) and `ritlager/overlay.min.js` (what the bookmark contains). The extension uses the same `overlay.js`.
+
+## Building the extension
+
+```
+npm install
+npm run build:extension      # dist/ritlager-chrome-edge[-x.y.z.zip] and dist/ritlager-firefox[-x.y.z.zip]
+npm run icons                # re-render the toolbar icons from extension/src/icon.svg
+xvfb-run -a npm run test:extension   # end-to-end test in Chrome (drop xvfb-run on a desktop; set CHROME_PATH if needed)
+npx web-ext lint --source-dir dist/ritlager-firefox
+```
+
+`extension/src/` holds the manifest, the background script and the icons; the build copies `ritlager/overlay.js` into both packages unchanged.
 
 ## License
 

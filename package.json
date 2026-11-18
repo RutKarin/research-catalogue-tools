@@ -1,0 +1,19 @@
+{
+  "name": "research-catalogue-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Small, free tools for working with webpages and Research Catalogue.",
+  "license": "MIT",
+  "scripts": {
+    "icons": "node scripts/make-icons.mjs",
+    "build:extension": "node scripts/build-extension.mjs",
+    "test:extension": "node --test test/extension.test.mjs"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "fflate": "^0.8.2",
+    "playwright-core": "^1.49.0",
+    "web-ext": "^10.8.0"
+  }
+}

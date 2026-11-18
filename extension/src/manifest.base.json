@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Ritlager – draw over any webpage",
+  "short_name": "Ritlager",
+  "description": "Draw by hand over any webpage or Research Catalogue page with a pen tablet or mouse, and export PNG, JPG, TIFF, GIF or video.",
+  "author": "Rut Karin Zettergren",
+  "homepage_url": "https://github.com/RutKarin/research-catalogue-tools",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_title": "Ritlager – draw over this page",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+R" },
+      "description": "Show or hide Ritlager"
+    }
+  }
+}
