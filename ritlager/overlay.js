@@ -1944,13 +1944,13 @@
   var rcSink=null, rcBatch=null;
   var cPr=(function(){ try{ return JSON.parse(localStorage.getItem('ritlager-rc'))||{}; }catch(e){ return {}; } })();
   function cSel(label,opts,key,def){
-    var r=row(); lab(r,label); var s=el('select',BTN+'padding:3px 6px;');
+    var r=row(); lab(r,label); var s=el('select',BTN+'padding:3px 6px;max-width:100%;min-width:0;text-overflow:ellipsis;');
     opts.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; s.appendChild(op); });
     s.value=(cPr[key]!=null&&opts.some(function(o){ return o[0]===cPr[key]; }))?cPr[key]:def;
     s.addEventListener('change',function(){ var x={}; x[key]=s.value; rcPutPrefs(x); cUpdate(); });
     r.appendChild(s); bar.appendChild(r); s._row=r; return s;
   }
-  var cFmt=cSel('Send as',[['png','PNG image (can be transparent)'],['jpg','JPG image (small, no transparency)'],['webp','WebP image (small, can be transparent)'],['gif','Animated GIF (from Animate)']],'fmt','png');
+  var cFmt=cSel('Send as',[['png','PNG image'],['jpg','JPG image'],['webp','WebP image'],['gif','Animated GIF']],'fmt','png');
   var cK=cSel('Size',[['1','1× (as on screen)'],['2','2× (sharp on retina screens)'],['3','3×'],['4','4×']],'k','1');
   var cArea=cSel('Area',[['full','Whole page'],['crop','Strokes only']],'area','full');
   var cLy=cSel('Layers',[['all','Visible layers in one image'],['each','Each visible layer as its own image'],['active','Active layer only']],'ly','all');
@@ -2427,7 +2427,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191420', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191430', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
