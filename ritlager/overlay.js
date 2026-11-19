@@ -1780,29 +1780,15 @@
       var d=el('div','border:1px solid #d4d4d4;border-radius:7px;padding:4px 5px;display:flex;flex-direction:column;gap:4px;background:#fff;'); d.setAttribute('data-id',L.id);
       var r1=row(); r1.style.flexWrap='nowrap';
       var more=el('div','display:'+(L.open?'flex':'none')+';flex-direction:column;gap:4px;');
-      var tg=btn(L.open?'▾':'▸',function(){ L.open=!L.open; more.style.display=L.open?'flex':'none'; tg.textContent=L.open?'▾':'▸'; },'Show or hide this layer’s opacity, blend mode and order'); tg.style.padding='3px 6px';
+      var tg=btn(L.open?'▾':'▸',function(){ L.open=!L.open; more.style.display=L.open?'flex':'none'; tg.textContent=L.open?'▾':'▸'; },'Show or hide this layer’s opacity and blend mode'); tg.style.padding='3px 6px';
       var sumEl=el('span','font-size:10.5px;color:#888;white-space:nowrap;'); function sumUp(){ var bn=''; BLENDS.forEach(function(o){ if(o[0]===(L.bm||'source-over')) bn=o[1]; }); sumEl.textContent=L.op+'% · '+bn; }
       var nm=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:5px;padding:3px 6px;flex:1;min-width:0;box-sizing:border-box;'); nm.type='text'; nm.value=L.name; nm.maxLength=30;
       nm.addEventListener('focus',function(){ act=L.id; markLayers(); }); nm.addEventListener('input',function(){ L.name=nm.value; persist(); });
       var eye=chk(r1,'Show',L.vis); r1.insertBefore(nm,r1.firstChild); r1.insertBefore(tg,r1.firstChild);
-      var gh=el('span','flex:none;cursor:grab;touch-action:none;user-select:none;color:#444;background:#eee;border-radius:5px;font-size:15px;line-height:1;padding:7px 6px;letter-spacing:-2px;','⋮⋮'); gh.title='Drag up or down to change which layer is in front'; gh._tip='Drag up or down to change which layer is in front. The layer at the top of this list is in front on the page.'; r1.insertBefore(gh,r1.firstChild);
       function applyOrder(){ var ids=Array.prototype.map.call(layerBox.children,function(c){ return +c.getAttribute('data-id'); }).reverse(); var nl=[]; ids.forEach(function(id){ layers.forEach(function(z){ if(z.id===id) nl.push(z); }); }); if(nl.length===layers.length){ layers.length=0; nl.forEach(function(z){ layers.push(z); }); } }
-      gh.addEventListener('pointerdown',function(e){
-        if(e.button>0) return; e.preventDefault(); e.stopPropagation(); var pid=e.pointerId, moved=false;
-        d.style.opacity='.6'; d.style.outline='2px solid #111'; gh.style.cursor='grabbing';
-        function mv(ev){ moved=true; var kids=Array.prototype.slice.call(layerBox.children);
-          for(var q=0;q<kids.length;q++){ var c=kids[q]; if(c===d) continue; var r=c.getBoundingClientRect(), mid=r.top+r.height/2, di=kids.indexOf(d), ci=q;
-            if(ci<di && ev.clientY<mid){ layerBox.insertBefore(d,c); break; }
-            if(ci>di && ev.clientY>mid){ layerBox.insertBefore(d,c.nextSibling); break; } } }
-        function up(){ document.removeEventListener('pointermove',mv,true); document.removeEventListener('pointerup',up,true); document.removeEventListener('pointercancel',up,true);
-          d.style.opacity='1'; d.style.outline=''; gh.style.cursor='grab';
-          if(moved){ applyOrder(); drawLayerUI(); rebuild(); persist(); try{ if(typeof qFlyRefresh==='function') qFlyRefresh(); }catch(x){} } }
-        document.addEventListener('pointermove',mv,true); document.addEventListener('pointerup',up,true); document.addEventListener('pointercancel',up,true);
-      });
       var upB=btn('▲',function(){ var k=layers.indexOf(L); if(k<layers.length-1){ layers.splice(k,1); layers.splice(k+1,0,L); drawLayerUI(); rebuild(); persist(); } },'Move this layer one step forward (in front of the layer above)'); upB.style.padding='3px 5px';
       var dnB=btn('▼',function(){ var k=layers.indexOf(L); if(k>0){ layers.splice(k,1); layers.splice(k-1,0,L); drawLayerUI(); rebuild(); persist(); } },'Move this layer one step back (behind the layer below)'); dnB.style.padding='3px 5px';
-      r1.insertBefore(dnB,r1.children[1]); r1.insertBefore(upB,r1.children[1]);
-      eye.addEventListener('change',function(){ L.vis=eye.checked; rebuild(); });
+            eye.addEventListener('change',function(){ L.vis=eye.checked; rebuild(); });
       r1.appendChild(btn('✕',function(){
         if(layers.length<2){ msg('At least one layer is needed'); return; }
         backupCurrent(); strokes=strokes.filter(function(st){ return layerOf(st)!==L.id; }); redo=[]; ulog=[]; clearSel();
@@ -1816,7 +1802,10 @@
       var bmS=el('select',BTN+'padding:3px 6px;flex:1;min-width:0;'); bmS.title='How this layer mixes with the layers below it (and with a screenshot background when exporting)';
       BLENDS.forEach(function(o){ var op2=el('option',null,o[1]); op2.value=o[0]; bmS.appendChild(op2); }); bmS.value=L.bm||'source-over';
       bmS.addEventListener('change',function(){ L.bm=bmS.value; sumUp(); rebuild(); }); r3.appendChild(bmS);
-      more.appendChild(r2); more.appendChild(r3); sumUp(); var r1b=row(); r1b.style.cssText+='flex-wrap:nowrap;align-items:center;gap:6px;'; var evw=eye.parentNode===r1?eye:eye.parentNode; var ar=el('div','display:flex;flex-direction:column;gap:1px;flex:none;'); upB.style.cssText+='padding:0 7px;font-size:9px;line-height:13px;height:15px;'; dnB.style.cssText+='padding:0 7px;font-size:9px;line-height:13px;height:15px;'; ar.appendChild(upB); ar.appendChild(dnB); r1b.appendChild(evw); r1b.appendChild(ar); r1b.appendChild(sumEl); nm.style.minWidth='70px'; d.appendChild(r1); d.appendChild(r1b); d.appendChild(more);
+      more.appendChild(r2); more.appendChild(r3); sumUp(); var ar=el('div','display:flex;flex-direction:column;gap:1px;flex:none;'); upB.style.cssText+='padding:0 7px;font-size:9px;line-height:13px;height:15px;'; dnB.style.cssText+='padding:0 7px;font-size:9px;line-height:13px;height:15px;'; ar.appendChild(upB); ar.appendChild(dnB);
+      var evw=eye.parentNode; evw.textContent=''; evw.appendChild(eye); eye.style.cssText='position:absolute;opacity:0;width:0;height:0;'; var NSe='http://www.w3.org/2000/svg'; var esv=document.createElementNS(NSe,'svg'); esv.setAttribute('width',20); esv.setAttribute('height',16); esv.setAttribute('viewBox','0 0 20 16'); esv.setAttribute('fill','none'); esv.setAttribute('stroke','currentColor'); esv.setAttribute('stroke-width','1.6'); esv.setAttribute('stroke-linecap','round'); esv.innerHTML='<path d="M1.5 8C4 3.5 7 2 10 2s6 1.5 8.5 6C16 12.5 13 14 10 14S4 12.5 1.5 8Z"/><circle cx="10" cy="8" r="2.6" fill="currentColor"/><path class="sl" d="M3 15L17 1"/>'; evw.appendChild(esv); evw.style.cssText+='position:relative;flex:none;padding:4px 6px;border:1px solid #ccc;border-radius:7px;background:#fff;color:#111;';
+      function eyeMk(){ evw.style.opacity=eye.checked?'1':'.45'; esv.querySelector('.sl').style.display=eye.checked?'none':''; } eye.addEventListener('change',eyeMk); eyeMk(); evw.title='Show or hide this layer'; evw._tip='Show or hide this layer';
+      r1.insertBefore(ar,r1.firstChild); r1.insertBefore(evw,r1.lastChild); nm.style.minWidth='70px'; d.appendChild(r1); d.appendChild(sumEl); d.appendChild(more);
       d.addEventListener('pointerdown',function(e){ if(e.target.tagName==='BUTTON') return; act=L.id; markLayers(); });
       layerBox.appendChild(d);
     })(layers[i],i);
@@ -3393,7 +3382,7 @@ var IC2={ct:['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0','M12 3v18'],dd:['M12 16a4 4 
       ['## Effects','Change the look of what you have drawn on the active layer.'],
       ['Retouch','One tool for the pixels you have drawn (not the page behind): on the active layer, or on every layer if you tick Apply to all layers. Choose a mode: Clone (Alt/Option+click where to copy from, or Set source; the red cross shows the source), Light/dark (Lighten or Darken), Contrast (Increase or Decrease), Blur/sharpen (with Amount) or Smudge. Brush size is the top Size slider (retouch keeps its own size), Hardness is under Size and hardness, and Strength sets how strong each stroke is. Contrast works around mid-grey, so pure black and white strokes do not change. In your shortcuts the Retouch button opens all eight tools in a small window.'],
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
-      ['## Layers','Drawing and the eraser work on the highlighted layer. Drag the ⋮⋮ grip up or down, or use ▲ ▼, to change which layer is in front; the top of the list is in front on the page. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
+      ['## Layers','Drawing and the eraser work on the highlighted layer. Use ▲ ▼ on a layer to move it in front of or behind the others; the top of the list is in front on the page. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
       ['## Animate','Five parts, from the top: What to animate (Layers: visible, active or chosen layers; Area; Background; Resolution 25–200 %, 100 % is original, higher is a heavier file, max 3000 px; a line shows the file size). Timing and loop (Frame length, Drawing speed, Hold at end, Loop; Pause before looping and Loop style only when Loop is on). Effects: four rows in time order (each stroke when it comes, each stroke after it is drawn, the start, the end), one open at a time and each showing its choice. Fades and Dissolve use blur, Blink and Cloud (thin soft cloud with amount, time and motion) are at the end; blur needs Chrome or Edge. Build the frames: Build-up from my drawing (rebuilt by itself when you change a choice), or by hand with + Add this frame; Keep every 2nd, ◀ ▶ move, ⧉ copy, ✕ remove. Preview and export: Preview on the page, Files (one file, one per layer, or active layer), Format, then Export animation. To put the GIF in Research Catalogue, use Connect.'],
 
 
