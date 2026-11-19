@@ -854,7 +854,7 @@
     var r=bSv.getBoundingClientRect(); svBox=document.createElement('div');
     svBox.style.cssText='position:fixed;z-index:2147483647;background:#fff;border:1px solid #c9c9c9;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;gap:5px;font:300 13px system-ui,sans-serif;top:'+(r.bottom+6)+'px;right:'+Math.max(4,window.innerWidth-r.right)+'px;';
     function item(t,sub,fn){ var d=document.createElement('div'); d.style.cssText='cursor:pointer;padding:6px 10px;border-radius:6px;color:#111;'; d.innerHTML=''; var h=document.createElement('div'); h.textContent=t; h.style.fontWeight='400'; var u=document.createElement('div'); u.textContent=sub; u.style.cssText='font-size:11px;color:#666;'; d.appendChild(h); d.appendChild(u); d.addEventListener('mouseenter',function(){ d.style.background='#f0f0f0'; }); d.addEventListener('mouseleave',function(){ d.style.background=''; }); d.addEventListener('click',function(){ svBox.remove(); svBox=null; fn(); }); svBox.appendChild(d); }
-    var L={png:'PNG',jpg:'JPG',tif:'TIFF'}[fmSel.value]||'PNG';
+    var L={png:'PNG',jpg:'JPG',tif:'TIFF',svg:'SVG'}[fmSel.value]||'PNG';
     item('Save as image ('+L+')','To use or share, with the settings under Export',function(){ exportPng('save'); });
     item('Save project','To keep editing later, as a file',function(){ saveProject(); });
     document.documentElement.appendChild(svBox);
@@ -1410,7 +1410,7 @@
   rLy.appendChild(lySel); bar.appendChild(rLy);
   var rFm=row(); lab(rFm,'File type');
   var fmSel=el('select',BTN+'padding:3px 6px;');
-  [['png','PNG (sharp, can be transparent)'],['jpg','JPG (small file, no transparency)'],['tif','TIFF (for print and archive)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; fmSel.appendChild(op); });
+  [['png','PNG (sharp, can be transparent)'],['jpg','JPG (small file, no transparency)'],['tif','TIFF (for print and archive)'],['svg','SVG (vector lines: scalable, for the web, print and editing)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; fmSel.appendChild(op); });
   rFm.appendChild(fmSel); bar.appendChild(rFm);
   var rQ=row(); lab(rQ,'JPG quality'); var jq=slider(rQ,10,100,92,110); liveVal(jq); rQ.style.display='none'; bar.appendChild(rQ);
   var rDpi=row(); lab(rDpi,'DPI (print size)'); var dpiEl=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;width:70px;box-sizing:border-box;'); dpiEl.type='number'; dpiEl.min=36; dpiEl.max=1200; dpiEl.value=72; var dpiTouched=false; dpiEl.addEventListener('input',function(){ dpiTouched=true; }); dpiEl.title='Stored in the file so Photoshop, InDesign and printers know the print size. It does not change the number of pixels – use Resolution for that.'; rDpi.appendChild(dpiEl); bar.appendChild(rDpi);
@@ -1422,7 +1422,8 @@
   function expBox(){ var b={w:W,h:H}; if(csel.value==='crop'){ try{ var t=bounds(); if(t) b={w:Math.min(W,Math.ceil(t.w+16)),h:Math.min(H,Math.ceil(t.h+16))}; }catch(e){} } return b; }
   function fmtUpdate(){ var k=+rsSel.value, b=expBox(); rQ.style.display=fmSel.value==='jpg'?'flex':'none';
     var w=Math.round(b.w*k), h=Math.round(b.h*k); rsInfo.textContent='The image will be about '+w+' × '+h+' px'+(fmSel.value!=='jpg'||true?' (at '+(+dpiEl.value||300)+' DPI = '+(w/(+dpiEl.value||300)*2.54).toFixed(1)+' × '+(h/(+dpiEl.value||300)*2.54).toFixed(1)+' cm)':'')+(fmSel.value==='jpg'&&bgSel.value==='none'?'. JPG cannot be transparent, so the background becomes white unless you choose another.':'.')+(w*h>1e8?' That is very large – the browser may refuse; choose a lower resolution.':'')+(isShot()?' (With Screenshot background the resolution is the screenshot\'s own.)':'');
-    var L={png:'PNG',jpg:'JPG',tif:'TIFF'}[fmSel.value]; if(typeof bSave!=='undefined'&&bSave) bSave.textContent='Export '+L; if(typeof quick!=='undefined'&&quick) quick.textContent='Export '+L; }
+    if(fmSel.value==='svg') rsInfo.textContent='SVG is vector, so it scales to any size without losing sharpness (size and DPI do not matter). Textured brushes (pencil, brush, water, airbrush) become smooth lines, and pixel effects (blur, retouch, cut out) are left out.';
+    var L={png:'PNG',jpg:'JPG',tif:'TIFF',svg:'SVG'}[fmSel.value]; if(typeof bSave!=='undefined'&&bSave) bSave.textContent='Export '+L; if(typeof quick!=='undefined'&&quick) quick.textContent='Export '+L; }
   var szHint=el('div','font-size:11px;color:#777;line-height:1.35;');
   function hint(){ szHint.textContent = csel.value==='crop' ? 'Strokes only: the image is cropped to the area around your strokes. Smaller file, but you have to place it yourself on the page.' : 'Whole page: the image is as large as the page. Place it at the page top-left and the strokes line up exactly.'; }
   csel.addEventListener('change',hint); hint(); csel.addEventListener('change',function(){ if(csel.value==='full'){ try{ rescan(); }catch(e){} fmtUpdate(); } });
@@ -1650,7 +1651,79 @@
     v.setUint32(190,dpi,true); v.setUint32(194,1,true); v.setUint32(198,dpi,true); v.setUint32(202,1,true);
     u.set(d,off); return new Blob([buf],{type:'image/tiff'});
   }
+  // ---- SVG-export (vektorer) ----
+  function svgEsc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function svgNum(v){ return String(Math.round(v*100)/100); }
+  function svgRec(ops,over){
+    var c={fillStyle:'#000',strokeStyle:'#000',lineWidth:1,globalAlpha:1,lineCap:'round',lineJoin:'round'}, d='', stk=[], last='';
+    function put(kind){
+      if(!d) return; var col=over||(kind==='f'?c.fillStyle:c.strokeStyle); if(typeof col!=='string') col='#000';
+      var a=c.globalAlpha, s=kind==='f' ? '<path d="'+d+'" fill="'+svgEsc(col)+'"'+(a<1?' fill-opacity="'+svgNum(a)+'"':'')+' fill-rule="nonzero"/>'
+        : '<path d="'+d+'" fill="none" stroke="'+svgEsc(col)+'" stroke-width="'+svgNum(Math.max(0.1,c.lineWidth))+'"'+(a<1?' stroke-opacity="'+svgNum(a)+'"':'')+' stroke-linecap="'+c.lineCap+'" stroke-linejoin="'+c.lineJoin+'"/>';
+      if(s!==last){ ops.push(s); last=s; }
+    }
+    c.save=function(){ stk.push({fillStyle:c.fillStyle,strokeStyle:c.strokeStyle,lineWidth:c.lineWidth,globalAlpha:c.globalAlpha,lineCap:c.lineCap,lineJoin:c.lineJoin}); };
+    c.restore=function(){ var o=stk.pop(); if(o) for(var k in o) c[k]=o[k]; };
+    c.beginPath=function(){ d=''; };
+    c.moveTo=function(x,y){ d+='M'+svgNum(x)+' '+svgNum(y); };
+    c.lineTo=function(x,y){ d+='L'+svgNum(x)+' '+svgNum(y); };
+    c.closePath=function(){ d+='Z'; };
+    c.quadraticCurveTo=function(a,b,x,y){ d+='Q'+svgNum(a)+' '+svgNum(b)+' '+svgNum(x)+' '+svgNum(y); };
+    c.bezierCurveTo=function(a,b,e,f,x,y){ d+='C'+[a,b,e,f,x,y].map(svgNum).join(' '); };
+    c.arc=function(x,y,r){ d+='M'+svgNum(x-r)+' '+svgNum(y)+'a'+svgNum(r)+' '+svgNum(r)+' 0 1 0 '+svgNum(2*r)+' 0a'+svgNum(r)+' '+svgNum(r)+' 0 1 0 '+svgNum(-2*r)+' 0Z'; };
+    c.fill=function(){ put('f'); }; c.stroke=function(){ put('s'); };
+    c.translate=c.scale=c.rotate=c.setTransform=function(){};
+    return c;
+  }
+  function svgStroke(s,over){
+    var ops=[], r=svgRec(ops,over), s2=Object.assign({},s,{soft:0});
+    if(s2.tool==='pen'&&(s2.brush||s2.nib==='pencil'||s2.nib==='water')){ s2.brush=false; s2.nib=undefined; }
+    try{ render(r,s2); }catch(e){}
+    return ops;
+  }
+  function svgText(s){
+    var p=s.pts[0], L=layoutText(s), a=s.al==='center'?'middle':(s.al==='right'?'end':'start'), x=s.al==='center'?L.w/2:(s.al==='right'?L.w:0), o=(s.ink==null?1:s.ink)*((s.to==null?100:s.to)/100), t='';
+    L.lines.forEach(function(ln,i){ t+='<text x="'+svgNum(x)+'" y="'+svgNum(i*L.lh)+'" text-anchor="'+a+'" dominant-baseline="hanging" xml:space="preserve">'+svgEsc(ln)+'</text>'; });
+    return '<g transform="translate('+svgNum(p.x)+' '+svgNum(p.y)+')'+(s.rot?' rotate('+svgNum(s.rot*180/Math.PI)+')':'')+'" fill="'+svgEsc(s.color)+'"'+(o<1?' fill-opacity="'+svgNum(o)+'"':'')+' font-family="'+svgEsc(fontStack(s.ff))+'" font-size="'+svgNum(s.size)+'" font-weight="'+(s.wt||(s.bd?700:300))+'"'+(s.it?' font-style="italic"':'')+(s.ls?' letter-spacing="'+svgNum(s.ls)+'"':'')+'>'+t+'</g>';
+  }
+  function svgImage(s){
+    var o=imgs[s.iid]; if(!o||!o.src) return ''; var p=s.pts[0], w=o.w||0, h=o.h||0; if(!w||!h){ var im=ensureImg(s.iid); if(im){ w=im.naturalWidth; h=im.naturalHeight; } } if(!w||!h) return '';
+    return '<image href="'+svgEsc(o.src)+'" x="'+(s.fx?-w:0)+'" y="'+(s.fy?-h:0)+'" width="'+w+'" height="'+h+'"'+(s.ink!=null&&s.ink<1?' opacity="'+svgNum(s.ink)+'"':'')+' transform="translate('+svgNum(p.x)+' '+svgNum(p.y)+')'+(s.rot?' rotate('+svgNum(s.rot*180/Math.PI)+')':'')+' scale('+svgNum(s.size*(s.fx?-1:1))+' '+svgNum(s.size*(s.fy?-1:1))+')"/>';
+  }
+  function exportSvg(only,label){
+    if(!strokes.length){ msg('Draw something first'); return; }
+    var b={x:0,y:0,w:W,h:H};
+    if(cr.checked){ var t=bounds(); if(t){ var pad=8,x=Math.max(0,t.x-pad),y=Math.max(0,t.y-pad); b={x:x,y:y,w:Math.min(W,t.x+t.w+pad)-x,h:Math.min(H,t.y+t.h+pad)-y}; } }
+    var defs=[], body=[], skipped=0, mid=0, bgv=bgValue();
+    layers.forEach(function(L){
+      if(L.vis===false||(only!=null&&L.id!==only)) return;
+      var mine=strokes.filter(function(s){ return layerOf(s)===L.id; }), g=[];
+      var erasers=mine.map(function(s,i){ return s.tool==='eraser'?i:-1; }).filter(function(i){ return i>=0; });
+      mine.forEach(function(s,i){
+        if(s.tool==='eraser') return;
+        var el1='';
+        if(s.tool==='text') el1=svgText(s);
+        else if(s.tool==='image') el1=svgImage(s);
+        else if(s.tool==='air'||s.tool==='px'||s.tool==='cut'){ skipped++; return; }
+        else { var ops=svgStroke(s); if(!ops.length) return; el1=ops.join(''); }
+        if(!el1) return;
+        var later=erasers.filter(function(j){ return j>i; });
+        if(later.length){
+          var id='m'+(mid++), mk='<mask id="'+id+'" maskUnits="userSpaceOnUse" x="'+svgNum(b.x)+'" y="'+svgNum(b.y)+'" width="'+svgNum(b.w)+'" height="'+svgNum(b.h)+'"><rect x="'+svgNum(b.x)+'" y="'+svgNum(b.y)+'" width="'+svgNum(b.w)+'" height="'+svgNum(b.h)+'" fill="#fff"/>';
+          later.forEach(function(j){ mk+=svgStroke(mine[j],'#000').join(''); });
+          defs.push(mk+'</mask>'); el1='<g mask="url(#'+id+')">'+el1+'</g>';
+        }
+        g.push(el1);
+      });
+      if(g.length) body.push('<g id="'+svgEsc((L.name||('layer-'+L.id)).replace(/\s+/g,'-'))+'"'+(L.op<100?' opacity="'+svgNum(L.op/100)+'"':'')+'>'+g.join('')+'</g>');
+    });
+    if(!body.length){ msg('Nothing to export as SVG here'); return; }
+    var svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+svgNum(b.x)+' '+svgNum(b.y)+' '+svgNum(b.w)+' '+svgNum(b.h)+'" width="'+svgNum(b.w)+'" height="'+svgNum(b.h)+'">\n'+(defs.length?'<defs>'+defs.join('')+'</defs>\n':'')+(bgv?'<rect x="'+svgNum(b.x)+'" y="'+svgNum(b.y)+'" width="'+svgNum(b.w)+'" height="'+svgNum(b.h)+'" fill="'+svgEsc(bgv)+'"/>\n':'')+body.join('\n')+'\n</svg>\n';
+    var bl=new Blob([svg],{type:'image/svg+xml'}), tag=label?'-'+String(label).replace(/[^\w-]+/g,'_'):'';
+    saveBlob(bl,fname('ritlager'+tag+'-'+Math.round(b.w)+'x'+Math.round(b.h),'.svg',tag),'(vector, '+Math.round(b.w)+' × '+Math.round(b.h)+' px'+(bgv?'':', transparent')+(skipped?'; '+skipped+' stroke(s) with texture or pixel effects were left out':'')+')');
+  }
   function exportPng2(mode,only,label){
+    if(fmSel.value==='svg'&&mode!=='copy'&&!isShot()){ exportSvg(only,label); return; }
     var b, out, oc, kk=(mode==='copy'||isShot())?1:(+rsSel.value||1);
     if(isShot()){
       if(!ref){ msg('Take a screenshot first: choose it under Background'); return; }
@@ -1817,7 +1890,7 @@
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
       ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
-      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF. Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
+      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF, or SVG (vector lines that scale to any size, good for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
     ];
     var man=el('div','margin-top:4px;display:none;');
     MANUAL.forEach(function(m){ var grp=m[0].indexOf('## ')===0; var h=el('div',grp?'font-weight:500;color:#111;font-size:13px;margin-top:14px;padding-top:6px;border-top:1px solid #e3e3e3;':'font-weight:400;color:#111;margin-top:6px;',grp?m[0].slice(3):m[0]); man.appendChild(h); man.appendChild(el('div','',m[1])); });
