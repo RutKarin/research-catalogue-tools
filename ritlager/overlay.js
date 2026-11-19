@@ -1708,7 +1708,7 @@
 
   // dra verktygsfältet
   var drag=null;
-  head.addEventListener('pointerdown',function(e){ if(e.target.tagName==='BUTTON') return; var r=bar.getBoundingClientRect(); drag={dx:e.clientX-r.left,dy:e.clientY-r.top}; head.setPointerCapture(e.pointerId); });
+  head.addEventListener('pointerdown',function(e){ if(e.target.closest&&e.target.closest('button')) return; var r=bar.getBoundingClientRect(); drag={dx:e.clientX-r.left,dy:e.clientY-r.top}; head.setPointerCapture(e.pointerId); });
   head.addEventListener('pointermove',function(e){ if(!drag) return; bar.style.left=(e.clientX-drag.dx)+'px'; bar.style.top=(e.clientY-drag.dy)+'px'; bar.style.right='auto'; });
   head.addEventListener('pointerup',function(){ drag=null; });
 
