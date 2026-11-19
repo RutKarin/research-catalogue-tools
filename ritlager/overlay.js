@@ -1225,6 +1225,13 @@
   // ---- Animate: frames -> preview -> GIF / video ----
   sec('Animate');
   var frames=[], aSel=-1, aPlay=0, aTimer=0, aFromReplay=false, aAutoT=0;
+  function aSub(t){ bar.appendChild(el('div','font-size:11.5px;font-weight:600;color:#333;background:#f1f1f1;border-radius:6px;padding:3px 8px;margin-top:7px;',t)); }
+  function aBoxEl(){ var d=el('div','display:flex;flex-direction:column;gap:5px;margin-left:6px;padding-left:9px;border-left:2px solid #e4e4e4;'); bar.appendChild(d); return d; }
+  function aMode(r,t,opts,tip){ lab(r,t); var s=el('select',BTN+'padding:3px 6px;'); opts.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; s.appendChild(op); }); if(tip) s.title=tip; r.appendChild(s); return s; }
+  function aAuto(){ if(aFromReplay&&strokes.length){ clearTimeout(aAutoT); aAutoT=setTimeout(function(){ aReplay(true); },300); } }
+
+  // 1. Frames
+  aSub('1 · Frames');
   var rA1=row(); lab(rA1,'Frames'); var aN=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;width:52px;'); aN.type='number'; aN.min=2; aN.max=200; aN.value=24; aN.title='How many frames the replay should have'; rA1.appendChild(aN);
   bar.appendChild(rA1);
   var rA1b=row(); rA1b.appendChild(btn('Build-up from my drawing',function(){ aReplay(); },'Makes frames that show the drawing being drawn, stroke by stroke')); bar.appendChild(rA1b);
@@ -1239,31 +1246,75 @@
   var aBgc=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;display:none;'); aBgc.type='color'; aBgc.value='#f4efe6'; rA4.appendChild(aBgc); aBg.addEventListener('change',function(){ aBgc.style.display=aBg.value==='color'?'inline-block':'none'; }); bar.appendChild(rA4);
   var aStrip=el('div','display:flex;flex-wrap:wrap;gap:5px;max-height:240px;overflow-y:auto;'); bar.appendChild(aStrip);
   var aCount=el('div','font-size:11.5px;color:#666;','No frames yet'); bar.appendChild(aCount);
+
+  // 2. Timing and loop
+  aSub('2 · Timing and loop');
   var rA5=row(); lab(rA5,'Time / frame'); var aMs=slider(rA5,30,1000,120,90); liveVal(aMs,' ms'); bar.appendChild(rA5);
   var rA5b=row(); lab(rA5b,'Drawing speed'); var aSp=slider(rA5b,1,400,100,90); aSp.step=1; liveVal(aSp,' %'); bar.appendChild(rA5b);
   function aVanOn(){ return aFromReplay&&(+aVa.value)>0; }
   function aSpd(){ return Math.max(.01,(+aSp.value||100)/100); }
   var rA6=row(); lab(rA6,'Hold at end'); var aEnd=slider(rA6,0,3000,600,90); liveVal(aEnd,' ms'); var aLoop=chk(rA6,'Loop',true); bar.appendChild(rA6);
-  var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bar.appendChild(rAf);
-  var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bar.appendChild(rAg);
-  var rAv=row(); lab(rAv,'Strokes vanish after'); var aVa=slider(rAv,0,6000,0,90); aVa.step=100; liveVal(aVa,' ms'); bar.appendChild(rAv);
-  var rAy=row(); lab(rAy,'Appear over'); var aAo=slider(rAy,0,3000,0,90); aAo.step=50; liveVal(aAo,' ms'); bar.appendChild(rAy);
-  var rAz=row(); lab(rAz,'Appear blur'); var aAb=slider(rAz,0,100,0,90); liveVal(aAb,' %'); bar.appendChild(rAz);
-  var rAw=row(); lab(rAw,'Vanish over'); var aVo=slider(rAw,100,3000,600,90); aVo.step=50; liveVal(aVo,' ms'); bar.appendChild(rAw);
-  var rAx=row(); lab(rAx,'Vanish blur'); var aVb=slider(rAx,0,100,0,90); liveVal(aVb,' %'); bar.appendChild(rAx);
-  [aVa,aVo,aVb,aSp,aAo,aAb].forEach(function(e){ e.addEventListener('input',function(){ if(aFromReplay&&strokes.length){ clearTimeout(aAutoT); aAutoT=setTimeout(function(){ aReplay(true); },300); } }); });
-  var rAh=row(); lab(rAh,'Blur while fading'); var aBl=slider(rAh,0,40,0,90); liveVal(aBl,' px'); bar.appendChild(rAh);
-  var rAi=row(); lab(rAi,'Blink at end'); var aBk=slider(rAi,0,10,0,90); liveVal(aBk,' times'); bar.appendChild(rAi);
-  var rAk=row(); lab(rAk,'Cloud dissolve'); var aCl=slider(rAk,0,100,0,90); liveVal(aCl,' %'); bar.appendChild(rAk);
-  var rAm=row(); lab(rAm,'Cloud motion'); var aCm=slider(rAm,0,100,50,90); liveVal(aCm,' %'); bar.appendChild(rAm);
-  var rAl=row(); lab(rAl,'Cloud time'); var aCt=slider(rAl,200,4000,1200,90); aCt.step=50; liveVal(aCt,' ms'); bar.appendChild(rAl);
-  var rAj=row(); lab(rAj,'Blink speed'); var aBs=slider(rAj,50,1000,250,90); aBs.step=10; liveVal(aBs,' ms'); bar.appendChild(rAj);
   var rLm=row(); lab(rLm,'Loop style'); var aLm=el('select',BTN+'padding:3px 6px;'); [['normal','Normal (jumps back to the start)'],['pp','Back and forth (plays forward, then backward)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aLm.appendChild(op); }); rLm.appendChild(aLm); bar.appendChild(rLm);
+
+  // 3. Each stroke: when drawn  /  4. each stroke: after drawn
+  aSub('3 · Each stroke – when it is drawn');
+  var rIm=row(), aIm=aMode(rIm,'Comes in',[['none','Nothing'],['fade','Fade in'],['fb','Fade in + blur']],'How each new stroke appears as it is drawn'); bar.appendChild(rIm);
+  var bIm=aBoxEl();
+  var rAy=row(); lab(rAy,'Over'); var aAo=slider(rAy,0,3000,0,90); aAo.step=50; liveVal(aAo,' ms'); bIm.appendChild(rAy);
+  var rAz=row(); lab(rAz,'Blur'); var aAb=slider(rAz,0,100,0,90); liveVal(aAb,' %'); bIm.appendChild(rAz);
+  function imUpd(){ var m=aIm.value; bIm.style.display=m==='none'?'none':'flex'; rAz.style.display=m==='fb'?'flex':'none'; if(m==='none'){ aAo.value=0; aAb.value=0; } else { if(+aAo.value===0) aAo.value=400; if(m==='fb'){ if(+aAb.value===0) aAb.value=60; } else aAb.value=0; } aAuto(); }
+  aIm.addEventListener('change',imUpd);
+  aSub('4 · Each stroke – after it is drawn');
+  var rOm=row(), aOm=aMode(rOm,'Goes away',[['none','Nothing (stays)'],['fade','Fade out'],['fb','Dissolve (fade + blur)']],'What each stroke does a little while after it was drawn'); bar.appendChild(rOm);
+  var bOm=aBoxEl();
+  var rAv=row(); lab(rAv,'Stays'); var aVa=slider(rAv,0,6000,0,90); aVa.step=100; liveVal(aVa,' ms'); bOm.appendChild(rAv);
+  var rAw=row(); lab(rAw,'Over'); var aVo=slider(rAw,100,3000,600,90); aVo.step=50; liveVal(aVo,' ms'); bOm.appendChild(rAw);
+  var rAx=row(); lab(rAx,'Blur'); var aVb=slider(rAx,0,100,0,90); liveVal(aVb,' %'); bOm.appendChild(rAx);
+  function omUpd(){ var m=aOm.value; bOm.style.display=m==='none'?'none':'flex'; rAx.style.display=m==='fb'?'flex':'none'; if(m==='none'){ aVa.value=0; aVb.value=0; } else { if(+aVa.value===0) aVa.value=1200; if(m==='fb'){ if(+aVb.value===0) aVb.value=60; } else aVb.value=0; } aAuto(); }
+  aOm.addEventListener('change',omUpd);
+  [aVa,aVo,aVb,aSp,aAo,aAb].forEach(function(e){ e.addEventListener('input',aAuto); });
+
+  // 5. The whole drawing
+  aSub('5 · The whole drawing');
+  var rSm=row(), aSm=aMode(rSm,'Start',[['none','Nothing'],['fade','Fade in'],['fb','Fade in + blur']],'How the whole animation begins'); bar.appendChild(rSm);
+  var bSm=aBoxEl();
+  var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bSm.appendChild(rAf);
+  var rEm=row(), aEm=aMode(rEm,'End',[['none','Nothing'],['fade','Fade out'],['fb','Fade out + blur'],['blink','Blink'],['cloud','Cloud (dissolves like smoke)']],'How the whole animation ends'); bar.appendChild(rEm);
+  var bEm=aBoxEl();
+  var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bEm.appendChild(rAg);
+  var rAi=row(); lab(rAi,'Blink'); var aBk=slider(rAi,0,10,0,90); liveVal(aBk,' times'); bEm.appendChild(rAi);
+  var rAj=row(); lab(rAj,'Blink speed'); var aBs=slider(rAj,50,1000,250,90); aBs.step=10; liveVal(aBs,' ms'); bEm.appendChild(rAj);
+  var rAk=row(); lab(rAk,'Cloud amount'); var aCl=slider(rAk,0,100,0,90); liveVal(aCl,' %'); bEm.appendChild(rAk);
+  var rAm=row(); lab(rAm,'Cloud motion'); var aCm=slider(rAm,0,100,50,90); liveVal(aCm,' %'); bEm.appendChild(rAm);
+  var rAl=row(); lab(rAl,'Cloud time'); var aCt=slider(rAl,200,4000,1200,90); aCt.step=50; liveVal(aCt,' ms'); bEm.appendChild(rAl);
+  var rAh=row(); lab(rAh,'Blur'); var aBl=slider(rAh,0,40,0,90); liveVal(aBl,' px'); bar.appendChild(rAh);
+  function whUpd(){
+    var s=aSm.value, e=aEm.value;
+    bSm.style.display=s==='none'?'none':'flex'; if(s==='none') aFi.value=0; else if(+aFi.value===0) aFi.value=600;
+    bEm.style.display=e==='none'?'none':'flex';
+    rAg.style.display=(e==='fade'||e==='fb')?'flex':'none'; rAi.style.display=rAj.style.display=e==='blink'?'flex':'none'; rAk.style.display=rAm.style.display=rAl.style.display=e==='cloud'?'flex':'none';
+    if(e!=='fade'&&e!=='fb') aFo.value=0; else if(+aFo.value===0) aFo.value=800;
+    if(e!=='blink') aBk.value=0; else if(+aBk.value===0) aBk.value=3;
+    if(e!=='cloud') aCl.value=0; else if(+aCl.value===0) aCl.value=60;
+    var nb=(s==='fb'||e==='fb'); rAh.style.display=nb?'flex':'none'; if(nb&&+aBl.value===0) aBl.value=12;
+    if(frames.length) aDraw();
+  }
+  aSm.addEventListener('change',whUpd); aEm.addEventListener('change',whUpd);
+  imUpd(); omUpd(); whUpd();
+
+  // 6. Preview and save
+  aSub('6 · Preview and save');
   var rOn=row(); var aOnPg=chk(rOn,'Preview on the page',true,'Plays the animation over the page itself, where you drew it, instead of in the small box. Stop shows your drawing again.'); bar.appendChild(rOn);
   var rA7=row(); var bPlay=btn('▶ Preview',function(){ if(!aPlay&&!frames.length){ if(!strokes.length){ msg('Nothing to preview yet – draw something first'); return; } aReplay(); } if(!aPlay&&frames.length===1&&strokes.length>1) msg('Only 1 frame, so nothing moves. Press “Build-up from my drawing” to make many frames, or change the drawing and press “+ Add current drawing as frame” again.',7000); aPreview(!aPlay); try{ aPrev.scrollIntoView({block:'nearest'}); }catch(e){} },'Play the animation here. With no frames yet, it makes them from your drawing first.'); rA7.appendChild(bPlay);
   bar.appendChild(rA7);
   var aPrev=document.createElement('canvas'); aPrev.width=240; aPrev.height=160; aPrev.style.cssText='width:100%;border:1px solid #ddd;border-radius:6px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/14px 14px;display:none;'; bar.appendChild(aPrev);
-  var rA8=row(); rA8.appendChild(btn('Save GIF',function(){ aGif(); },'Animated GIF – works almost everywhere, max 256 colours')); rA8.appendChild(btn('Save video (MP4)',function(){ aWebm('mp4'); },'Plays almost everywhere (phones, Safari, Instagram, editing programs). Made in Chrome/Edge')); rA8.appendChild(btn('Save video (WebM)',function(){ aWebm(); },'Smoother and smaller, Chrome/Edge/Firefox')); bar.appendChild(rA8);
+  var rFm2=row(), aFmt=aMode(rFm2,'Format',[['gif','GIF'],['webp','Animated WebP'],['mp4','Video MP4'],['webm','Video WebM']],'Which file type to save the animation as'); bar.appendChild(rFm2);
+  var aFmtInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(aFmtInfo);
+  var aFmtTxt={ gif:'GIF: works almost everywhere. Max 256 colours; transparency is on/off, so soft fades look slightly dotted.', webp:'Animated WebP: small file and soft, smooth transparency, so fades and blur look right on any background. Plays in all modern browsers, but some sites and upload forms do not accept it – keep a GIF as backup. Made in Chrome/Edge/Firefox.', mp4:'MP4 video: plays almost everywhere (phones, Safari, Instagram, editing programs). No transparency. Made in Chrome/Edge.', webm:'WebM video: smooth and small. Chrome/Edge/Firefox. Can keep transparency in Chrome.' };
+  var rA8=row(); var bSaveA=btn('Save animation',function(){ aSave(); }); rA8.appendChild(bSaveA); bar.appendChild(rA8);
+  function aFmtUpd(){ aFmtInfo.textContent=aFmtTxt[aFmt.value]; bSaveA.textContent='Save '+({gif:'GIF',webp:'animated WebP',mp4:'MP4 video',webm:'WebM video'})[aFmt.value]; }
+  aFmt.addEventListener('change',aFmtUpd); aFmtUpd();
+  function aSave(){ var f=aFmt.value; if(f==='gif') aGif(); else if(f==='webp') aWebp(); else aWebm(f==='mp4'?'mp4':undefined); }
   function aBgVal(){ return aBg.value==='white'?'#ffffff':(aBg.value==='color'?aBgc.value:null); }
   var aBox=null;
   function aBounds(){ if(!aCrop.checked) return {x:0,y:0,w:W,h:H}; var vis=strokes.filter(function(st){ return st.tool!=='eraser'&&st.tool!=='cut'&&getLayer(layerOf(st)).vis; }); var t=vis.length?boxOf(vis):null; if(!t) return {x:0,y:0,w:W,h:H}; var pad=10,x=Math.max(0,Math.floor(t.x0-pad)),y=Math.max(0,Math.floor(t.y0-pad)); return {x:x,y:y,w:Math.max(8,Math.min(W,Math.ceil(t.x1+pad))-x),h:Math.max(8,Math.min(H,Math.ceil(t.y1+pad))-y)}; }
@@ -1369,12 +1420,12 @@
         x.globalAlpha=1; try{ x.filter='none'; }catch(e){} x.putImageData(o,0,0); }catch(e){}
       return c; }
     function blank(){ var c=document.createElement('canvas'); c.width=w; c.height=h; var bv=aBgVal(); if(bv){ var x=c.getContext('2d'); x.fillStyle=bv; x.fillRect(0,0,w,h); } return c; }
-    var fi=+aFi.value, fo=+aFo.value, mb=(+aBl.value)*Math.max(1,w/480), bk=+aBk.value, bs=+aBs.value, pre=[], post=[], mid=[], cl=+aCl.value, ct=+aCt.value;
+    var fi=+aFi.value, fo=+aFo.value, mb=(+aBl.value)*Math.max(1,w/480), mbi=aSm.value==='fb'?mb:0, mbo=aEm.value==='fb'?mb:0, bk=+aBk.value, bs=+aBs.value, pre=[], post=[], mid=[], cl=+aCl.value, ct=+aCt.value;
     if(fi>0){
-      if(seq[0].d>=fi){ var n=Math.max(2,Math.min(15,Math.round(fi/60))); for(var k=1;k<=n;k++) pre.push({c:mix(frames[0].c,k/(n+1),mb*(1-k/(n+1))),d:fi/n}); }
-      else { var cum=0; seq.forEach(function(q,qi){ var mid2=cum+q.d/2; cum+=q.d; if(mid2<fi){ var al2=Math.max(0.05,mid2/fi); seq[qi]={c:mix(q.c,al2,mb*(1-al2)),d:q.d}; } }); }
+      if(seq[0].d>=fi){ var n=Math.max(2,Math.min(15,Math.round(fi/60))); for(var k=1;k<=n;k++) pre.push({c:mix(frames[0].c,k/(n+1),mbi*(1-k/(n+1))),d:fi/n}); }
+      else { var cum=0; seq.forEach(function(q,qi){ var mid2=cum+q.d/2; cum+=q.d; if(mid2<fi){ var al2=Math.max(0.05,mid2/fi); seq[qi]={c:mix(q.c,al2,mbi*(1-al2)),d:q.d}; } }); }
     }
-    if(fo>0){ var m=Math.max(2,Math.min(15,Math.round(fo/60))); for(var j=1;j<=m;j++) post.push({c:mix(frames[frames.length-1].c,1-j/(m+1),mb*j/(m+1)),d:fo/m}); if(post.length&&seq.length) { /* the pause at the end belongs before the fade */ } }
+    if(fo>0){ var m=Math.max(2,Math.min(15,Math.round(fo/60))); for(var j=1;j<=m;j++) post.push({c:mix(frames[frames.length-1].c,1-j/(m+1),mbo*j/(m+1)),d:fo/m}); if(post.length&&seq.length) { /* the pause at the end belongs before the fade */ } }
     if(bk>0){ var lastC=frames[frames.length-1].c, bl0=blank(); for(var q=0;q<bk;q++){ mid.push({c:bl0,d:bs}); mid.push({c:mix(lastC,1,0),d:bs}); } }
     if(cl>0){ var cn=Math.max(3,Math.min(20,Math.round(ct/90))), cm=cl/100*70*Math.max(1,w/480), lc=frames[frames.length-1].c; for(var cj=1;cj<=cn;cj++){ var pp=cj/(cn+1); mid.push({c:cloud(lc,Math.pow(1-pp,1.4),cm*Math.pow(pp,.7),pp),d:ct/cn}); } mid.push({c:blank(),d:40}); }
     var all=pre.concat(seq,mid,post);
@@ -1446,6 +1497,39 @@
     msg('Making the GIF…',3000);
     setTimeout(function(){ try{ var bl=encodeGif(); saveBlob(bl,fname('ritlager-animation','.gif',''),'GIF with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); }catch(e){ msg('Could not make the GIF: '+(e&&e.message?e.message:e)); } },50);
   }
+
+  // --- animated WebP: each frame is encoded by the browser, then wrapped in an animation container ---
+  function muxWebp(parts,delays,w,h,loop){
+    function u32(n){ return [n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255]; }
+    function u24(n){ return [n&255,(n>>8)&255,(n>>16)&255]; }
+    function tg(s){ return [s.charCodeAt(0),s.charCodeAt(1),s.charCodeAt(2),s.charCodeAt(3)]; }
+    function cat(list){ var n=0; list.forEach(function(a){ n+=a.length; }); var o=new Uint8Array(n), p=0; list.forEach(function(a){ o.set(a,p); p+=a.length; }); return o; }
+    function chunk(t,data){ var o=new Uint8Array(8+data.length+(data.length&1)); o.set(tg(t),0); o.set(u32(data.length),4); o.set(data,8); return o; }
+    var out=[chunk('VP8X',new Uint8Array([0x12,0,0,0].concat(u24(w-1),u24(h-1)))), chunk('ANIM',new Uint8Array([0,0,0,0,loop?0:1,0]))];
+    parts.forEach(function(b,i){
+      if(String.fromCharCode(b[0],b[1],b[2],b[3])!=='RIFF'||String.fromCharCode(b[8],b[9],b[10],b[11])!=='WEBP') throw new Error('unexpected image data');
+      var img=[], pos=12;
+      while(pos+8<=b.length){ var t=String.fromCharCode(b[pos],b[pos+1],b[pos+2],b[pos+3]), sz=b[pos+4]|(b[pos+5]<<8)|(b[pos+6]<<16)|(b[pos+7]<<24), tot=8+sz+(sz&1);
+        if(t==='ALPH'||t==='VP8 '||t==='VP8L') img.push(b.subarray(pos,pos+tot)); pos+=tot; }
+      if(!img.length) throw new Error('no image data');
+      out.push(chunk('ANMF',cat([new Uint8Array([0,0,0,0,0,0].concat(u24(w-1),u24(h-1),u24(Math.max(10,Math.round(delays[i]))),[2])),cat(img)])));
+    });
+    var body=cat(out), hd=new Uint8Array(12); hd.set(tg('RIFF'),0); hd.set(u32(4+body.length),4); hd.set(tg('WEBP'),8);
+    return new Blob([hd,body],{type:'image/webp'});
+  }
+  function aWebp(){
+    if(!frames.length){ msg('Make some frames first'); return; }
+    msg('Making the animated WebP…',4000);
+    var seq, w, h, parts=[], i=0;
+    try{ seq=aSeq(); w=seq[0].c.width; h=seq[0].c.height; }catch(e){ msg('Could not make the WebP: '+e.message); return; }
+    function done(){ try{ var bl=muxWebp(parts,seq.map(function(f){ return f.d; }),w,h,aLoop.checked); saveBlob(bl,fname('ritlager-animation','.webp',''),'Animated WebP with '+seq.length+' frames ('+Math.round(bl.size/1024)+' KB).'); }catch(e){ msg('Could not make the WebP: '+(e&&e.message?e.message:e)); } }
+    (function next(){
+      if(i>=seq.length) return done();
+      var c=seq[i].c;
+      if(c.width!==w||c.height!==h){ var t=document.createElement('canvas'); t.width=w; t.height=h; t.getContext('2d').drawImage(c,0,0,w,h); c=t; }
+      c.toBlob(function(b){ if(!b||b.type!=='image/webp'){ msg('This browser cannot make WebP images – use GIF'); return; } b.arrayBuffer().then(function(ab){ parts.push(new Uint8Array(ab)); i++; setTimeout(next,0); }); },'image/webp',0.92);
+    })();
+  }
   function aWebm(kind){
     var mp4=kind==='mp4';
     if(!frames.length){ msg('Make some frames first'); return; }
@@ -1458,7 +1542,7 @@
     var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
     (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(seq[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=seq.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
   }
-  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video.'));
+  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Choose a format and save.'));
 
   sec('Export (image)');
   function pageNow(){ var w,h; if(SC){ w=SC.scrollWidth; h=SC.scrollHeight; } else { w=Math.max(de.scrollWidth,bd?bd.scrollWidth:0,de.clientWidth); h=Math.max(de.scrollHeight,bd?bd.scrollHeight:0,de.clientHeight); } w=Math.min(w,6000); h=Math.min(h,Math.floor(30e6/w),20000); return {w:w,h:h}; }
@@ -1957,9 +2041,10 @@
       ['Retouch','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'],
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
-      ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Loop style: Normal starts over from the beginning. Back and forth plays the animation forward and then backward, so a drawing that is drawn is then un-drawn the same way, and the loop never jumps. Preview on the page plays the animation over the page itself, where you drew it (switch it off to see it in the small box instead); press Stop to get your drawing back. Frames use the Background and Drawn area settings above, not the Export ones. Drawing speed makes the whole animation play faster or slower (100 % is normal). Fade in fades up the first frames. When frames come from Build-up from my drawing, changing Drawing speed or the Vanish sliders rebuilds the frames by itself. Appear over and Appear blur make each new stroke fade in and sharpen up instead of popping in (for a smooth loop, give it the same values as the Vanish sliders). Strokes that vanish: Strokes vanish after makes every stroke disappear this long after it was drawn, like fading ink (0 = they stay). Vanish over is how long the disappearing takes, and Vanish blur makes it blurrier as it goes. This works in Build-up from my drawing; raise Frames and Time / frame if the animation is too short for the strokes to vanish. Ending the animation: Hold at end is how long the finished drawing stays still. Blink at end then makes it blink the chosen number of times (Blink speed is how long each on or off lasts). Fade out then lets it disappear, and Cloud dissolve turns the finished drawing into a thick, soft cloud that thins out and disappears (the percentage is how big and soft the cloud gets; Cloud time is how long it takes; Cloud motion makes it drift and swirl like smoke (0 = it only softens); it comes after the blink and before Fade out, and it works separately from them; switch off Drawn area only to give the cloud room). Blur while fading makes it get blurrier as it vanishes (it also clears up during Fade in). Blur needs Chrome or Edge; with a lot of blur, switch off Drawn area only so the blur has room.'],
+      ['## Animate','The Animate section has six groups. 1 · Frames: press “Build-up from my drawing” to make frames that show the strokes appearing one after another, or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame (smaller file; raise Time / frame to keep the length). Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Size, Background and Drawn area only apply to the animation, not to the Export settings below. 2 · Timing and loop: Time / frame and Drawing speed (100 % is normal; it goes down to 1 %) set the pace; Hold at end is how long the finished drawing stays still. Loop style: Normal starts over from the beginning; Back and forth plays forward and then backward, so a drawing that is drawn is then un-drawn the same way and the loop never jumps. 3 · Each stroke, when it is drawn: choose Fade in or Fade in + blur to let every new stroke appear softly instead of popping in; Over is how long it takes and Blur how blurry it starts. 4 · Each stroke, after it is drawn: choose Fade out or Dissolve (fade + blur) to let every stroke disappear a while after it was drawn, like fading ink; Stays is how long it stays, Over how long the disappearing takes, Blur how blurry it gets. For a smooth loop give 3 and 4 the same values. These work with Build-up from my drawing (changing them rebuilds the frames by itself); raise Frames and Time / frame if the animation is too short for the strokes to vanish. 5 · The whole drawing: Start can fade the animation in (with or without blur). End can be Fade out, Fade out + blur, Blink (how many times, and Blink speed), or Cloud, which turns the finished drawing into a thick soft cloud that thins out and disappears (Cloud amount is how big and soft it gets, Cloud time how long it takes, Cloud motion makes it drift and swirl like smoke). Only the settings of the chosen option are shown. Blur needs Chrome or Edge; with a lot of blur, switch off Drawn area only so the blur has room. 6 · Preview and save: Preview on the page plays the animation over the page itself, where you drew it (switch it off to see it in the small box); press Stop to get your drawing back. Then choose a Format (GIF, Animated WebP, MP4 or WebM) and press Save. Animated WebP keeps soft transparency, so fades and blur look right on any background, but not every site accepts it; keep a GIF as backup.'],
+
       ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG, TIFF or WebP (small and can be transparent), or SVG (vector lines that scale to any size, good for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.'],
-      ['Export formats','Images: PNG (sharp, can be transparent, the safe choice), JPG (small file, no transparency), TIFF (print and archive), WebP (small, can be transparent, for the web) and SVG (vector lines that scale to any size; for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Animation: GIF (works almost everywhere, max 256 colours), video as MP4 (plays on phones, Safari, social media and editing programs; made in Chrome and Edge) and video as WebM (smooth and small, Chrome, Edge and Firefox). Project file: keeps everything editable so you can open and continue later (Save and open). Check which formats the place you upload to accepts; Research Catalogue takes ordinary images, GIF and video.']
+      ['Export formats','Images: PNG (sharp, can be transparent, the safe choice), JPG (small file, no transparency), TIFF (print and archive), WebP (small, can be transparent, for the web) and SVG (vector lines that scale to any size; for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Animation: GIF (works almost everywhere, max 256 colours), animated WebP (small, soft transparency, plays in all modern browsers but not accepted everywhere), video as MP4 (plays on phones, Safari, social media and editing programs; made in Chrome and Edge) and video as WebM (smooth and small, Chrome, Edge and Firefox). Project file: keeps everything editable so you can open and continue later (Save and open). Check which formats the place you upload to accepts; Research Catalogue takes ordinary images, GIF and video.']
     ];
     var man=el('div','margin-top:4px;display:none;');
     MANUAL.forEach(function(m){ var grp=m[0].indexOf('## ')===0; var h=el('div',grp?'font-weight:500;color:#111;font-size:13px;margin-top:14px;padding-top:6px;border-top:1px solid #e3e3e3;':'font-weight:400;color:#111;margin-top:6px;',grp?m[0].slice(3):m[0]); man.appendChild(h); man.appendChild(el('div','',m[1])); });
