@@ -2449,7 +2449,8 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     function dotSize(p){ return Math.max(6,Math.min(16,6+Math.sqrt(Math.max(0.3,(p.s&&p.s.size)||3))*2)); }
     function editDraw(){
       qTools.textContent=''; qPs.textContent='';
-      Q.forEach(function(q){ if(q.h) return; var on=st.on.indexOf(q.id)>=0, b=tile(on); b.title=q.n+(on?' (shown)':' (hidden)'); b._tip=b.title; b.setAttribute('data-q','t-'+q.id); b.appendChild(svgOf(q.p,16));
+      var oq=ordQ().filter(function(q){ return !q.h; }); oq=oq.filter(function(q){ return st.on.indexOf(q.id)>=0; }).concat(oq.filter(function(q){ return st.on.indexOf(q.id)<0; }));
+      oq.forEach(function(q){ var on=st.on.indexOf(q.id)>=0, b=tile(on); b.title=q.n+(on?' (shown)':' (hidden)'); b._tip=b.title; b.setAttribute('data-q','t-'+q.id); b.appendChild(svgOf(q.p,16));
         b.addEventListener('click',function(){ st.on=Q.filter(function(z){ return z===q?!on:st.on.indexOf(z.id)>=0; }).map(function(z){ return z.id; }); save(); build(); editDraw(); }); qTools.appendChild(b); });
       var a=loadPre();
       a.forEach(function(p,i){ var on=!p.h, b=tile(false); b.style.opacity=on?'1':'.35'; b.style.borderColor=on?'#111':'#ccc'; b.title=p.n+(on?' (shown)':' (hidden)'); b._tip=b.title; b.setAttribute('data-q','p-'+i);
@@ -2461,7 +2462,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     }
     qEditDraw=editDraw;
     qEdit.appendChild(el('div','font-size:12px;font-weight:bold;color:#111;','Your shortcuts'));
-    qEdit.appendChild(el('div','font-size:11px;color:#777;','Shortcut tools: click to show or hide. Drag the buttons in the toolbar above to change their order.'));
+    qEdit.appendChild(el('div','font-size:11px;color:#777;','Click to show/hide. Drag above to reorder.'));
     qEdit.appendChild(qTools);
     var rs=btn('Reset tools to standard',function(){ st.on=DEF.slice(); delete st.order; save(); build(); editDraw(); },'Back to the standard shortcut tools (your presets are not touched)'); qEdit.appendChild(rs);
     qEdit.appendChild(el('div','font-size:11px;color:#777;margin-top:4px;','Shortcut presets: click to show or hide, ✕ deletes'));
