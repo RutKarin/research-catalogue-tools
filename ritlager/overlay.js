@@ -2870,7 +2870,9 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var hCol=hdr('Colour'), hLook=hdr('Look'), hThick=hdr('Thickness'), hDT=hdr('Drawing tools'), hFx=hdr('Brush effects'), hPre=hdr('Presets');
     if(hCol&&hCol.parentNode) hCol.parentNode.removeChild(hCol); // its rows now live in the quick bar (More colour options)
     if(hDT) hDT._hidden=true; // the tool buttons are in the quick bar; the elements stay for keys and marking
-    var hPs=sec('Pen style'); bar.insertBefore(hPs,hThick); bar.insertBefore(rNib,hThick); bar.insertBefore(gLook,hThick);
+    var hPs=sec('Pen style'); bar.insertBefore(hPs,hThick);
+    // Tool choice (Pen, Brush, Airbrush) at the top of Styles too, for anyone who works from the menu instead of the quick bar
+    var hTool=sec('Tool'), rTool=row(); rTool.style.gap='6px'; rTool.style.flexWrap='nowrap'; [bPen,bBrush,bAir].forEach(function(b){ b.style.flex='1 1 0'; b.style.minWidth='0'; rTool.appendChild(b); }); bar.insertBefore(hTool,hPs); bar.insertBefore(rTool,hPs); bar.insertBefore(rNib,hThick); bar.insertBefore(gLook,hThick);
     if(hFx){ bar.insertBefore(hFx,hThick); bar.insertBefore(gFx,hThick); }
     hThick._t='Size and hardness'; hThick.setAttribute('data-sec','Size and hardness'); hLook._t='Details'; hLook.setAttribute('data-sec','Details');
     bar.insertBefore(rSoft,hLook.nextSibling);
@@ -2879,7 +2881,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
-    var GROUP={'Drawing tools':'Styles','Pen style':'Styles','Brush effects':'Styles','Size and hardness':'Styles','Details':'Styles','Pressure and stabilising':'Pen behaviour','Presets':'Pen behaviour','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save','Connect (beta)':'Connect'};
+    var GROUP={'Drawing tools':'Styles','Tool':'Styles','Pen style':'Styles','Brush effects':'Styles','Size and hardness':'Styles','Details':'Styles','Pressure and stabilising':'Pen behaviour','Presets':'Pen behaviour','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save','Connect (beta)':'Connect'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
