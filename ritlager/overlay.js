@@ -16,7 +16,22 @@
     return best;
   }
   SC=findScroller();
+  // On Research Catalogue's editor the drawing is tied to the page area (#content), not to the window: when you zoom the browser the area can move
+  // (it is centred in the window) or be scaled, and the drawing must follow it.
+  var ancS=1;
+  function anchorBox(){
+    try{
+      var a=document.getElementById('content'); if(!a||!/\/editor\//.test(location.pathname)||a.offsetWidth<100||a.offsetHeight<100) return null;
+      if(SC&&!SC.contains(a)) return null;
+      var r=a.getBoundingClientRect(), w=a.offsetWidth, h=a.offsetHeight, x, y;
+      if(SC){ var sr=SC.getBoundingClientRect(); x=r.left-sr.left-SC.clientLeft+SC.scrollLeft; y=r.top-sr.top-SC.clientTop+SC.scrollTop; }
+      else { x=r.left+window.pageXOffset; y=r.top+window.pageYOffset; }
+      return {w:w,h:h,x:x,y:y,s:(r.width/w)||1};
+    }catch(e){ return null; }
+  }
   function measure(){
+    var box=(area==='view')?null:anchorBox(); ancS=1;
+    if(box){ W=Math.min(box.w,6000); H=Math.min(box.h,Math.floor(30e6/W),20000); offX=box.x; offY=box.y; ancS=box.s; return; }
     if(area==='view'){
       W = SC?SC.clientWidth:de.clientWidth; H = SC?SC.clientHeight:window.innerHeight;
       offX = SC?SC.scrollLeft:window.pageXOffset; offY = SC?SC.scrollTop:window.pageYOffset;
@@ -38,7 +53,7 @@
   function setSize(){
     var keep = null;
     cv.width = base.width = W; cv.height = base.height = H;
-    cv.style.width = W+'px'; cv.style.height = H+'px'; cv.style.left=offX+'px'; cv.style.top=offY+'px';
+    cv.style.width = W+'px'; cv.style.height = H+'px'; cv.style.left=offX+'px'; cv.style.top=offY+'px'; cv.style.transformOrigin='0 0'; cv.style.transform=ancS!==1?'scale('+ancS+')':'';
     rebuild();
   }
 
@@ -793,11 +808,11 @@
   var SHAPES=[['rect','Rectangle','M3 5h18v14H3z'],['round','Rounded','M7 5h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4z'],['ellipse','Ellipse','M12 5c5 0 9 3 9 7s-4 7-9 7-9-3-9-7 4-7 9-7z'],['triangle','Triangle','M12 4 21 20H3z'],['diamond','Diamond','M12 3 21 12 12 21 3 12z'],['hexagon','Hexagon','M7 4h10l5 8-5 8H7l-5-8z'],['star','Star','m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z'],['heart','Heart','M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z']];
   function shapeIcon(k){ for(var i=0;i<SHAPES.length;i++) if(SHAPES[i][0]===k) return [SHAPES[i][2]]; return [SHAPES[0][2]]; }
   var HEART=(function(){ var a=[],i,t,x,y,x0=1e9,x1=-1e9,y0=1e9,y1=-1e9; for(i=0;i<72;i++){ t=i/72*Math.PI*2; x=16*Math.pow(Math.sin(t),3); y=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)); a.push([x,y]); x0=Math.min(x0,x); x1=Math.max(x1,x); y0=Math.min(y0,y); y1=Math.max(y1,y); } return a.map(function(q){ return [(q[0]-x0)/(x1-x0),(q[1]-y0)/(y1-y0)]; }); })();
-  function shapeGeom(k,L,T,R,B){
+  function shapeGeom(k,L,T,R,B,rad){
     var w=R-L, h=B-T, cx=(L+R)/2, cy=(T+B)/2, P=[], i, an;
     function pt(x,y){ P.push({x:x,y:y,p:1}); }
     if(k==='ellipse'){ var n=Math.max(48,Math.min(200,Math.round(Math.max(w,h)/5))); for(i=0;i<n;i++){ an=i/n*Math.PI*2; pt(cx+w/2*Math.cos(an),cy+h/2*Math.sin(an)); } }
-    else if(k==='round'){ var r=Math.min(w,h)*0.22, cs=[[R-r,T+r,-90],[R-r,B-r,0],[L+r,B-r,90],[L+r,T+r,180]]; cs.forEach(function(c){ for(i=0;i<=8;i++){ an=(c[2]+i*90/8)*Math.PI/180; pt(c[0]+r*Math.cos(an),c[1]+r*Math.sin(an)); } }); }
+    else if(k==='round'){ var r=Math.min(w,h)*((rad==null?22:Math.max(0,Math.min(50,rad)))/100), cs=[[R-r,T+r,-90],[R-r,B-r,0],[L+r,B-r,90],[L+r,T+r,180]]; cs.forEach(function(c){ for(i=0;i<=8;i++){ an=(c[2]+i*90/8)*Math.PI/180; pt(c[0]+r*Math.cos(an),c[1]+r*Math.sin(an)); } }); }
     else if(k==='triangle'){ pt(cx,T); pt(R,B); pt(L,B); }
     else if(k==='diamond'){ pt(cx,T); pt(R,cy); pt(cx,B); pt(L,cy); }
     else if(k==='hexagon'){ pt(L+w*0.25,T); pt(R-w*0.25,T); pt(R,cy); pt(R-w*0.25,B); pt(L+w*0.25,B); pt(L,cy); }
@@ -810,7 +825,7 @@
     var o=s.o, x0=o.x, y0=o.y, x1=q.x, y1=q.y;
     if(ev&&ev.shiftKey){ var d=Math.max(Math.abs(x1-x0),Math.abs(y1-y0)); x1=x0+(x1<x0?-d:d); y1=y0+(y1<y0?-d:d); }
     if(ev&&ev.altKey){ x0=2*o.x-x1; y0=2*o.y-y1; }
-    s.pts=shapeGeom(s.shp,Math.min(x0,x1),Math.min(y0,y1),Math.max(x0,x1),Math.max(y0,y1));
+    s.pts=shapeGeom(s.shp,Math.min(x0,x1),Math.min(y0,y1),Math.max(x0,x1),Math.max(y0,y1),s.rad);
   }
   function render(c,s){
     if(s.tool==='px'){ renderPx(c,s); return; }
@@ -894,7 +909,7 @@
   }
 
   // ---- inmatning (dokumentkoordinater) ----
-  function cpt(e){ var r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  function cpt(e){ var r=cv.getBoundingClientRect(), k=(r.width&&W)?r.width/W:1, k2=(r.height&&H)?r.height/H:1; return {x:(e.clientX-r.left)/k, y:(e.clientY-r.top)/k2}; }
   function pos(e){ var q=cpt(e);
     return { x:q.x, y:q.y,
       p: e.pointerType==='pen' ? (e.pressure||0.5) : 0.8 };
@@ -924,7 +939,7 @@
     var isFx=(T==='dodge'||T==='burn'), isPx=(T==='blur'||T==='sharpen'||T==='smudge'||T==='clone');
     cur={l:act,tool:(T==='brush'?'pen':(isFx?'air':(isPx?'px':T))),fx:isFx?T:undefined,color:isFx?(T==='dodge'?'#ffffff':'#000000'):color,size:size,soft:+soft.value,sens:+sens.value/100,ink:isFx?(+fxExp.value/100):(+ink.value/100),pressure:pr.checked, brush:T==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
          arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value,pts:[q],sm:{x:q.x,y:q.y,p:q.p}};
-    if(T==='shape'){ cur.shp=shpSel.value; cur.fm=shpFm.value; cur.o={x:q.x,y:q.y}; }
+    if(T==='shape'){ cur.shp=shpSel.value; cur.fm=shpFm.value; cur.rad=+shpRad.value; cur.o={x:q.x,y:q.y}; }
     if(isPx&&pxAll.checked) cur.scp='all';
     if(isPx){ cur.size=Math.max(1,(pxSizes[T]||40)/3); cur.kind=T; cur.hard=+pxHard.value; cur.ink=+pxStr.value/100; cur.amt=+pxAmt.value; cur.pressure=false; if(T==='clone'){ if(!cloneOff) cloneOff={dx:cloneSrc.x-q.x,dy:cloneSrc.y-q.y}; cur.dx=cloneOff.dx; cur.dy=cloneOff.dy; } }
     e.preventDefault(); refresh();
@@ -1004,7 +1019,7 @@
   bar.appendChild(head);
 
   function sec(t){ var d=el('div','font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-top:3px;border-top:1px solid #e4e4e4;padding-top:6px;cursor:pointer;user-select:none;',t); d.setAttribute('data-sec',t); d._t=t; d._open=true; d._hidden=false; bar.appendChild(d); return d; }
-  function applySec(h){ if(!h._wrap) return; h.textContent=(h._open?'▾ ':'▸ ')+h._t; h.style.display=(h._hidden||h._flat)?'none':'block'; h._wrap.style.display=(h._open&&!h._hidden)?'flex':'none'; }
+  function applySec(h){ if(!h._wrap) return; h.textContent=(h._open?'▾ ':'▸ ')+(h._lab||h._t); h.style.display=(h._hidden||h._flat)?'none':'block'; h._wrap.style.display=(h._open&&!h._hidden)?'flex':'none'; }
   function lab(r,t){ r.appendChild(el('span','font-size:12px;color:#666;',t)); }
   function slider(r,min,max,val,w){ var i=el('input','width:'+w+'px;accent-color:#111;'); i.type='range'; i.min=min; i.max=max; i.value=val; r.appendChild(i); return i; }
   function liveVal(inp,suf){
@@ -1172,6 +1187,7 @@
   nibSel.title='Round: soft round tip. Square: tip with corners. Flat: calligraphy nib, thin in one direction. Pencil: grainy, like pencil on paper. Marker: transparent highlighter. Ink: soft ink pen with drops and tapering ends. Watercolour: transparent wash with darker edges and pigment grain.';
   rNib.appendChild(nibSel); bar.appendChild(rNib);
   var NIBT=[], NIBPREV={round:'#222',square:'#222',flat:'#222',ink:'#222',marker:'#e6b800',pencil:'#333',charcoal:'#222',chalk:'#555',crayon:'#c0392b',water:'#1f5fd1',dotted:'#222',dashed:'#222',stars:'#e6a800',hearts:'#d6285b',leaves:'#2a9d4a',glow:'#ff2d95',fuzzy:'#7a5230',flare:'#ff9a3c',cloud:'#9fb4cc',smoke:'#888',nebula:'#8a4fd8',glitter:'#e6b800',rainbow:'#222',thermal:'#222',glitch:'#222'}, NIBDARK={glow:1,flare:1,nebula:1,glitter:1,smoke:0};
+  var lookSync=function(){};
   function nibGrid(host,keys,opt){
     host.style.cssText='display:grid;grid-template-columns:repeat('+((opt&&opt.cols)||3)+',1fr);gap:4px;';
     keys.forEach(function(k){
@@ -1206,8 +1222,10 @@
   var rAir2=row(); lab(rAir2,'Build-up'); var airFlow=slider(rAir2,5,100,35,100); liveVal(airFlow); airFlow.title='How fast the colour builds up when you go over the same place'; bar.appendChild(rAir2);
   var rDry=row(); lab(rDry,'Brush dryness'); var dry=slider(rDry,0,100,30,90); bar.appendChild(rDry);
   var rArrow=row(); var ar=chk(rArrow,'Arrowhead on lines',false,'Adds an arrowhead at the end of straight lines drawn with the Line tool.'); bar.appendChild(rArrow);
-  var rShape=row(); lab(rShape,'Shape'); var shpSel=el('select',BTN+'padding:3px 6px;flex:1;min-width:0;'); SHAPES.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; shpSel.appendChild(op); }); try{ var sv0=JSON.parse(localStorage.getItem('ritlager-shape')||'{}'); if(sv0.k) shpSel.value=sv0.k; }catch(e){} function shpSave(){ try{ localStorage.setItem('ritlager-shape',JSON.stringify({k:shpSel.value,f:shpFm.value})); }catch(e){} if(typeof qSync==='function') qSync(); } shpSel.addEventListener('change',shpSave); shpSel.title='Drag on the page to draw the shape. Hold Shift to keep it even (square, circle…), Alt to draw from the centre.'; rShape.appendChild(shpSel); bar.appendChild(rShape);
+  var rShape=row(); lab(rShape,'Shape'); var shpSel=el('select',BTN+'padding:3px 6px;flex:1;min-width:0;'); SHAPES.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; shpSel.appendChild(op); }); try{ var sv0=JSON.parse(localStorage.getItem('ritlager-shape')||'{}'); if(sv0.k) shpSel.value=sv0.k; }catch(e){} function shpSave(){ try{ localStorage.setItem('ritlager-shape',JSON.stringify({k:shpSel.value,f:shpFm.value,r:+shpRad.value})); }catch(e){} if(typeof qSync==='function') qSync(); } shpSel.addEventListener('change',shpSave); shpSel.addEventListener('change',function(){ try{ radVis(); }catch(e){} }); shpSel.title='Drag on the page to draw the shape. Hold Shift to keep it even (square, circle…), Alt to draw from the centre.'; rShape.appendChild(shpSel); bar.appendChild(rShape);
   var rShape2=row(); lab(rShape2,'Fill'); var shpFm=el('select',BTN+'padding:3px 6px;flex:1;min-width:0;'); [['line','Outline only'],['fill','Solid fill'],['tint','Outline + light fill']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; shpFm.appendChild(op); }); shpFm.title='The outline uses the thickness slider; the fill uses the same colour.'; try{ var sv1=JSON.parse(localStorage.getItem('ritlager-shape')||'{}'); if(sv1.f) shpFm.value=sv1.f; }catch(e){} shpFm.addEventListener('change',shpSave); rShape2.appendChild(shpFm); bar.appendChild(rShape2);
+  var rRad=row(); lab(rRad,'Corner radius'); var shpRad=slider(rRad,0,50,22,100); try{ var sv2=JSON.parse(localStorage.getItem('ritlager-shape')||'{}'); if(sv2.r!=null) shpRad.value=sv2.r; }catch(e){} liveVal(shpRad); shpRad.title='How round the corners of the Rounded shape are (0 = square corners, 50 = fully round ends)'; shpRad.addEventListener('change',shpSave); bar.appendChild(rRad);
+  function radVis(){ show(rRad, tool==='shape'&&shpSel.value==='round'); }
   var rShape3=el('div','font-size:11px;color:#777;line-height:1.35;','Drag to draw. Shift = keep it even (square, circle…), Alt = from the centre. Use Select afterwards to move, resize or rotate it. In the quick row: hold or right-click the Shapes icon to pick another shape.'); bar.appendChild(rShape3);
 
   var secPress=sec('Pressure and stabilising');
@@ -1867,11 +1885,13 @@
   bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','To make an animation from your drawing: 1) Make your choices above. 2) Press “Build-up from my drawing” (or build frame by frame with “+ Add this frame”). 3) ▶ Preview. 4) Choose a format and save.'));
 
   sec('Export (image)');
-  function pageNow(){ var w,h; if(SC){ w=SC.scrollWidth; h=SC.scrollHeight; } else { w=Math.max(de.scrollWidth,bd?bd.scrollWidth:0,de.clientWidth); h=Math.max(de.scrollHeight,bd?bd.scrollHeight:0,de.clientHeight); } w=Math.min(w,6000); h=Math.min(h,Math.floor(30e6/w),20000); return {w:w,h:h}; }
+  function pageNow(){ var w,h, bx=(area==='view')?null:anchorBox(); if(bx){ return {w:Math.min(bx.w,6000),h:Math.min(bx.h,Math.floor(30e6/Math.min(bx.w,6000)),20000),x:bx.x,y:bx.y,s:bx.s}; } if(SC){ w=SC.scrollWidth; h=SC.scrollHeight; } else { w=Math.max(de.scrollWidth,bd?bd.scrollWidth:0,de.clientWidth); h=Math.max(de.scrollHeight,bd?bd.scrollHeight:0,de.clientHeight); } w=Math.min(w,6000); h=Math.min(h,Math.floor(30e6/w),20000); return {w:w,h:h}; }
   var pgInfo=el('div','font-size:11.5px;color:#555;line-height:1.35;padding-bottom:2px;border-bottom:1px solid #e6e6e6;'); bar.appendChild(pgInfo);
   function updatePageInfo(){ var n=pageNow(), t='Page size: '+n.w+' × '+n.h+' px'; if(pgInfo.textContent!==t) pgInfo.textContent=t; }
   updatePageInfo();
-  setInterval(function(){ if(!de.contains(bar)) return; updatePageInfo(); if(area==='view'||cur) return; var n=pageNow(); if(n.w!==W||n.h!==H){ try{ rescan(); if(typeof fmtUpdate==='function') fmtUpdate(); }catch(e){} } },1500);
+  setInterval(function(){ if(!de.contains(bar)) return; updatePageInfo(); if(area==='view'||cur) return; var n=pageNow(); if(n.w!==W||n.h!==H){ try{ rescan(); if(typeof fmtUpdate==='function') fmtUpdate(); }catch(e){} } else syncAnchor(n); },1500);
+  function syncAnchor(n){ if(!n||n.x==null||area==='view'||cur) return; if(Math.abs(n.x-offX)>0.4||Math.abs(n.y-offY)>0.4||Math.abs(n.s-ancS)>0.0005){ offX=n.x; offY=n.y; ancS=n.s; cv.style.left=offX+'px'; cv.style.top=offY+'px'; cv.style.transformOrigin='0 0'; cv.style.transform=ancS!==1?'scale('+ancS+')':''; } }
+  window.addEventListener('resize',function(){ try{ var n=pageNow(); if(n.w!==W||n.h!==H) rescan(); else syncAnchor(n); }catch(e){} });
   var rSz=row(); lab(rSz,'Image size');
   var csel=el('select',BTN+'padding:3px 6px;');
   [['full','Whole page'],['crop','Strokes only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; csel.appendChild(op); });
@@ -2259,7 +2279,7 @@
     if(t==='cut'&&tool!=='cut') clearSel();
     tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone') lastDraw=t; if(typeof qDrawSync==='function') qDrawSync(t);
     if(typeof markTop==='function') markTop(); mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bBlurT,t==='blur'); mark(bSharpT,t==='sharpen'); mark(bSmudgeT,t==='smudge'); mark(bCloneT,t==='clone'); if(t!=='clone') drawCloneMarkOff(); if(typeof pxSz!=='undefined'&&pxSizes[t]!=null) pxSz.value=pxSizes[t]; mark(bSel0,t==='select'); mark(bShape,t==='shape'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel(); if(typeof qSync==='function') qSync();
-    show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'||t==='dodge'||t==='burn'); show(rAir2,t==='air'||t==='dodge'||t==='burn'); show(rArrow, t==='line'); show(rShape,t==='shape'); show(rShape2,t==='shape'); show(rShape3,t==='shape');
+    show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'||t==='dodge'||t==='burn'); show(rAir2,t==='air'||t==='dodge'||t==='burn'); show(rArrow, t==='line'); show(rShape,t==='shape'); show(rShape2,t==='shape'); show(rShape3,t==='shape'); radVis(); try{ lookSync(); }catch(e){}
     var pressOK = t!=='line'&&t!=='shape'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=false; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
     try{ styleVis(); }catch(e){}
   }
@@ -2518,7 +2538,7 @@
     if(!o) return; quietChg=true; try{ applySettings2(o); }finally{ quietChg=false; }
   }
   function applySettings2(o){
-    if(o.nib) nibSel.value=o.nib; if(o.soft!=null) soft.value=o.soft; if(o.dry!=null) dry.value=o.dry; if(o.ink!=null){ ink.value=o.ink; try{ qOpSync(); }catch(e){} }
+    if(o.nib) nibSel.value=o.nib; try{ lookSync(); }catch(e){} if(o.soft!=null) soft.value=o.soft; if(o.dry!=null) dry.value=o.dry; if(o.ink!=null){ ink.value=o.ink; try{ qOpSync(); }catch(e){} }
     if(o.sens!=null) sens.value=o.sens; if(o.pr!=null) pr.checked=o.pr; if(o.pm) pm.value=o.pm; if(o.sm!=null) sm.value=o.sm;
     if(o.hard!=null) airHard.value=o.hard; if(o.flow!=null) airFlow.value=o.flow; if(o.thin) thinSel.value=o.thin; if(o.arrow!=null) ar.checked=o.arrow;
     if(o.csel){ csel.value=o.csel; hint(); } if(o.bg){ bgSel.value=o.bg; bgCol.style.display=bgSel.value==='color'?'inline-block':'none'; } if(o.bgc) bgCol.value=o.bgc;
@@ -2652,7 +2672,27 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     function flyShow(){ qFlyH.forEach(function(h,i){ h.style.display=i===flyCat?'grid':'none'; qFlyB[i].style.background=i===flyCat?'#111':'#fff'; qFlyB[i].style.color=i===flyCat?'#fff':'#111'; }); }
     flyShow();
     var qFly2=el('div','display:none;flex-direction:row;gap:4px;padding:6px;border:1px solid #e4e4e4;border-radius:8px;background:#fff;'), qModeB={};
-    function flyClose(){ qFly.style.display='none'; qFly2.style.display='none'; qFly2._lay=false; qFly2._set=false; }
+    // Options that belong to the chosen drawing tool only (Brush, Airbrush, Line, Shape); Pen shows its styles (the tabs above)
+    var qOpt=el('div','display:none;flex-direction:column;gap:7px;padding:8px;border:1px solid #e4e4e4;border-radius:8px;background:#fff;');
+    function oRow(t){ var r=el('div','display:flex;gap:8px;align-items:center;'); r.appendChild(el('span','font-size:12px;color:#666;width:84px;flex:none;',t)); qOpt.appendChild(r); return r; }
+    function oSlider(t,inp,min,max,suf){ var r=oRow(t), s=el('input','flex:1 1 auto;min-width:0;accent-color:#111;'), v=el('span','font-size:11.5px;color:#444;width:38px;text-align:right;flex:none;',inp.value+suf); s.type='range'; s.min=min; s.max=max; s.value=inp.value; s.setAttribute('aria-label',t); r.appendChild(s); r.appendChild(v);
+      s.addEventListener('input',function(){ inp.value=s.value; v.textContent=s.value+suf; inp.dispatchEvent(new Event('input',{bubbles:true})); }); s.addEventListener('change',function(){ inp.dispatchEvent(new Event('change',{bubbles:true})); }); }
+    function optShow(m){
+      qOpt.textContent='';
+      if(m==='brush'){ oSlider('Dryness',dry,0,100,''); }
+      else if(m==='air'){ oSlider('Hardness',airHard,0,100,'%'); oSlider('Build-up',airFlow,5,100,'%'); }
+      else if(m==='line'){ var r=oRow('Arrowhead'), cb=el('input'); cb.type='checkbox'; cb.checked=ar.checked; cb.setAttribute('aria-label','Arrowhead on lines'); r.appendChild(cb); r.appendChild(el('span','font-size:11.5px;color:#777;','at the end of the line')); cb.addEventListener('change',function(){ ar.checked=cb.checked; ar.dispatchEvent(new Event('change',{bubbles:true})); }); }
+      else if(m==='shape'){
+        var g=el('div','display:flex;flex-wrap:wrap;gap:4px;');
+        SHAPES.forEach(function(o){ var b=el('button','flex:0 0 calc(25% - 3px);min-width:0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px;border:1px solid #ccc;border-radius:8px;background:'+(shpSel.value===o[0]?'#111':'#fff')+';color:'+(shpSel.value===o[0]?'#fff':'#111')+';font:10px system-ui,sans-serif;cursor:pointer;'); b.type='button'; b.appendChild(svgOf([o[2]],16)); b.appendChild(el('span',null,o[1])); b.addEventListener('click',function(){ shpSel.value=o[0]; shpSel.dispatchEvent(new Event('change',{bubbles:true})); setDrawing(true); bShape.click(); optShow('shape'); }); g.appendChild(b); });
+        qOpt.appendChild(g);
+        var r2=oRow('Fill'), fs=el('select',BTN+'padding:3px 6px;flex:1;min-width:0;'); Array.prototype.forEach.call(shpFm.options,function(o){ var op=el('option',null,o.textContent); op.value=o.value; fs.appendChild(op); }); fs.value=shpFm.value; r2.appendChild(fs); fs.addEventListener('change',function(){ shpFm.value=fs.value; shpFm.dispatchEvent(new Event('change',{bubbles:true})); });
+        if(shpSel.value==='round') oSlider('Corner radius',shpRad,0,50,'%');
+      }
+      qOpt.style.display=qOpt.children.length?'flex':'none';
+    }
+    function flyStyles(){ var m=drwMode; if(m==='pen'||!DT[m]){ qOpt.style.display='none'; var cur2=nibSel.value; NIBG.forEach(function(g,gi){ if(g[1].indexOf(cur2)>=0) flyCat=gi; }); flyShow(); qFly.style.display='flex'; nibMark(); } else { qFly.style.display='none'; optShow(m); } }
+    function flyClose(){ qFly.style.display='none'; qFly2.style.display='none'; qOpt.style.display='none'; qFly2._lay=false; qFly2._set=false; }
     function setIc(b,paths){ var sv=b&&b.querySelector('svg'); if(!sv) return; while(sv.firstChild) sv.removeChild(sv.firstChild); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); }
     function modeIcons(){ setIc(qModeB.mark,selMode==='lasso'?IC.sl:IC.sr); setIc(qModeB.cut,cutMode==='lasso'?IC.cl:IC.cr); setIc(qModeB.drawtool,drwMode==='pen'?qpath('drawtool'):qpath(drwMode)); setIc(qModeB.tone,toneMode==='burn'?IC2.bu:IC2.dd); setIc(qModeB.retouch,RT[retMode].p); if(qModeB.shapes) setIc(qModeB.shapes,shapeIcon(shpSel.value)); }
     function layerFly(){
@@ -2674,11 +2714,11 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     function modeFly(items,keepStyles,wrap){
       qFly2.style.flexDirection='row'; qFly2.style.flexWrap=wrap?'wrap':'nowrap'; qFly2._lay=false; qFly2._set=false;
       qFly2.textContent='';
-      items.forEach(function(it){ var b=el('button',(wrap?'flex:0 0 calc(25% - 3px);':'flex:1 1 0;')+'min-width:0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border:1px solid #ccc;border-radius:8px;background:'+(it.on?'#111':'#fff')+';color:'+(it.on?'#fff':'#111')+';font:11px system-ui,sans-serif;cursor:pointer;'); b.type='button'; b.appendChild(svgOf(it.p,18)); b.appendChild(el('span',null,it.n)); b.addEventListener('click',function(){ it.fn(); modeIcons(); if(!keepStyles) setTimeout(flyClose,60); else Array.prototype.forEach.call(qFly2.children,function(o){ var me=o===b; o.style.background=me?'#111':'#fff'; o.style.color=me?'#fff':'#111'; }); }); qFly2.appendChild(b); });
-      if(keepStyles){ var cur2=nibSel.value; NIBG.forEach(function(g,gi){ if(g[1].indexOf(cur2)>=0) flyCat=gi; }); flyShow(); qFly.style.display='flex'; nibMark(); } else qFly.style.display='none'; qFly2.style.display='flex';
+      items.forEach(function(it){ var b=el('button',(wrap?'flex:0 0 calc(25% - 3px);':'flex:1 1 0;')+'min-width:0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border:1px solid #ccc;border-radius:8px;background:'+(it.on?'#111':'#fff')+';color:'+(it.on?'#fff':'#111')+';font:11px system-ui,sans-serif;cursor:pointer;'); b.type='button'; b.appendChild(svgOf(it.p,18)); b.appendChild(el('span',null,it.n)); b.addEventListener('click',function(){ it.fn(); modeIcons(); if(!keepStyles) setTimeout(flyClose,60); else { Array.prototype.forEach.call(qFly2.children,function(o){ var me=o===b; o.style.background=me?'#111':'#fff'; o.style.color=me?'#fff':'#111'; }); flyStyles(); } }); qFly2.appendChild(b); });
+      if(keepStyles){ flyStyles(); } else { qFly.style.display='none'; qOpt.style.display='none'; } qFly2.style.display='flex';
     }
     qFly.addEventListener('click',function(){ setTimeout(flyClose,60); });
-    document.addEventListener('pointerdown',function(e){ if((qFly.style.display!=='none'||qFly2.style.display!=='none')&&!qFly.contains(e.target)&&!qFly2.contains(e.target)&&!(e.target.closest&&e.target.closest('[data-fly]'))) flyClose(); },true);
+    document.addEventListener('pointerdown',function(e){ if((qFly.style.display!=='none'||qFly2.style.display!=='none'||qOpt.style.display!=='none')&&!qFly.contains(e.target)&&!qFly2.contains(e.target)&&!qOpt.contains(e.target)&&!(e.target.closest&&e.target.closest('[data-fly]'))) flyClose(); },true);
     document.addEventListener('keydown',function(e){ if(e.key==='Escape') flyClose(); });
     function flyOpen(id){
       if(id==='layers'){ layerFly(); return; }
@@ -2689,7 +2729,8 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
       if(id==='retouch'){ modeFly(Object.keys(RT).map(function(k){ return {n:RT[k].n,p:RT[k].p,on:retMode===k,fn:function(){ retMode=k; saveModes(); RT[k].b().click(); }}; }).concat([{n:pxAll.checked?'All layers':'Active layer',p:qpath('layers'),on:pxAll.checked,fn:function(){ pxAll.checked=!pxAll.checked; pxAll.dispatchEvent(new Event('change')); }}])); return; }
       if(id==='shapes'){ modeFly(SHAPES.map(function(o){ return {n:o[1],p:[o[2]],on:shpSel.value===o[0],fn:function(){ shpSel.value=o[0]; shpSave(); setDrawing(true); bShape.click(); }}; }),false,true); return; }
       if(id==='cut'){ modeFly([{n:'Rectangle',p:IC.cr,on:cutMode==='rect',fn:function(){ bCutR.click(); }},{n:'Lasso',p:IC.cl,on:cutMode==='lasso',fn:function(){ bCutL.click(); }}]); return; }
-      qFly2.style.display='none'; var cur=nibSel.value; NIBG.forEach(function(g,gi){ if(g[1].indexOf(cur)>=0) flyCat=gi; }); flyShow(); qFly.style.display='flex'; nibMark(); }
+      if(id==='brush'){ qFly2.style.display='none'; qFly.style.display='none'; optShow('brush'); return; }
+      qFly2.style.display='none'; qOpt.style.display='none'; var cur=nibSel.value; NIBG.forEach(function(g,gi){ if(g[1].indexOf(cur)>=0) flyCat=gi; }); flyShow(); qFly.style.display='flex'; nibMark(); }
     var qSz=row(); qSz.style.flexWrap='nowrap'; qSz.style.gap='6px'; qSz.style.alignItems='center';
     var qSr=el('input','flex:1 1 auto;min-width:0;accent-color:#111;'); qSr.type='range'; qSr.min=0; qSr.max=100; qSr.step=0.25; qSr.title='Size'; qSr.setAttribute('aria-label','Size (quick)');
     var qSv=el('span','font-size:11px;color:#555;width:42px;text-align:right;flex:none;'); qSz.appendChild(qSr); qSz.style.gridColumn='2';
@@ -2858,7 +2899,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     qEdit.appendChild(qPs);
     var done=btn('Done',function(){ qEdit.style.display='none'; }); qEdit.appendChild(done);
     strip.addEventListener('click',function(){ st.open=!st.open; save(); applyOpen(); });
-    bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qFly2,qRow.nextSibling); bar.insertBefore(qFly,qFly2.nextSibling); bar.insertBefore(qNb,qFly2.nextSibling); bar.insertBefore(qGrid,qNb.nextSibling); qGrid.appendChild(qHue); qGrid.appendChild(qSz); qGrid.appendChild(qOp); bar.insertBefore(qColX,qGrid.nextSibling); bar.insertBefore(qAn,qColX.nextSibling); bar.insertBefore(qMc,qAn.nextSibling); bar.insertBefore(qPre,qMc.nextSibling); bar.insertBefore(qCol,qPre.nextSibling); bar.insertBefore(qEdit,qCol.nextSibling); qEnd=qEdit;
+    bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qFly2,qRow.nextSibling); bar.insertBefore(qFly,qFly2.nextSibling); bar.insertBefore(qOpt,qFly.nextSibling); bar.insertBefore(qNb,qFly2.nextSibling); bar.insertBefore(qGrid,qNb.nextSibling); qGrid.appendChild(qHue); qGrid.appendChild(qSz); qGrid.appendChild(qOp); bar.insertBefore(qColX,qGrid.nextSibling); bar.insertBefore(qAn,qColX.nextSibling); bar.insertBefore(qMc,qAn.nextSibling); bar.insertBefore(qPre,qMc.nextSibling); bar.insertBefore(qCol,qPre.nextSibling); bar.insertBefore(qEdit,qCol.nextSibling); qEnd=qEdit;
     qImport=function(){
       var s2=null; try{ s2=JSON.parse(localStorage.getItem(KEY)); }catch(e){} if(s2&&s2.on){ st=s2; }
       try{ var m2=JSON.parse(localStorage.getItem('ritlager-modes')||'{}'); if(m2.t==='burn'||m2.t==='dodge') toneMode=m2.t; if(['blur','sharpen','smudge','clone'].indexOf(m2.r)>=0) retMode=m2.r; if(['pen','brush','air','line','shape'].indexOf(m2.d)>=0) drwMode=m2.d; }catch(e){}
@@ -2875,17 +2916,28 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     if(hDT) hDT._hidden=true; // the tool buttons are in the quick bar; the elements stay for keys and marking
     var hPs=sec('Pen style'); bar.insertBefore(hPs,hThick);
     // Tool choice (Pen, Brush, Airbrush) at the top of Styles too, for anyone who works from the menu instead of the quick bar
-    var hTool=sec('Tool'), rTool=row(); rTool.style.gap='6px'; rTool.style.flexWrap='nowrap'; [bPen,bBrush,bAir].forEach(function(b){ b.style.flex='1 1 0'; b.style.minWidth='0'; rTool.appendChild(b); }); bar.insertBefore(hTool,hPs); bar.insertBefore(rTool,hPs); bar.insertBefore(rNib,hThick); bar.insertBefore(gLook,hThick);
-    if(hFx){ bar.insertBefore(hFx,hThick); bar.insertBefore(gFx,hThick); }
+    var hTool=sec('Tool'), rTool=row(); rTool.style.gap='6px'; rTool.style.flexWrap='nowrap'; [bPen,bBrush,bAir].forEach(function(b){ b.style.flex='1 1 0'; b.style.minWidth='0'; rTool.appendChild(b); }); bar.insertBefore(hTool,hPs); bar.insertBefore(rTool,hPs);
+    // Pen styles: the same four tabs (Basic, Natural, Pattern, Effects) as in the Pen shortcut, instead of a drop-down plus one long grid
+    var lookTabs=el('div','display:flex;flex-direction:column;gap:6px;'), lookRow=el('div','display:flex;gap:4px;'), lookB=[], lookH=[], lookCat=0; lookTabs.appendChild(lookRow);
+    NIBG.forEach(function(g,gi){
+      var tb=el('button','flex:1 1 0;min-width:0;border:1px solid #ccc;border-radius:7px;background:#fff;font:11px system-ui,sans-serif;padding:4px 0;cursor:pointer;'); tb.type='button'; tb.textContent=g[0]; lookRow.appendChild(tb); lookB.push(tb);
+      var host=el('div'); lookTabs.appendChild(host); nibGrid(host,g[1],{cols:5}); lookH.push(host);
+      tb.addEventListener('click',function(){ lookCat=gi; lookShow(); });
+    });
+    function lookShow(){ lookH.forEach(function(h,i){ h.style.display=i===lookCat?'grid':'none'; lookB[i].style.background=i===lookCat?'#111':'#fff'; lookB[i].style.color=i===lookCat?'#fff':'#111'; }); }
+    lookSync=function(){ var cur=nibSel.value; NIBG.forEach(function(g,gi){ if(g[1].indexOf(cur)>=0) lookCat=gi; }); lookShow(); nibMark(); };
+    lookSync(); nibSel.addEventListener('change',function(){ lookSync(); });
+    bar.insertBefore(lookTabs,hThick);
+    [rNib,gLook,gFx,hFx].forEach(function(n){ if(n&&n.parentNode) n.parentNode.removeChild(n); }); // the drop-down and the long grids are gone; Brush effects are the Effects tab
     hThick._t='Size and hardness'; hThick.setAttribute('data-sec','Size and hardness');
     bar.insertBefore(rSoft,hLook.nextSibling);
     if(hLook.parentNode) hLook.parentNode.removeChild(hLook); // the tool's own sliders (hardness, dryness, build-up, arrow, shape) now sit directly under Size and hardness: one menu, not two
-    if(hPre){ bar.insertBefore(rThin,hPre); bar.insertBefore(rC,hPre); bar.insertBefore(wacomHint,hPre); }
+    if(hPre){ bar.insertBefore(rThin,hPre); bar.insertBefore(rC,hPre); bar.insertBefore(wacomHint,hPre); if(hPre.parentNode) hPre.parentNode.removeChild(hPre); } // Presets live inside the Pen behaviour fold-out
   })();
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
-    var GROUP={'Drawing tools':'Styles','Tool':'Styles','Pen style':'Styles','Brush effects':'Styles','Size and hardness':'Styles','Pressure and stabilising':'Pen behaviour','Presets':'Pen behaviour','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save','Connect (beta)':'Connect'};
+    var GROUP={'Drawing tools':'Styles','Tool':'Styles','Pen style':'Styles','Brush effects':'Styles','Size and hardness':'Styles','Pressure and stabilising':'Styles','Presets':'Styles','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save','Connect (beta)':'Connect'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+(g._lab||g._t); g._wrap.style.display=g._open?'flex':'none'; }
@@ -2907,7 +2959,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     });
     var cnt={}; hs.forEach(function(h){ var g=GROUP[h._t]||'More'; cnt[g]=(cnt[g]||0)+1; });
     hs.forEach(function(h){ if(cnt[GROUP[h._t]||'More']===1||GROUP[h._t]==='Text'){ h._flat=true; h._open=true; } });
-    hs.forEach(function(h){ if(GROUP[h._t]==='Styles'){ h._flat=true; h._open=true; } }); // Styles is one fold-out: its parts have no headers of their own
+    hs.forEach(function(h){ if(h._t==='Pressure and stabilising'){ h._lab='Pen behaviour'; h._flat=false; } else if(GROUP[h._t]==='Styles'){ h._flat=true; h._open=true; } }); // Pen behaviour is a small fold-out of its own at the end of Styles // Styles is one fold-out: its parts have no headers of their own
     gs.forEach(function(g){ if(g._t==='Styles'){ grpStyles=g; g._apply=function(){ applyGrp(g); }; } });
     hs.forEach(applySec); gs.forEach(applyGrp); try{ styleVis(true); }catch(e){}
     // order of the menus follows the work: draw, layers, edit, effects, then text, animate, export, connect
