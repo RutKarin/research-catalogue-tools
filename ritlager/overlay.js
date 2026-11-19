@@ -1684,6 +1684,16 @@
     selUiState();
   })();
 
+  // every number box in the panel: drag up or down inside the box to change the value (a plain click still lets you type)
+  bar.addEventListener('pointerdown',function(e){
+    var n=e.target; if(!n||n.tagName!=='INPUT'||n.type!=='number'||e.button>0) return;
+    var y0=e.clientY, v0=parseFloat(n.value)||0, mn=n.min!==''?+n.min:-1e9, mx=n.max!==''?+n.max:1e9, st=parseFloat(n.step)||1, range=Math.min(mx-mn,1000), unit=st*Math.max(1,Math.round(range/(st*100))), drag=false, pid=e.pointerId;
+    function mv(ev){ var dy=y0-ev.clientY; if(!drag){ if(Math.abs(dy)<5) return; drag=true; document.body.style.userSelect='none'; n.style.cursor='ns-resize'; try{ n.setPointerCapture(pid); }catch(x){} }
+      var v=v0+Math.round(dy/3)*unit; v=Math.max(mn,Math.min(mx,v)); v=Math.round(v/st)*st; if(String(v)!==n.value){ n.value=v; n.dispatchEvent(new Event('input',{bubbles:true})); } }
+    function up(){ document.removeEventListener('pointermove',mv,true); document.removeEventListener('pointerup',up,true); document.removeEventListener('pointercancel',up,true); if(drag){ document.body.style.userSelect=''; n.style.cursor=''; n.dispatchEvent(new Event('change',{bubbles:true})); n.blur(); } }
+    document.addEventListener('pointermove',mv,true); document.addEventListener('pointerup',up,true); document.addEventListener('pointercancel',up,true);
+  },true);
+  bar.addEventListener('focusin',function(e){ var n=e.target; if(n&&n.tagName==='INPUT'&&n.type==='number') setTimeout(function(){ try{ n.select(); }catch(x){} },0); });
   var rCt=row(); lab(rCt,'Eraser'); var bErF=btn('Freehand',function(){ setTool('eraser'); },'Erase by painting over what you want to remove (E)'); rCt.appendChild(bErF);
   var bCutR=btn('▭ Rectangle',function(){ cutMode='rect'; setTool('cut'); },'Drag a rectangle: erases inside or outside it on the active layer'), bCutL=btn('Lasso',function(){ cutMode='lasso'; setTool('cut'); },'Draw around an area: erases inside or outside it on the active layer');
   rCt.appendChild(bCutL); bar.appendChild(rCt);
