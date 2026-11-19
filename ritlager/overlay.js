@@ -1252,7 +1252,7 @@
   nibSel.title='Round: soft round tip. Square: tip with corners. Flat: calligraphy nib, thin in one direction. Pencil: grainy, like pencil on paper. Marker: transparent highlighter. Ink: soft ink pen with drops and tapering ends. Watercolour: transparent wash with darker edges and pigment grain.';
   rNib.appendChild(nibSel); bar.appendChild(rNib);
   var NIBT=[], NIBPREV={round:'#222',square:'#222',flat:'#222',ink:'#222',marker:'#e6b800',pencil:'#333',charcoal:'#222',chalk:'#555',crayon:'#c0392b',water:'#1f5fd1',dotted:'#222',dashed:'#222',stars:'#e6a800',hearts:'#d6285b',leaves:'#2a9d4a',glow:'#ff2d95',fuzzy:'#7a5230',flare:'#ff9a3c',cloud:'#9fb4cc',smoke:'#888',nebula:'#8a4fd8',glitter:'#e6b800',rainbow:'#222',thermal:'#222',glitch:'#222'}, NIBDARK={glow:1,flare:1,nebula:1,glitter:1,smoke:0};
-  var lookSync=function(){}, rBst=null, rAst=null, rFill=null;
+  var openConnect=function(){}; var lookSync=function(){}, rBst=null, rAst=null, rFill=null;
   var brushSt='dry', airSt='spray'; try{ brushSt=localStorage.getItem('ritlager-bst')||'dry'; airSt=localStorage.getItem('ritlager-ast')||'spray'; }catch(e){}
   var BSTY=[['dry','Dry','Dry bristle: streaky, runs out of paint'],['soft','Soft','Soft bristle: smooth with soft edges'],['flat','Flat','Flat brush: a wide flat head held at an angle'],['wash','Wash','Wash: wide, transparent, like watercolour'],['fan','Fan','Fan brush: a few separate hairs spread apart']];
   var ASTY=[['spray','Spray','Soft spray (the original airbrush)'],['speckle','Speckle','Speckle: random dots'],['grain','Grain','Grain: fine, dense dots like film grain'],['stipple','Stipple','Stipple: larger, sparse dots'],['cloud','Cloud','Cloud: soft, uneven puffs']];
@@ -1624,7 +1624,7 @@
   function aAuto(){ if(aFromReplay&&strokes.length){ clearTimeout(aAutoT); aAutoT=setTimeout(function(){ aReplay(true); },300); } }
 
   // 1. Frames
-  aSub('1 · What to animate');
+  aSub('What to animate');
   var rALy=row(), aLy=aMode(rALy,'Layers',[['all','Visible layers'],['active','Active layer only'],['each','Choose layers']],'Which layers the animation is made from: all visible layers, only the layer you are drawing on, or the layers you tick'); bar.appendChild(rALy);
   var aLyBox=aBoxEl(), aLyChk={}, aLyOv=null;
   function aLyList(){
@@ -1640,8 +1640,8 @@
   var aForce; function aIds(){ if(aForce!==undefined) return aForce; if(aLyOv!=null) return [aLyOv]; var m=aLy.value; if(m==='active') return [act]; if(m==='each') return aPicked().map(function(L){ return L.id; }); return null; }
   function aIn(st){ var i=aIds(); return !i||i.indexOf(layerOf(st))>=0; }
   aLyList();
-  var rA3=row(); lab(rA3,'Size'); var aW=el('select',BTN+'padding:3px 6px;'); [[320,'320 px wide'],[480,'480 px wide'],[640,'640 px wide'],[800,'800 px wide'],[1000,'1000 px wide']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aW.appendChild(op); }); aW.value=640; rA3.appendChild(aW);
-  bar.appendChild(rA3);
+  var rA3=row(); lab(rA3,'Resolution'); var aW=el('select',BTN+'padding:3px 6px;'); [[25,'25 % – light file'],[50,'50 %'],[75,'75 %'],[100,'100 % – original'],[150,'150 %'],[200,'200 % – heavy file']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aW.appendChild(op); }); aW.value=50; aW.title='100 % = the resolution you see on the page. A lower resolution makes a lighter file, a higher one gives more detail and a heavier file.'; rA3.appendChild(aW);
+  bar.appendChild(rA3); var aSzInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(aSzInfo);
   var rAr=row(), aArea=aMode(rAr,'Area',[['full','Whole page'],['drawn','Drawn area (all layers)'],['layer','Each layer\'s own area']],'Whole page: the animation covers the whole page, so everything lines up. Drawn area: cut to the area around all your drawing. Each layer\'s own area: cut to just that layer, the smallest files; the position is added to the file name.'); bar.appendChild(rAr);
   var aCrop={ get checked(){ return aArea.value!=='full'; } };
   aArea.addEventListener('change',function(){ aAuto(); });
@@ -1649,26 +1649,27 @@
   var aBgc=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;display:none;'); aBgc.type='color'; aBgc.value='#f4efe6'; rA4.appendChild(aBgc); aBg.addEventListener('change',function(){ aBgc.style.display=aBg.value==='color'?'inline-block':'none'; }); bar.appendChild(rA4);
 
   // 2. Timing and loop
-  aSub('2 · Timing and loop');
+  aSub('Timing and loop');
   var rA1=row(); lab(rA1,'Frames'); var aN=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;width:52px;'); aN.type='number'; aN.min=2; aN.max=200; aN.value=24; aN.title='How many frames the replay should have'; rA1.appendChild(aN);
   bar.appendChild(rA1);
-  var rA5=row(); lab(rA5,'Time / frame'); var aMs=slider(rA5,30,1000,120,90); liveVal(aMs,' ms'); bar.appendChild(rA5);
+  var rA5=row(); lab(rA5,'Frame length'); var aMs=slider(rA5,30,1000,120,90); liveVal(aMs,' ms'); bar.appendChild(rA5);
   var rA5b=row(); lab(rA5b,'Drawing speed'); var aSp=slider(rA5b,1,400,100,90); aSp.step=1; liveVal(aSp,' %'); bar.appendChild(rA5b);
   function aVanOn(){ return aFromReplay&&(+aVa.value)>0; }
   function aSpd(){ return Math.max(.01,(+aSp.value||100)/100); }
-  var rA6=row(); lab(rA6,'Hold at end'); var aEnd=slider(rA6,0,3000,600,90); liveVal(aEnd,' ms'); var aLoop=chk(rA6,'Loop',true); bar.appendChild(rA6);
-  var rLm=row(); lab(rLm,'Loop style'); var aLm=el('select',BTN+'padding:3px 6px;'); [['normal','Normal (jumps back to the start)'],['pp','Back and forth (plays forward, then backward)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aLm.appendChild(op); }); rLm.appendChild(aLm); bar.appendChild(rLm);
+  var rA6=row(); var aLoop=chk(rA6,'Loop',true,'Play again from the start when it reaches the end'); bar.appendChild(rA6);
+  var rA6p=row(); lab(rA6p,'Pause before looping'); var aEnd=slider(rA6p,0,3000,600,90); liveVal(aEnd,' ms'); bar.appendChild(rA6p);
+  var rLm=row(); lab(rLm,'Loop style'); var aLm=el('select',BTN+'padding:3px 6px;'); [['normal','Jump back to the start'],['pp','Back and forth']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aLm.appendChild(op); }); aLm.title='Jump back to the start: plays forward, then starts again. Back and forth: plays forward, then backward.'; rLm.appendChild(aLm); bar.appendChild(rLm);
+  function loopVis(){ rA6p.style.display=rLm.style.display=aLoop.checked?'flex':'none'; } aLoop.addEventListener('change',loopVis); loopVis();
 
   // 3. Each stroke: when drawn  /  4. each stroke: after drawn
-  aSub('3 · Each stroke – when it is drawn');
-  var rIm=row(), aIm=aMode(rIm,'Comes in',[['none','Nothing'],['fade','Fade in'],['fb','Fade in + blur']],'How each new stroke appears as it is drawn'); bar.appendChild(rIm);
+  aSub('Effects');
+  var rIm=row(), aIm=aMode(rIm,'Each stroke appears',[['none','Nothing'],['fade','Fade in'],['fb','Fade in + blur']],'How each new stroke appears as it is drawn'); bar.appendChild(rIm);
   var bIm=aBoxEl();
   var rAy=row(); lab(rAy,'Over'); var aAo=slider(rAy,0,3000,0,90); aAo.step=50; liveVal(aAo,' ms'); bIm.appendChild(rAy);
   var rAz=row(); lab(rAz,'Blur'); var aAb=slider(rAz,0,100,0,90); liveVal(aAb,' %'); bIm.appendChild(rAz);
   function imUpd(){ var m=aIm.value; bIm.style.display=m==='none'?'none':'flex'; rAz.style.display=m==='fb'?'flex':'none'; if(m==='none'){ aAo.value=0; aAb.value=0; } else { if(+aAo.value===0) aAo.value=400; if(m==='fb'){ if(+aAb.value===0) aAb.value=60; } else aAb.value=0; } aAuto(); }
   aIm.addEventListener('change',imUpd);
-  aSub('4 · Each stroke – after it is drawn');
-  var rOm=row(), aOm=aMode(rOm,'Goes away',[['none','Nothing (stays)'],['fade','Fade out'],['fb','Dissolve (fade + blur)']],'What each stroke does a little while after it was drawn'); bar.appendChild(rOm);
+  var rOm=row(), aOm=aMode(rOm,'Each stroke disappears',[['none','Stays'],['fade','Fade out'],['fb','Dissolve (fade + blur)']],'What each stroke does a little while after it was drawn'); bar.appendChild(rOm);
   var bOm=aBoxEl();
   var rAv=row(); lab(rAv,'Stays'); var aVa=slider(rAv,0,6000,0,90); aVa.step=100; liveVal(aVa,' ms'); bOm.appendChild(rAv);
   var rAw=row(); lab(rAw,'Over'); var aVo=slider(rAw,100,3000,600,90); aVo.step=50; liveVal(aVo,' ms'); bOm.appendChild(rAw);
@@ -1678,11 +1679,10 @@
   [aVa,aVo,aVb,aSp,aAo,aAb].forEach(function(e){ e.addEventListener('input',aAuto); });
 
   // 5. The whole drawing
-  aSub('5 · The whole drawing');
-  var rSm=row(), aSm=aMode(rSm,'Start',[['none','Nothing'],['fade','Fade in'],['fb','Fade in + blur']],'How the whole animation begins'); bar.appendChild(rSm);
+  var rSm=row(), aSm=aMode(rSm,'Drawing begins with',[['none','Nothing'],['fade','Fade in'],['fb','Fade in + blur']],'How the whole animation begins'); bar.appendChild(rSm);
   var bSm=aBoxEl();
   var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bSm.appendChild(rAf);
-  var rEm=row(), aEm=aMode(rEm,'End',[['none','Nothing'],['fade','Fade out'],['fb','Fade out + blur'],['blink','Blink'],['cloud','Cloud (dissolves like smoke)']],'How the whole animation ends'); bar.appendChild(rEm);
+  var rEm=row(), aEm=aMode(rEm,'Drawing ends with',[['none','Nothing'],['fade','Fade out'],['fb','Fade out + blur'],['blink','Blink'],['cloud','Cloud (dissolves like smoke)']],'How the whole animation ends'); bar.appendChild(rEm);
   var bEm=aBoxEl();
   var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bEm.appendChild(rAg);
   var rAi=row(); lab(rAi,'Blink'); var aBk=slider(rAi,0,10,0,90); liveVal(aBk,' times'); bEm.appendChild(rAi);
@@ -1690,7 +1690,7 @@
   var rAk=row(); lab(rAk,'Cloud amount'); var aCl=slider(rAk,0,100,0,90); liveVal(aCl,' %'); bEm.appendChild(rAk);
   var rAm=row(); lab(rAm,'Cloud motion'); var aCm=slider(rAm,0,100,50,90); liveVal(aCm,' %'); bEm.appendChild(rAm);
   var rAl=row(); lab(rAl,'Cloud time'); var aCt=slider(rAl,200,4000,1200,90); aCt.step=50; liveVal(aCt,' ms'); bEm.appendChild(rAl);
-  var rAh=row(); lab(rAh,'Blur'); var aBl=slider(rAh,0,40,0,90); liveVal(aBl,' px'); bar.appendChild(rAh);
+  var rAh=row(); lab(rAh,'Begin/end blur'); var aBl=slider(rAh,0,40,0,90); liveVal(aBl,' px'); bar.appendChild(rAh);
   function whUpd(){
     var s=aSm.value, e=aEm.value;
     bSm.style.display=s==='none'?'none':'flex'; if(s==='none') aFi.value=0; else if(+aFi.value===0) aFi.value=600;
@@ -1704,9 +1704,23 @@
   }
   aSm.addEventListener('change',whUpd); aEm.addEventListener('change',whUpd);
   imUpd(); omUpd(); whUpd();
+  // The four effects become collapsible rows, in time order; one open at a time, each shows its choice on the right
+  (function(){
+    var FXR=[['Drawing begins with',aSm,[rSm,bSm]],['Each stroke appears',aIm,[rIm,bIm]],['Each stroke disappears',aOm,[rOm,bOm]],['Drawing ends with',aEm,[rEm,bEm]]], all=[];
+    FXR.forEach(function(f){
+      var box=el('div','border:1px solid #d4d4d4;border-radius:7px;background:#fff;'), hd=el('div','display:flex;justify-content:space-between;gap:8px;padding:5px 8px;cursor:pointer;font-size:12.5px;user-select:none;'), tl=el('span',null,'▸ '+f[0]), sm=el('span','color:#777;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'), body=el('div','display:none;flex-direction:column;gap:5px;padding:0 8px 7px;');
+      hd.appendChild(tl); hd.appendChild(sm); box.appendChild(hd); box.appendChild(body);
+      f[2].forEach(function(n){ body.appendChild(n); }); f[2][0].firstChild&&(f[2][0].firstChild.style.display='none');
+      var o={box:box,body:body,tl:tl,t:f[0]}; all.push(o);
+      function sum(){ var x=f[1]; sm.textContent=x.options[x.selectedIndex].text; }
+      f[1].addEventListener('change',sum); sum();
+      hd.addEventListener('click',function(){ var op=body.style.display==='none'; all.forEach(function(q){ q.body.style.display='none'; q.tl.textContent='▸ '+q.t; }); if(op){ body.style.display='flex'; tl.textContent='▾ '+f[0]; } });
+      bar.insertBefore(box,rAh);
+    });
+  })();
 
   // 6. Build the frames
-  aSub('6 · Build the frames');
+  aSub('Build the frames');
   var rA1b=row(), bBuild=btn('Build-up from my drawing',function(){ aReplay(); },'Makes frames that show the drawing being drawn, stroke by stroke, with the choices above'); bBuild.style.cssText+='background:#111;color:#fff;border-color:#111;'; rA1b.appendChild(bBuild); bar.appendChild(rA1b);
   var rA2=row(); rA2.appendChild(btn('+ Add this frame',function(){ aAdd(strokes); },'Takes a picture of the drawing as it is now – draw, add, change, add… for hand-made animation'));
   rA2.appendChild(btn('Clear last frame',function(){ if(!frames.length){ msg('No frames to clear'); return; } aPreview(false); frames.pop(); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Removes the last frame'));
@@ -1717,17 +1731,18 @@
   var aCount=el('div','font-size:11.5px;color:#666;','No frames yet'); bar.appendChild(aCount);
 
   // 7. Preview and save
-  aSub('7 · Preview and save');
+  aSub('Preview and export');
   var rOn=row(); var aOnPg=chk(rOn,'Preview on the page',true,'Plays the animation over the page itself, where you drew it, instead of in the small box. Stop shows your drawing again.'); bar.appendChild(rOn);
   var rA7=row(); var bPlay=btn('▶ Preview',function(){ if(!aPlay&&!frames.length){ if(!strokes.length){ msg('Nothing to preview yet – draw something first'); return; } aReplay(); } if(!aPlay&&frames.length===1&&strokes.length>1) msg('Only 1 frame, so nothing moves. Press “Build-up from my drawing” to make many frames, or change the drawing and press “+ Add current drawing as frame” again.',7000); aPreview(!aPlay); try{ aPrev.scrollIntoView({block:'nearest'}); }catch(e){} },'Play the animation here. With no frames yet, it makes them from your drawing first.'); rA7.appendChild(bPlay);
   bar.appendChild(rA7);
   var aPrev=document.createElement('canvas'); aPrev.width=240; aPrev.height=160; aPrev.style.cssText='width:100%;border:1px solid #ddd;border-radius:6px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/14px 14px;display:none;'; bar.appendChild(aPrev);
-  var rSv=row(); lab(rSv,'Save as'); rSv.appendChild(aLyOne); bar.appendChild(rSv);
-  var rFm2=row(), aFmt=aMode(rFm2,'Format',[['gif','GIF'],['webp','Animated WebP'],['mp4','Video MP4'],['webm','Video WebM']],'Which file type to save the animation as'); bar.appendChild(rFm2);
+  var rSv=row(); lab(rSv,'Files'); rSv.appendChild(aLyOne); bar.appendChild(rSv);
+  var rFm2=row(), aFmt=aMode(rFm2,'Format',[['gif','GIF'],['webp','Animated WebP'],['mp4','Video MP4'],['webm','Video WebM']],'Which file type to export the animation as'); bar.appendChild(rFm2);
   var aFmtInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(aFmtInfo);
   var aFmtTxt={ gif:'GIF: works almost everywhere. Max 256 colours; transparency is on/off, so soft fades look slightly dotted.', webp:'Animated WebP: small file and soft, smooth transparency, so fades and blur look right on any background. Plays in all modern browsers, but some sites and upload forms do not accept it – keep a GIF as backup. Made in Chrome/Edge/Firefox.', mp4:'MP4 video: plays almost everywhere (phones, Safari, Instagram, editing programs). No transparency. Made in Chrome/Edge.', webm:'WebM video: smooth and small. Chrome/Edge/Firefox. Can keep transparency in Chrome.' };
-  var rA8=row(); var bSaveA=btn('Save animation',function(){ aSave(); }); rA8.appendChild(bSaveA); bar.appendChild(rA8);
-  function aFmtUpd(){ aFmtInfo.textContent=aFmtTxt[aFmt.value]+(aLyOne.value==='sep'?' One file per layer, made with Build-up from the drawing, all the same size (with Area: Whole page or Drawn area) so they line up.':''); bSaveA.textContent=(aLyOne.value==='sep'?'Save one per layer: ':'Save ')+({gif:'GIF',webp:'animated WebP',mp4:'MP4 video',webm:'WebM video'})[aFmt.value]; }
+  var rA8=row(); var bSaveA=btn('Export animation',function(){ aSave(); },'Makes the animation file with the choices above'); rA8.appendChild(bSaveA); bar.appendChild(rA8);
+  var aRcHint=el('div','font-size:11px;color:#777;line-height:1.35;','To put the GIF in Research Catalogue, use '); var aRcL=el('span','color:#111;text-decoration:underline;cursor:pointer;','Connect'); aRcL.title='Opens the Connect menu'; aRcL.addEventListener('click',function(){ try{ openConnect(); }catch(e){} }); aRcHint.appendChild(aRcL); aRcHint.appendChild(document.createTextNode('.')); bar.appendChild(aRcHint);
+  function aFmtUpd(){ aFmtInfo.textContent=aFmtTxt[aFmt.value]+(aLyOne.value==='sep'?' One file per layer, made with Build-up from the drawing, all the same size (with Area: Whole page or Drawn area) so they line up.':''); bSaveA.textContent=(aLyOne.value==='sep'?'Export one per layer: ':'Export ')+({gif:'GIF',webp:'animated WebP',mp4:'MP4 video',webm:'WebM video'})[aFmt.value]; }
   aFmt.addEventListener('change',aFmtUpd); aFmtUpd();
   function aSaveOne(done,suf){ var f=aFmt.value; if(f==='gif') aGif(done,suf); else if(f==='webp') aWebp(done,suf); else aWebm(f==='mp4'?'mp4':undefined,done,suf); }
   function aSave(){
@@ -1745,11 +1760,13 @@
       aSaveOne(function(){ setTimeout(next,500); },'-'+String(L.name||'layer').replace(/[\\/:*?"<>|]+/g,'-')+pos());
     })();
   }
+  function aSzUpd(){ try{ var b=aBounds(), k=Math.min((+aW.value||50)/100,3000/b.w); var t='File: '+Math.max(1,Math.round(b.w*k))+' × '+Math.max(1,Math.round(b.h*k))+' px per frame'; if(aSzInfo.textContent!==t) aSzInfo.textContent=t; }catch(e){} }
+  aW.addEventListener('change',aSzUpd); aArea.addEventListener('change',aSzUpd); aLy.addEventListener('change',aSzUpd); setInterval(function(){ if(de.contains(bar)) aSzUpd(); },1500);
   function aBgVal(){ return aBg.value==='white'?'#ffffff':(aBg.value==='color'?aBgc.value:null); }
   var aBox=null;
   function aBounds(){ if(!aCrop.checked) return {x:0,y:0,w:W,h:H}; var vis=strokes.filter(function(st){ return st.tool!=='eraser'&&st.tool!=='cut'&&getLayer(layerOf(st)).vis; }); if(aArea.value==='layer'&&aIds()!=null) vis=vis.filter(aIn); var t=vis.length?boxOf(vis):null; if(!t) return {x:0,y:0,w:W,h:H}; var pad=10,x=Math.max(0,Math.floor(t.x0-pad)),y=Math.max(0,Math.floor(t.y0-pad)); return {x:x,y:y,w:Math.max(8,Math.min(W,Math.ceil(t.x1+pad))-x),h:Math.max(8,Math.min(H,Math.ceil(t.y1+pad))-y)}; }
   function aShot(list,b){
-    var k=Math.min(1,(+aW.value)/b.w), cw=Math.max(1,Math.round(b.w*k)), ch=Math.max(1,Math.round(b.h*k));
+    var k=Math.min((+aW.value||50)/100,3000/b.w), cw=Math.max(1,Math.round(b.w*k)), ch=Math.max(1,Math.round(b.h*k));
     var c=document.createElement('canvas'); c.width=cw; c.height=ch; var x=c.getContext('2d'), bg=aBgVal(); if(bg){ x.fillStyle=bg; x.fillRect(0,0,cw,ch); }
     var keep=strokes, old=rscale; strokes=list; rscale=k;
     var ids=aIds(), vv=layers.map(function(L){ return L.vis; }); if(ids) layers.forEach(function(L){ if(ids.indexOf(L.id)<0) L.vis=false; });
@@ -1974,7 +1991,7 @@
     var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
     (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(seq[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=seq.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
   }
-  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','To make an animation from your drawing: 1) Make your choices above. 2) Press “Build-up from my drawing” (or build frame by frame with “+ Add this frame”). 3) ▶ Preview. 4) Choose a format and save.'));
+  bar.appendChild(el('div','font-size:11.5px;color:#555;line-height:1.45;background:#f6f6f6;border-radius:7px;padding:7px 9px;','To make an animation from your drawing: 1) Make your choices above. 2) Press “Build-up from my drawing” (or build frame by frame with “+ Add this frame”). 3) ▶ Preview. 4) Choose Files and Format, then Export animation.'));
 
   sec('Export');
   function pageNow(){ var w,h, bx=(area==='view')?null:anchorBox(); if(bx){ return {w:Math.min(bx.w,6000),h:Math.min(bx.h,Math.floor(30e6/Math.min(bx.w,6000)),20000),x:bx.x,y:bx.y,s:bx.s}; } if(SC){ w=SC.scrollWidth; h=SC.scrollHeight; } else { w=Math.max(de.scrollWidth,bd?bd.scrollWidth:0,de.clientWidth); h=Math.max(de.scrollHeight,bd?bd.scrollHeight:0,de.clientHeight); } w=Math.min(w,6000); h=Math.min(h,Math.floor(30e6/w),20000); return {w:w,h:h}; }
@@ -3056,6 +3073,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     hs.forEach(function(h){ if(h._t==='Pressure and stabilising'){ h._lab='Pen behaviour'; h._flat=false; } else if(GROUP[h._t]==='Styles'){ h._flat=true; h._open=true; } }); // Pen behaviour is a small fold-out of its own at the end of Styles // Styles is one fold-out: its parts have no headers of their own
     gs.forEach(function(g){ if(g._t==='Styles'){ grpStyles=g; g._apply=function(){ applyGrp(g); }; } });
     hs.forEach(applySec); gs.forEach(applyGrp); try{ styleVis(true); }catch(e){}
+    openConnect=function(){ gs.forEach(function(g){ if(g._t!=='Connect') return; g._open=true; st['grp:Connect']=1; applyGrp(g); hs.forEach(function(h){ if(GROUP[h._t]==='Connect'){ h._open=true; st[h._t]=1; applySec(h); } }); saveSt(); try{ g.scrollIntoView({block:'nearest'}); }catch(e){} }); };
     // order of the menus follows the work: draw, layers, edit, effects, then text, animate, export, connect
     (function(){ var ORD=['Styles','Layers','Edit','Effects','Text','Animate','Pen behaviour','Import, save and export','Connect']; if(!gs.length) return; var mk=document.createElement('span'); mk.style.display='none'; bar.insertBefore(mk,gs[0]);
       gs.slice().sort(function(a,b){ var i=ORD.indexOf(a._t), j=ORD.indexOf(b._t); return (i<0?99:i)-(j<0?99:j); }).forEach(function(g){ bar.insertBefore(g,mk); bar.insertBefore(g._wrap,mk); }); mk.remove(); })();
@@ -3075,7 +3093,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     function lblOf(e){ var l=e.closest&&e.closest('label'); if(l) return l.textContent.trim(); var p=e.parentNode, s=p&&p.querySelector&&p.querySelector(':scope > span'); return s?s.textContent.trim():''; }
     function textFor(e){
       var key=e.tagName==='BUTTON'?(e.textContent||e.getAttribute('aria-label')||'').trim():lblOf(e);
-      if(/^Save (one per layer: )?(GIF|animated WebP|MP4 video|WebM video)$/.test(key)) key='Save animation';
+      if(/^Export (one per layer: )?(GIF|animated WebP|MP4 video|WebM video)$/.test(key)) key='Export animation';
       var raw=e._tip!==undefined?(typeof e._tip==='function'?e._tip():e._tip):e.getAttribute('data-tip');
       return OVR[key]||(raw?shortTip(raw):'')||FB[key]||'';
     }
