@@ -1593,7 +1593,7 @@
   var cr={ get checked(){ return csel.value==='crop'; } };
   var rLy=row(); lab(rLy,'Layers');
   var lySel=el('select',BTN+'padding:3px 6px;');
-  [['all','Visible layers in one image'],['each','Each visible layer as its own image'],['active','Active layer only (if visible)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; lySel.appendChild(op); });
+  [['all','Visible layers in one image'],['each','Each visible layer as its own image'],['active','Active layer only']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; lySel.appendChild(op); });
   lySel.title='Only visible layers are exported; hidden layers never are. Use “Each visible layer” to get one image file per layer, e.g. one to place over objects on the page and one under.';
   rLy.appendChild(lySel); bar.appendChild(rLy);
   var rFm=row(); lab(rFm,'File type');
