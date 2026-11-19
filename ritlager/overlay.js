@@ -2246,17 +2246,17 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
       {id:'air',n:'Airbrush (A)',real:bAir,p:['M3 3h.01','M7 5h.01','M11 7h.01','M3 7h.01','M7 9h.01','M3 11h.01','M15 5h4v4h-4z','m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2','m13 14 8-2','m13 19 8-2']},
       {id:'line',n:'Line (L)',real:bLine,p:['M4 20 20 4']},
       {id:'mark',n:'Select area',real:null,go:function(){ (selMode==='lasso'?bLas:bRect).click(); },p:IC.sr},
-      {id:'layers',n:'Layers',real:null,go:function(){ layerFlyToggle(); },p:['M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z','m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65','m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65']},
       {id:'cut',n:'Cut out',real:null,go:function(){ (cutMode==='lasso'?bCutL:bCutR).click(); },p:['M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M20 4 8.12 15.88','M14.47 14.48 20 20','M8.12 8.12 12 12']},
       {id:'text',n:'Text (T)',real:bTxt,p:['M4 7V4h16v3','M9 20h6','M12 4v16']},
       {id:'pip',n:'Pipette (I)',go:function(){ pickColour(); },p:['m2 22 1-1h3l9-9','M3 21v-3l9-9','m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z']},
       {id:'tone',n:'Lighten / darken',real:null,go:function(){ (toneMode==='burn'?bBurn:bDodge).click(); },p:IC2.dd},
       {id:'retouch',n:'Retouch',real:null,go:function(){ RT[retMode].b().click(); },p:IC2.bl},
+      {id:'layers',n:'Layers',real:null,go:function(){ layerFlyToggle(); },p:['M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z','m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65','m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65']},
       {id:'colour',n:'Colour',colour:true,p:['M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z','M13.5 6.5h.01','M17.5 10.5h.01','M6.5 12.5h.01','M8.5 7.5h.01']}
     ];
     ['draw','pen','brush','air','line'].forEach(function(id){ Q.forEach(function(q){ if(q.id===id) q.h=1; }); });
     function addIcon(b,paths){ if(!b||!b.querySelector||b.querySelector('svg')) return; var sv=svgOf(paths,15); sv.style.flex='none'; b.insertBefore(sv,b.firstChild); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.gap='5px'; if(b.parentNode===r2){ b.style.flexDirection='column'; b.style.justifyContent='center'; b.style.gap='3px'; b.style.padding='6px 2px'; b.style.fontSize='11px'; b.style.minWidth='0'; } }
-    var DEF=['drawtool','move','eraser','undo','redo','save','trash','mark','layers','text','pip','retouch','colour','size','nib'];
+    var DEF=['drawtool','move','eraser','undo','redo','save','trash','mark','text','pip','retouch','layers','colour','size','nib'];
     (function(){ var SB={pen:bPen,brush:bBrush,air:bAir,line:bLine,text:bTxt,};
       addIcon(bDodge,IC2.dd); addIcon(bBurn,IC2.bu); addIcon(bBlurT,IC2.bl); addIcon(bSharpT,IC2.sh); addIcon(bSmudgeT,IC2.sm); addIcon(bCloneT,IC2.cl2);
       addIcon(bRect,IC.sr); addIcon(bLas,IC.sl); addIcon(bCutR,IC.cr); addIcon(bCutL,IC.cl);
