@@ -2038,7 +2038,7 @@
     var box=el('div','background:#fff;color:#111;border-radius:12px;padding:16px;width:min(420px,92vw);max-height:92vh;display:flex;flex-direction:column;gap:9px;font:300 14px/1.4 '+FONT+';overflow:auto;');
     box.appendChild(el('div','font-weight:400;','Send to Research Catalogue (beta)'));
     var pv=el('div','display:flex;gap:6px;overflow-x:auto;');
-    items.slice(0,6).forEach(function(it){ var im=el('img','height:84px;max-width:150px;object-fit:contain;border:1px solid #e4e4e4;border-radius:6px;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px;'); im.src=URL.createObjectURL(it.bl); im.title=it.name; pv.appendChild(im); });
+    items.slice(0,8).forEach(function(it){ var cell=el('div','display:flex;flex-direction:column;gap:2px;align-items:center;flex:0 0 auto;'); var im=el('img','height:84px;max-width:150px;object-fit:contain;border:1px solid #e4e4e4;border-radius:6px;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px;'); im.src=URL.createObjectURL(it.bl); im.title=it.name; cell.appendChild(im); if(items.length>1) cell.appendChild(el('div','font-size:11px;color:#555;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',(it.label||'').trim()||'(layer)')); pv.appendChild(cell); });
     box.appendChild(pv);
     var pl=items[0].place, placeTxt='';
     if(pl&&items.every(function(it){ return it.place&&it.place.x===pl.x&&it.place.y===pl.y&&it.place.w===pl.w&&it.place.h===pl.h; })){
@@ -2083,7 +2083,8 @@
       st.textContent='Ready: '+(multi?items.length+' images':name1()+' ')+' ('+Math.round(tot/1024)+' kB). Goes to Simple Media in this exposition.'; send.disabled=false;
     }).catch(function(e){ fail('Could not reach Research Catalogue ('+(e&&e.message?e.message:e)+').'); });
     function name1(){ return items[0].name; }
-    function titleFor(it,i){ return multi ? base+' – '+(it.label||('part '+(i+1))) : base; }
+    function norm(x){ return String(x==null?'':x).replace(/\s+/g,' ').trim(); }
+    function titleFor(it,i){ return norm(multi ? base+' – '+(it.label||('part '+(i+1))) : base); }
     function upload(it){
       st.textContent='Uploading '+it.sentName+'…';
       var f3=new FormData(); f3.append('form[image][media]',new File([it.bl],it.name,{type:it.bl.type}));
@@ -2111,7 +2112,7 @@
         if(!r.ok) throw new Error('create status '+r.status);
         return rcList(ids);
       }).then(function(l){
-        var fresh=l.filter(function(x){ return before.indexOf(x.id)<0 && x.name===it.sentName; });
+        var fresh=l.filter(function(x){ return before.indexOf(x.id)<0 && norm(x.name)===it.sentName; });
         if(fresh.length!==1) throw new Error(fresh.length? 'several new entries with that name' : 'the new entry was not found');
         it.createdId=fresh[0].id;
       });
@@ -2135,7 +2136,7 @@
     function go(){
       if(!ready||busy) return;
       if(!nameIn.value.trim()||!cpIn.value.trim()){ st.style.color='#b00020'; st.textContent='Name and Copyright holder are required by Research Catalogue.'; return; }
-      busy=true; send.disabled=true; st.style.color='#666'; base=nameIn.value.trim();
+      busy=true; send.disabled=true; st.style.color='#666'; base=norm(nameIn.value);
       items.forEach(function(it,i){ if(!it.sentName) it.sentName=titleFor(it,i); });
       var chain=Promise.resolve();
       items.forEach(function(it,i){ chain=chain.then(function(){
@@ -2466,7 +2467,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191535', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191625', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
