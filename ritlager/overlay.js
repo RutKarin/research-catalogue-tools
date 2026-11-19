@@ -1181,22 +1181,26 @@
   rPn.appendChild(btn('+ Save',function(){ var n=(preName.value||'').trim().slice(0,24)||('Preset '+(loadPre().length+1)); var a=loadPre(); a.push({n:n,s:getSettings(false)}); savePre(a); preName.value=''; drawPre(); msg('Saved preset "'+n+'"'); },'Saves the current tool, colour, thickness and pen settings as a one-click preset'));
   bar.appendChild(rPn);
   var rPf=row(); var preFile=el('input','display:none;'); preFile.type='file'; preFile.accept='.json,application/json';
-  rPf.appendChild(btn('Save presets to file',function(){
-    try{ var data={ritlager:1,presets:loadPre(),colours:custom.slice()}, bl=new Blob([JSON.stringify(data,null,1)],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download='ritlager-presets.json'; a.style.display='none'; (document.body||de).appendChild(a); a.click(); setTimeout(function(){ a.remove(); },500); msg('Saved ritlager-presets.json (presets and My colours) in your Downloads folder',5000); }catch(e){ msg('Could not save the file'); }
-  },'Saves your presets and My colours to a file so you can use them on another page, browser or computer'));
-  rPf.appendChild(btn('Load presets from file',function(){ preFile.value=''; preFile.click(); },'Adds the presets and colours from a saved file. Nothing you already have is removed'));
+  function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+  rPf.appendChild(btn('Save all my settings to file',function(){
+    try{ var data={ritlager:2,presets:loadPre(),colours:custom.slice(),shortcuts:lsGet('ritlager-quick2'),modes:lsGet('ritlager-modes'),stdcol:localStorage.getItem('ritlager-stdcol'),flycat:localStorage.getItem('ritlager-flycat')}, bl=new Blob([JSON.stringify(data,null,1)],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download='ritlager-settings.json'; a.style.display='none'; (document.body||de).appendChild(a); a.click(); setTimeout(function(){ a.remove(); },500); msg('Saved ritlager-settings.json (presets, My colours, shortcuts) in your Downloads folder',5000); }catch(e){ msg('Could not save the file'); }
+  },'Saves your presets, My colours and shortcuts in one file, so you can use them on another page, browser or computer'));
+  rPf.appendChild(btn('Load settings from file',function(){ preFile.value=''; preFile.click(); },'Loads a saved settings file: adds its presets and colours (nothing is removed) and sets your shortcuts the way they were saved'));
   preFile.addEventListener('change',function(){
     var f=preFile.files&&preFile.files[0]; if(!f) return;
     var rd=new FileReader(); rd.onload=function(){
       try{
-        var d=JSON.parse(rd.result); if(!d||d.ritlager!==1) throw 0;
+        var d=JSON.parse(rd.result); if(!d||(d.ritlager!==1&&d.ritlager!==2)) throw 0;
         var a=loadPre(), seen={}; a.forEach(function(p){ seen[p.n+'|'+JSON.stringify(p.s)]=1; }); var np=0, nc=0;
         (d.presets||[]).forEach(function(p){ if(p&&p.n&&p.s&&!seen[p.n+'|'+JSON.stringify(p.s)]){ a.push({n:String(p.n).slice(0,24),s:p.s,h:p.h}); np++; } });
         savePre(a); drawPre();
         (d.colours||[]).forEach(function(c){ if(/^#[0-9a-f]{6}$/i.test(c)&&custom.indexOf(c)<0&&custom.length<MAXC){ custom.push(c); addSw(c,true); nc++; } });
         saveCustom();
-        msg('Loaded '+np+' new presets and '+nc+' new colours',5000);
-      }catch(e){ msg('That does not look like a Ritlager presets file',5000); }
+        var sc=false;
+        if(d.shortcuts&&d.shortcuts.on&&d.shortcuts.on.length!=null){ try{ localStorage.setItem('ritlager-quick2',JSON.stringify(d.shortcuts)); if(d.modes) localStorage.setItem('ritlager-modes',JSON.stringify(d.modes)); if(d.flycat!=null) localStorage.setItem('ritlager-flycat',d.flycat); qImport(); sc=true; }catch(e){} }
+        if(d.stdcol!=null){ try{ localStorage.setItem('ritlager-stdcol',d.stdcol); stdChk.checked=d.stdcol!=='0'; rStd.style.display=stdChk.checked?'flex':'none'; }catch(e){} }
+        msg('Loaded '+np+' new presets, '+nc+' new colours'+(sc?' and your shortcuts':''),5000);
+      }catch(e){ msg('That does not look like a Ritlager settings file',5000); }
     }; rd.readAsText(f);
   });
   rPf.appendChild(preFile); bar.appendChild(rPf);
@@ -2253,7 +2257,7 @@
   })();
   // ---- collapsible menus: groups containing sections (remembered between visits) ----
   // ---- quick tools row: your own shortcuts (symbols only), can be folded away ----
-  var qEnd=null, qSync=function(){}, qPreDraw=function(){}, qEditDraw=function(){}, qSizeSync=function(){}, qColSync=function(){};
+  var qEnd=null, qSync=function(){}, qPreDraw=function(){}, qEditDraw=function(){}, qSizeSync=function(){}, qColSync=function(){}, qImport=function(){};
   (function(){
     var NS='http://www.w3.org/2000/svg', KEY='ritlager-quick2';
     var IC={sr:['M5 3a2 2 0 0 0-2 2','M19 3a2 2 0 0 1 2 2','M21 19a2 2 0 0 1-2 2','M5 21a2 2 0 0 1-2-2','M9 3h1','M9 21h1','M14 3h1','M14 21h1','M3 9v1','M21 9v1','M3 14v1','M21 14v1'],sl:['M7 22a5 5 0 0 1-2-4','M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],cr:['M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M20 4 8.12 15.88','M14.47 14.48 20 20','M8.12 8.12 12 12'],cl:['M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M20 14 11 23','M14 14l6 6'],pk:['M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z']};
@@ -2438,6 +2442,11 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var done=btn('Done',function(){ qEdit.style.display='none'; }); qEdit.appendChild(done);
     strip.addEventListener('click',function(){ st.open=!st.open; save(); applyOpen(); });
     bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qFly2,qRow.nextSibling); bar.insertBefore(qFly,qFly2.nextSibling); bar.insertBefore(qNb,qFly2.nextSibling); bar.insertBefore(qSz,qNb.nextSibling); bar.insertBefore(qAn,qSz.nextSibling); bar.insertBefore(qMc,qAn.nextSibling); bar.insertBefore(qPre,qMc.nextSibling); bar.insertBefore(qCol,qPre.nextSibling); bar.insertBefore(qEdit,qCol.nextSibling); qEnd=qEdit;
+    qImport=function(){
+      var s2=null; try{ s2=JSON.parse(localStorage.getItem(KEY)); }catch(e){} if(s2&&s2.on){ st=s2; }
+      try{ var m2=JSON.parse(localStorage.getItem('ritlager-modes')||'{}'); if(m2.t==='burn'||m2.t==='dodge') toneMode=m2.t; if(['blur','sharpen','smudge','clone'].indexOf(m2.r)>=0) retMode=m2.r; if(['pen','brush','air','line'].indexOf(m2.d)>=0) drwMode=m2.d; }catch(e){}
+      build(); qPreDraw(); qMcDraw(); applyOpen(); try{ editDraw(); }catch(e){}
+    };
     build(); qPreDraw(); qMcDraw(); applyOpen();
   })();
 
