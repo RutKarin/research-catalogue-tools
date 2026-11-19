@@ -2396,10 +2396,33 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var qEdit=el('div','display:none;flex-direction:column;gap:4px;padding:6px 8px;border:1px solid #e4e4e4;border-radius:8px;background:#fff;');
     var items=[];
     function applyOpen(){ strip.textContent=''; strip.appendChild(svgOf(st.open?['m18 15-6-6-6 6']:['m6 9 6 6 6-6'],12)); qRow.style.display=st.open?'flex':'none'; qPre.style.display=st.open?'flex':'none'; qSz.style.display=(st.open&&st.on.indexOf('size')>=0)?'flex':'none'; qAn.style.display=(st.open&&st.on.indexOf('anim')>=0)?'flex':'none'; qNb.style.display=(st.open&&st.on.indexOf('nib')>=0)?'flex':'none'; qMc.style.display=(st.open&&st.on.indexOf('mycol')>=0)?'flex':'none'; nibSync(); if(!st.open){ qEdit.style.display='none'; qCol.style.display='none'; } }
+    function ordQ(){ if(!st.order) return Q; var m={}; Q.forEach(function(q){ m[q.id]=q; }); var out=[]; st.order.forEach(function(id){ if(m[id]){ out.push(m[id]); delete m[id]; } }); Q.forEach(function(q){ if(m[q.id]) out.push(q); }); return out; }
+    function dragify(b,id){
+      b.style.touchAction='none';
+      b.addEventListener('pointerdown',function(e){
+        if(qEdit.style.display==='none'||e.button>0) return;
+        var sx=e.clientX, sy=e.clientY, drag=false, pid=e.pointerId;
+        function mv(ev){
+          if(!drag){ if(Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)<8) return; drag=true; b.style.opacity='.55'; b.style.outline='2px solid #111'; }
+          var hit=null; items.forEach(function(it){ if(it.b===b) return; var r=it.b.getBoundingClientRect(); if(ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom) hit=it; });
+          if(hit){ var before=!!(hit.b.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING); if(before) qRow.insertBefore(b,hit.b); else qRow.insertBefore(b,hit.b.nextSibling); }
+        }
+        function up(){
+          document.removeEventListener('pointermove',mv,true); document.removeEventListener('pointerup',up,true); document.removeEventListener('pointercancel',up,true);
+          if(!drag) return;
+          b._dragged=true; setTimeout(function(){ b._dragged=false; },0);
+          var vis=[]; Array.prototype.forEach.call(qRow.children,function(c){ if(c._qid) vis.push(c._qid); });
+          var rest=ordQ().map(function(q){ return q.id; }).filter(function(i){ return vis.indexOf(i)<0; });
+          st.order=vis.concat(rest); save(); build(); editDraw();
+        }
+        document.addEventListener('pointermove',mv,true); document.addEventListener('pointerup',up,true); document.addEventListener('pointercancel',up,true);
+      });
+      b.addEventListener('click',function(e){ if(b._dragged){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
+    }
     function build(){
       qRow.textContent=''; items=[];
-      Q.forEach(function(q){ if(q.h||q.slider||st.on.indexOf(q.id)<0) return; var b=iconBtn(q.n+' (quick)',q.p,function(){ if(q.colour){ } else if(q.go) q.go(); else q.real.click(); },q.n); if(q.id==='pen'||q.id==='brush'||q.id==='settings'||q.id==='layers'||q.id==='mark'||q.id==='cut'||q.id==='tone'||q.id==='retouch'||q.id==='drawtool'){ b.setAttribute('data-fly','1'); b._tip=q.n+'. Hold or right-click to choose'; var lp=null; b.addEventListener('contextmenu',function(e){ e.preventDefault(); flyOpen(q.id); }); b.addEventListener('pointerdown',function(e){ if(e.button>0) return; b._lp=false; clearTimeout(lp); lp=setTimeout(function(){ b._lp=true; flyOpen(q.id); },450); }); ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ b.addEventListener(ev,function(){ clearTimeout(lp); }); }); b.addEventListener('click',function(e){ if(b._lp){ e.stopImmediatePropagation(); e.preventDefault(); b._lp=false; } },true); if(q.id==='mark') qModeB.mark=b; if(q.id==='tone') qModeB.tone=b; if(q.id==='drawtool') qModeB.drawtool=b; if(q.id==='retouch') qModeB.retouch=b; if(q.id==='cut') qModeB.cut=b; }
-      if(q.colour){ var sv0=b.querySelector('svg'); if(sv0) b.removeChild(sv0); qColDot=svgOf(['m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z','m5 2 5 5','M2 13h15','M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z'],22); qColDot.firstChild.setAttribute('fill',color||'#111'); qColDot.lastChild.setAttribute('fill',color||'#111'); b.appendChild(qColDot); qColBtn=b; b.style.position='relative'; var ci=el('input','position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;'); ci.type='color'; ci.value=(color&&color.length===7)?color:'#111111'; ci.setAttribute('aria-label','Pick any colour'); ci.addEventListener('input',function(){ setColor(ci.value); }); b.appendChild(ci); qColIn=ci; } b.style.flex='0 0 calc((100% - 18px)/7)'; b.style.justifyContent='center'; b.style.minWidth='0'; b.style.boxSizing='border-box'; b.style.padding='5px 0'; qRow.appendChild(b); items.push({b:b,real:q.sync||q.real}); });
+      ordQ().forEach(function(q){ if(q.h||q.slider||st.on.indexOf(q.id)<0) return; var b=iconBtn(q.n+' (quick)',q.p,function(){ if(q.colour){ } else if(q.go) q.go(); else q.real.click(); },q.n); if(q.id==='pen'||q.id==='brush'||q.id==='settings'||q.id==='layers'||q.id==='mark'||q.id==='cut'||q.id==='tone'||q.id==='retouch'||q.id==='drawtool'){ b.setAttribute('data-fly','1'); b._tip=q.n+'. Hold or right-click to choose'; var lp=null; b.addEventListener('contextmenu',function(e){ e.preventDefault(); if(qEdit.style.display!=='none') return; flyOpen(q.id); }); b.addEventListener('pointerdown',function(e){ if(e.button>0||qEdit.style.display!=='none') return; b._lp=false; clearTimeout(lp); lp=setTimeout(function(){ b._lp=true; flyOpen(q.id); },450); }); ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ b.addEventListener(ev,function(){ clearTimeout(lp); }); }); b.addEventListener('click',function(e){ if(b._lp){ e.stopImmediatePropagation(); e.preventDefault(); b._lp=false; } },true); if(q.id==='mark') qModeB.mark=b; if(q.id==='tone') qModeB.tone=b; if(q.id==='drawtool') qModeB.drawtool=b; if(q.id==='retouch') qModeB.retouch=b; if(q.id==='cut') qModeB.cut=b; }
+      if(q.colour){ var sv0=b.querySelector('svg'); if(sv0) b.removeChild(sv0); qColDot=svgOf(['m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z','m5 2 5 5','M2 13h15','M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z'],22); qColDot.firstChild.setAttribute('fill',color||'#111'); qColDot.lastChild.setAttribute('fill',color||'#111'); b.appendChild(qColDot); qColBtn=b; b.style.position='relative'; var ci=el('input','position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;'); ci.type='color'; ci.value=(color&&color.length===7)?color:'#111111'; ci.setAttribute('aria-label','Pick any colour'); ci.addEventListener('input',function(){ setColor(ci.value); }); b.appendChild(ci); qColIn=ci; } b.style.flex='0 0 calc((100% - 18px)/7)'; b.style.justifyContent='center'; b.style.minWidth='0'; b.style.boxSizing='border-box'; b.style.padding='5px 0'; b._qid=q.id; dragify(b,q.id); qRow.appendChild(b); items.push({b:b,real:q.sync||q.real,id:q.id}); });
       var e=iconBtn('Choose quick tools',['M21 4h-7','M10 4H3','M21 12h-9','M8 12H3','M21 20h-5','M12 20H3','M14 2v4','M8 10v4','M16 18v4'],function(){ qEdit.style.display=qEdit.style.display==='none'?'flex':'none'; },'Edit your shortcuts'); e.style.flex='0 0 calc((100% - 18px)/7)'; e.style.boxSizing='border-box'; e.style.marginLeft='auto'; e.style.padding='5px 0'; e.style.justifyContent='center'; e.style.background='#efefef'; e.style.color='#777'; e.style.borderColor='#efefef'; qRow.appendChild(e);
       qSz.style.display=(st.open&&st.on.indexOf('size')>=0)?'flex':'none'; qAn.style.display=(st.open&&st.on.indexOf('anim')>=0)?'flex':'none'; qNb.style.display=(st.open&&st.on.indexOf('nib')>=0)?'flex':'none'; qMc.style.display=(st.open&&st.on.indexOf('mycol')>=0)?'flex':'none'; nibSync(); qSizeSync();
       if(st.on.indexOf('colour')<0){ qCol.style.display='none'; qColDot=null; }
@@ -2438,9 +2461,9 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     }
     qEditDraw=editDraw;
     qEdit.appendChild(el('div','font-size:12px;font-weight:bold;color:#111;','Your shortcuts'));
-    qEdit.appendChild(el('div','font-size:11px;color:#777;','Shortcut tools: click to show or hide'));
+    qEdit.appendChild(el('div','font-size:11px;color:#777;','Shortcut tools: click to show or hide. Drag the buttons in the toolbar above to change their order.'));
     qEdit.appendChild(qTools);
-    var rs=btn('Reset tools to standard',function(){ st.on=DEF.slice(); save(); build(); editDraw(); },'Back to the standard shortcut tools (your presets are not touched)'); qEdit.appendChild(rs);
+    var rs=btn('Reset tools to standard',function(){ st.on=DEF.slice(); delete st.order; save(); build(); editDraw(); },'Back to the standard shortcut tools (your presets are not touched)'); qEdit.appendChild(rs);
     qEdit.appendChild(el('div','font-size:11px;color:#777;margin-top:4px;','Shortcut presets: click to show or hide, ✕ deletes'));
     qEdit.appendChild(qPs);
     var done=btn('Done',function(){ qEdit.style.display='none'; }); qEdit.appendChild(done);
