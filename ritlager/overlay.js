@@ -2142,7 +2142,7 @@
     var fmt=cFmt.value;
     if(fmt==='gif'){
       if(!frames.length){ msg('Make frames under Animate first, then send the GIF',5000); return; }
-      rcSkipped=[]; rcSink=function(bl,nm){ rcOpen([{bl:bl,name:nm,label:''}]); }; aGif(); return;
+      rcSkipped=[]; var gb=aBox; rcSink=function(bl,nm){ rcOpen([{bl:bl,name:nm,label:'',place:gb?{x:Math.round(gb.x),y:Math.round(gb.y),w:Math.round(gb.w),h:Math.round(gb.h)}:null}]); }; aGif(); return;
     }
     if(!strokes.length&&!under){ msg('Draw something first'); return; }
     var keep={fm:fmSel.value,rs:rsSel.value,cs:csel.value,bg:bgSel.value,bc:bgCol.value};
