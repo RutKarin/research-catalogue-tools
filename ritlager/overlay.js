@@ -1995,8 +1995,8 @@
     }catch(e){ rcBatch=null; msg('Export failed: '+(e&&e.message?e.message:e)); }
     finally{ fmSel.value=keep.fm; rsSel.value=keep.rs; csel.value=keep.cs; bgSel.value=keep.bg; bgCol.value=keep.bc; }
   }
-  function rcCollect(bl,nm,label){
-    if(!rcBatch) return; rcBatch.items.push({bl:bl,name:nm,label:label||''});
+  function rcCollect(bl,nm,label,place){
+    if(!rcBatch) return; rcBatch.items.push({bl:bl,name:nm,label:label||'',place:place||null});
     if(rcBatch.items.length>=rcBatch.n){ var it=rcBatch.items; rcBatch=null; rcOpen(it); }
   }
 
@@ -2040,6 +2040,12 @@
     var pv=el('div','display:flex;gap:6px;overflow-x:auto;');
     items.slice(0,6).forEach(function(it){ var im=el('img','height:84px;max-width:150px;object-fit:contain;border:1px solid #e4e4e4;border-radius:6px;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px;'); im.src=URL.createObjectURL(it.bl); im.title=it.name; pv.appendChild(im); });
     box.appendChild(pv);
+    var pl=items[0].place, placeTxt='';
+    if(pl&&items.every(function(it){ return it.place&&it.place.x===pl.x&&it.place.y===pl.y&&it.place.w===pl.w&&it.place.h===pl.h; })){
+      placeTxt='Place it in RC at x '+pl.x+', y '+pl.y+', width '+pl.w+', height '+pl.h+'.';
+      var plEl=el('div','font-size:12px;line-height:1.4;background:#f4f4f4;border-radius:6px;padding:6px 8px;color:#111;',placeTxt+' RC shrinks new pictures to at most 500 px wide, so set the size in the tool properties to match your drawing.');
+      box.appendChild(plEl);
+    }
     var st=el('div','font-size:12px;color:#666;','Asking Research Catalogue for its form…'); box.appendChild(st);
     var IN='font:inherit;font-size:13px;border:1px solid #c9c9c9;border-radius:6px;padding:5px 8px;width:100%;box-sizing:border-box;';
     function field(t,node){ var w=el('label','display:flex;flex-direction:column;gap:2px;font-size:12px;color:#666;',t); w.appendChild(node); box.appendChild(w); return node; }
@@ -2115,7 +2121,8 @@
       chain.then(function(){
         rcPutPrefs({copyright:cpIn.value.trim(),license:licSel.value});
         ov.remove();
-        msg(multi?'Sent '+items.length+' images to Simple Media ("'+base+' – …"). Reload the page or the Media list in RC to see them.':'Sent to Simple Media as "'+items[0].sentName+'" ('+items[0].done+' px). Reload the page or the Media list in RC to see it.',9000);
+        try{ if(placeTxt&&navigator.clipboard) navigator.clipboard.writeText(placeTxt.replace(/^Place it in RC at /,'').replace(/\.$/,'')); }catch(e){}
+        msg((multi?'Sent '+items.length+' images to Simple Media ("'+base+' – …").':'Sent to Simple Media as "'+items[0].sentName+'" ('+items[0].done+' px).')+' Reload the page or the Media list in RC to see '+(multi?'them':'it')+'.'+(placeTxt?' '+placeTxt+' (copied)':''),14000);
       }).catch(function(e){
         var half=items.filter(function(it){ return it.createdId&&!it.done; });
         if(half.length) fail('The file did not upload ('+(e&&e.message?e.message:e)+'). The entry "'+half[0].sentName+'" exists in Simple Media without an image: press Send to try again.',true);
@@ -2343,7 +2350,7 @@
       if(mode==='copy'){
         try{ navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(function(){msg('Image copied');},function(){msg('Copying was denied – use Export PNG');}); }
         catch(e){ msg('Copying is not supported here – use Export PNG'); }
-      } else if(mode==='rcq'){ rcCollect(bl,lastName,label);
+      } else if(mode==='rcq'){ rcCollect(bl,lastName,label,{x:Math.round(b.x),y:Math.round(b.y),w:Math.round(b.w),h:Math.round(b.h)});
       } else {
         saveBlob(bl,lastName,'('+out.width+' × '+out.height+' px'+(bgSel.value==='shot2'?', drawing only':isShot()?', with screenshot':(bgValue()||fmt==='jpg')?'':', transparent')+')');
       }
@@ -2427,7 +2434,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191430', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191450', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
