@@ -2245,12 +2245,12 @@
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
-    var note=el('a','display:none;font:600 12px system-ui,sans-serif;color:#17d600;text-shadow:0 0 5px rgba(57,255,20,.7);text-decoration:underline;text-underline-offset:2px;margin:0 0 0 18px;padding:0;cursor:pointer;','New update ↗');
-    note.href=RL_UPDATE_URL; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','New update available. Open the install page to update'); note._tip='A new version is available. Open the install page and drag the bookmark again'; rlNote=note;
-    function show(v,l){ note.style.display=(v&&String(v)>RL_VERSION)?'inline':'none'; if(l) note._tip='Version '+l+' is available. Open the install page and drag the bookmark again'; }
+    var NS1='font:12px system-ui,sans-serif;color:#888;text-decoration:underline;text-underline-offset:2px;margin:0 0 0 18px;padding:0;cursor:pointer;', NS2='font:600 12px system-ui,sans-serif;color:#17d600;text-shadow:0 0 5px rgba(57,255,20,.7);text-decoration:underline;text-underline-offset:2px;margin:0 0 0 18px;padding:0;cursor:pointer;';
+    var note=el('a',NS1,'GitHub ↗'); note.href='https://github.com/RutKarin/research-catalogue-tools'; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','Ritlager on GitHub'); note._tip='Ritlager on GitHub'; rlNote=note;
+    function show(v,l){ if(v&&String(v)>RL_VERSION){ note.style.cssText=NS2; note.textContent='New update ↗'; note.href=RL_UPDATE_URL; note.setAttribute('aria-label','New update available. Open the install page to update'); note._tip=(l?'Version '+l+' is available. ':'A new version is available. ')+'Open the install page and drag the bookmark again'; } }
     var CK='ritlager-latest', cached=null; try{ cached=JSON.parse(localStorage.getItem(CK)||'null'); }catch(e){}
     if(cached&&cached.v) show(cached.v,cached.l);
-    if(!cached||!cached.t||Date.now()-cached.t>6*3600*1000){
+    if(!cached||!cached.t||Date.now()-cached.t>30*60*1000){
       try{ fetch('https://raw.githubusercontent.com/RutKarin/research-catalogue-tools/main/version.json',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){ if(j&&j.version){ show(j.version,j.label); try{ localStorage.setItem(CK,JSON.stringify({v:j.version,l:j.label,t:Date.now()})); }catch(e){} } }).catch(function(){}); }catch(e){}
     }
   })();
@@ -2567,7 +2567,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save and open) to keep your work.'));
     more.appendChild(document.createTextNode(' ')); more.appendChild(lnk('Ritlager on GitHub',REPO));
     var MANUAL=[
-      ['## Version','You are running Ritlager version '+RL_LABEL+' (build '+RL_VERSION+'). If a newer version has been published, a green “New update” link appears at the bottom, next to User manual; open it and drag the bookmark again. The extension updates by itself.'],
+      ['## Version','You are running Ritlager version '+RL_LABEL+' (build '+RL_VERSION+'). If a newer version has been published, the GitHub link at the bottom, next to User manual, turns into a green “New update” link; open it and drag the bookmark again. Ritlager checks for new versions at most every half hour. The extension updates by itself.'],
       ['## Pen styles and brush effects','Under Look there is a grid of pen styles with a small preview of each: basic (Round, Square, Flat, Ink, Marker), natural (Pencil, Charcoal, Chalk, Crayon, Watercolour) and pattern pens (Dotted, Dashed, Stars, Hearts, Leaves). Under Effects, Brush effects has Glow, Fuzzy fur, Lens flare, Clouds, Smoke, Nebula, Glitter, Rainbow, Thermal and Glitch. Click a tile to use that style with the pen. The Pen style menu in your shortcuts shows the same choice. Bigger Size makes the stamps and clouds bigger. Lens flare puts the light at the end of the stroke.'],
       ['## My colours','Under Colour, My colours is your own colour row. Pick a colour and press + to save it (up to 14). The pencil next to My colours switches on delete mode: click a colour with a cross to remove it. The seven standard colours can be hidden with the Standard colours box. In Your shortcuts you can also show the first seven of My colours as dots under Size.'],
       ['## Quick pen styles','In your shortcuts, hold the Pen or Brush button for half a second, or right-click it, to open a small window with all pen styles. Click one to use it. It closes by itself, or press Esc.'],
