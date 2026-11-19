@@ -2245,9 +2245,9 @@
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
-    var NS1='color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:9px;margin-left:26px;', NS2='font-weight:600;color:#17d600;text-shadow:0 0 5px rgba(57,255,20,.7);text-decoration:underline;cursor:pointer;display:inline-block;margin-top:9px;margin-left:26px;';
-    var note=el('a',NS1,'v'+RL_LABEL+' ▸'); note.href='https://github.com/RutKarin/research-catalogue-tools'; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','Ritlager version '+RL_LABEL+' on GitHub'); note._tip='Ritlager v'+RL_LABEL+' on GitHub'; rlNote=note;
-    function show(v,l){ if(v&&String(v)>RL_VERSION){ note.style.cssText=NS2; note.textContent='New update ▸'; note.href=RL_UPDATE_URL; note.setAttribute('aria-label','New update available. Open the install page to update'); note._tip=(l?'Version '+l+' is available. ':'A new version is available. ')+'Open the install page and drag the bookmark again'; } }
+    var NS1='color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:9px;', NS2='font-weight:600;color:#17d600;text-shadow:0 0 5px rgba(57,255,20,.7);text-decoration:underline;cursor:pointer;display:inline-block;margin-top:9px;';
+    var note=el('a',NS1,'v'+RL_LABEL+' ↗'); note.href='https://github.com/RutKarin/research-catalogue-tools'; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','Ritlager version '+RL_LABEL+' on GitHub'); note._tip='Ritlager v'+RL_LABEL+' on GitHub'; rlNote=note;
+    function show(v,l){ if(v&&String(v)>RL_VERSION){ note.style.cssText=NS2; note.textContent='New update ↗'; note.href=RL_UPDATE_URL; note.setAttribute('aria-label','New update available. Open the install page to update'); note._tip=(l?'Version '+l+' is available. ':'A new version is available. ')+'Open the install page and drag the bookmark again'; } }
     var CK='ritlager-latest', cached=null; try{ cached=JSON.parse(localStorage.getItem(CK)||'null'); }catch(e){}
     if(cached&&cached.v) show(cached.v,cached.l);
     if(!cached||!cached.t||Date.now()-cached.t>30*60*1000){
@@ -2599,7 +2599,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var man=el('div','margin-top:4px;display:none;');
     MANUAL.forEach(function(m){ var grp=m[0].indexOf('## ')===0; var h=el('div',grp?'font-weight:500;color:#111;font-size:13px;margin-top:14px;padding-top:6px;border-top:1px solid #e3e3e3;':'font-weight:400;color:#111;margin-top:6px;',grp?m[0].slice(3):m[0]); man.appendChild(h); man.appendChild(el('div','',m[1])); });
     var lk='color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:9px;';
-    var tg=el('span',lk,'About ▸'), tm=el('span',lk+'margin-left:26px;','User manual ▸');
+    var tg=el('span',lk,'About ▸'), tm=el('span',lk,'User manual ▸');
     function showPanel(which){
       var oi=which==='info'&&more.style.display==='none', om=which==='man'&&man.style.display==='none';
       more.style.display=oi?'block':'none'; man.style.display=om?'block':'none';
@@ -2607,7 +2607,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     }
     tg.addEventListener('click',function(){ showPanel('info'); });
     tm.addEventListener('click',function(){ showPanel('man'); });
-    var lr=el('div','text-align:left;'); lr.appendChild(tg); lr.appendChild(tm); if(rlNote) lr.appendChild(rlNote); d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
+    var lr=el('div','display:flex;justify-content:space-between;align-items:baseline;gap:8px;'); lr.appendChild(tg); lr.appendChild(tm); if(rlNote) lr.appendChild(rlNote); d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   setSize(); setDrawing(true);
