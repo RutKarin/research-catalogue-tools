@@ -2857,7 +2857,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var QCHK='repeating-conic-gradient(#c8c8c8 0 25%,#fff 0 50%) 0 0/8px 8px';
     var barO=mkBar(12,'#888','Opacity'); var qOw=el('div','flex:1 1 auto;min-width:0;padding:4px 2px;box-sizing:border-box;'); qOw.appendChild(barO);
     var qOv=el('span','font-size:11px;color:#555;width:42px;text-align:right;flex:none;'); qOp.appendChild(qOw); qOp.style.gridColumn='2';
-    function qOpSet(v,fin){ v=Math.max(5,Math.min(100,Math.round(v))); ink.value=v; ink.dispatchEvent(new Event('input',{bubbles:true})); if(fin) ink.dispatchEvent(new Event('change',{bubbles:true})); }
+    function qOpSet(v,fin){ v=Math.max(5,Math.min(100,Math.round(v))); ink.value=v; try{ qOpSync(); }catch(e){} ink.dispatchEvent(new Event('input',{bubbles:true})); if(fin) ink.dispatchEvent(new Event('change',{bubbles:true})); }
     dragBar(barO,function(pp){ qOpSet(5+pp*95,false); },function(d){ qOpSet((+ink.value||100)+d*2,true); },10);
     barO.addEventListener('pointerup',function(){ ink.dispatchEvent(new Event('change',{bubbles:true})); });
     qOpSync=function(){
