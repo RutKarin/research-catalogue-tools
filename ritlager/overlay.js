@@ -1355,15 +1355,15 @@
   function aSeq(){
     var seq=frames.map(function(f,i){ return {c:f.c,d:(+aMs.value)/aSpd()+(i===frames.length-1&&!aVanOn()?(+aEnd.value):0)}; });
     if(!seq.length) return seq;
-    var bg=aBgVal()||'#ffffff', w=frames[0].c.width, h=frames[0].c.height;
-    function mix(src,a,bl){ var c=document.createElement('canvas'); c.width=w; c.height=h; var x=c.getContext('2d'); x.fillStyle=bg; x.fillRect(0,0,w,h); x.globalAlpha=a; if(bl>0){ try{ x.filter='blur('+bl+'px)'; }catch(e){} } x.drawImage(src,0,0,w,h); return c; }
-    function cloud(src,a,bl,p){ var c=document.createElement('canvas'); c.width=w; c.height=h; var x=c.getContext('2d'); x.fillStyle=bg; x.fillRect(0,0,w,h); try{ x.filter='blur('+bl+'px)'; }catch(e){} [1,.7,.5].forEach(function(k){ x.globalAlpha=Math.min(1,a*k); x.drawImage(src,0,0,w,h); });
+    var bgv=aBgVal(), bg=bgv||'#ffffff', w=frames[0].c.width, h=frames[0].c.height;
+    function mix(src,a,bl){ var c=document.createElement('canvas'); c.width=w; c.height=h; var x=c.getContext('2d'); if(bgv){ x.fillStyle=bgv; x.fillRect(0,0,w,h); } x.globalAlpha=a; if(bl>0){ try{ x.filter='blur('+bl+'px)'; }catch(e){} } x.drawImage(src,0,0,w,h); return c; }
+    function cloud(src,a,bl,p){ var c=document.createElement('canvas'); c.width=w; c.height=h; var x=c.getContext('2d'); if(bgv){ x.fillStyle=bgv; x.fillRect(0,0,w,h); } try{ x.filter='blur('+bl+'px)'; }catch(e){} [1,.7,.5].forEach(function(k){ x.globalAlpha=Math.min(1,a*k); x.drawImage(src,0,0,w,h); });
       var am=(+aCm.value)/100*bl*1.6*Math.max(.3,p); if(am<1) return c;
       try{ var m2=/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(bg), bgc=m2?[parseInt(m2[1],16),parseInt(m2[2],16),parseInt(m2[3],16)]:[255,255,255], id=x.getImageData(0,0,w,h), sd=id.data, o=x.createImageData(w,h), od=o.data, t=p*5, sc=Math.max(1,w/480), yy, xx;
         for(yy=0;yy<h;yy++) for(xx=0;xx<w;xx++){
           var dx=am*(Math.sin(yy/sc*0.045+t*2.1)+0.6*Math.sin(xx/sc*0.031-t*1.4+1.3)), dy=am*(0.7*Math.sin(xx/sc*0.04+t*1.7)+0.9*p)*1;
           var sx=Math.round(xx-dx), sy=Math.round(yy+dy), q=(yy*w+xx)*4;
-          if(sx<0||sy<0||sx>=w||sy>=h){ od[q]=bgc[0]; od[q+1]=bgc[1]; od[q+2]=bgc[2]; od[q+3]=255; continue; }
+          if(sx<0||sy<0||sx>=w||sy>=h){ od[q]=bgc[0]; od[q+1]=bgc[1]; od[q+2]=bgc[2]; od[q+3]=bgv?255:0; continue; }
           var r=(sy*w+sx)*4; od[q]=sd[r]; od[q+1]=sd[r+1]; od[q+2]=sd[r+2]; od[q+3]=sd[r+3];
         }
         x.globalAlpha=1; try{ x.filter='none'; }catch(e){} x.putImageData(o,0,0); }catch(e){}
@@ -1416,7 +1416,7 @@
   }
   function encodeGif(){
     var seq=aSeq(), w=seq[0].c.width, h=seq[0].c.height, transparent=aBgVal()===null, imgs=seq.map(function(f){ var c=f.c; if(c.width!==w||c.height!==h){ var t=document.createElement('canvas'); t.width=w; t.height=h; t.getContext('2d').drawImage(c,0,0,w,h); c=t; } return c.getContext('2d').getImageData(0,0,w,h).data; });
-    var pal=gifPalette(imgs,transparent), TI=255, cache=new Map(), bytes=[], dl=seq.map(function(f){ return f.d; });
+    var dith=transparent&&(+aFi.value>0||+aFo.value>0||+aCl.value>0||aVanOn()||+aAo.value>0), pal=gifPalette(imgs,transparent), TI=255, cache=new Map(), bytes=[], dl=seq.map(function(f){ return f.d; });
     function nearest(r,g,b){ var key=((r>>3)<<10)|((g>>3)<<5)|(b>>3), v=cache.get(key); if(v!==undefined) return v; var best=0,bd=1e9, lim=255; for(var i=0;i<lim;i++){ var d=(pal[i][0]-r)*(pal[i][0]-r)+(pal[i][1]-g)*(pal[i][1]-g)+(pal[i][2]-b)*(pal[i][2]-b); if(d<bd){ bd=d; best=i; } } cache.set(key,best); return best; }
     function w16(n){ bytes.push(n&255,(n>>8)&255); }
     'GIF89a'.split('').forEach(function(ch){ bytes.push(ch.charCodeAt(0)); }); w16(w); w16(h); bytes.push(0xF7,0,0);
@@ -1425,7 +1425,8 @@
     var prev=null;
     imgs.forEach(function(d,fi){
       var idx=new Uint8Array(w*h), x0=0,y0=0,x1=w-1,y1=h-1, cur2=new Uint8Array(w*h);
-      for(var i=0,p=0;i<d.length;i+=4,p++) cur2[p]= (transparent&&d[i+3]<128)?TI:nearest(d[i],d[i+1],d[i+2]);
+      var BY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+      for(var i=0,p=0;i<d.length;i+=4,p++){ var thr=dith?(BY[((p/w|0)&3)*4+(p%w&3)]+.5)*16:128; cur2[p]= (transparent&&d[i+3]<thr)?TI:nearest(d[i],d[i+1],d[i+2]); }
       var useDelta=!transparent&&prev;
       if(useDelta){ var mnx=w,mny=h,mxx=-1,mxy=-1; for(var y=0;y<h;y++) for(var x=0;x<w;x++){ var q=y*w+x; if(cur2[q]!==prev[q]){ if(x<mnx)mnx=x; if(x>mxx)mxx=x; if(y<mny)mny=y; if(y>mxy)mxy=y; } }
         if(mxx<0){ mnx=0;mny=0;mxx=0;mxy=0; } x0=mnx;y0=mny;x1=mxx;y1=mxy; }
