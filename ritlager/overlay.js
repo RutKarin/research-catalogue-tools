@@ -2099,7 +2099,9 @@
     function create(it,i){
       st.textContent='Creating '+it.sentName+'…';
       var before=[];
-      return rcList(ids).then(function(l){ before=l.map(function(x){ return x.id; });
+      // RC minns valet av medietyp i sessionen och förbrukar det vid varje ny post: gör steg 1 (typ=image, Next) före varje post
+      var s1=new FormData(); s1.append('form[type][type]','image'); s1.append('form[_token_placeholder]',''); s1.append('form[_buttons][next]','');
+      return fetch(url,{method:'POST',body:s1,headers:RC_H,credentials:'same-origin'}).then(function(r0){ if(!r0.ok) throw new Error('type status '+r0.status); return rcList(ids); }).then(function(l){ before=l.map(function(x){ return x.id; });
         var fd=new FormData();
         fd.append('form[image][name]',it.sentName); fd.append('form[image][copyrightHolder]',cpIn.value.trim()); fd.append('form[image][license]',licSel.value);
         fd.append('form[image][ariaLabel]',altIn.value); fd.append('form[image][description]',dsIn.value);
@@ -2464,7 +2466,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191520', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191535', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
