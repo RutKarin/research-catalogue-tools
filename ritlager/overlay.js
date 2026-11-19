@@ -993,11 +993,17 @@
   function fillDown(e){
     e.preventDefault();
     if(!getLayer(act).vis){ msg('This layer is hidden – show it to fill on it'); return; }
-    var q=pos(e), sx=Math.round(q.x), sy=Math.round(q.y), w=Math.round(W), h=Math.round(H);
-    if(sx<0||sy<0||sx>=w||sy>=h) return;
-    if(w*h>2.6e7){ msg('The page is too large to fill'); return; }
+    var q=pos(e), sx=Math.round(q.x), sy=Math.round(q.y), pw=Math.round(W), ph=Math.round(H);
+    if(sx<0||sy<0||sx>=pw||sy>=ph) return;
+    // work only on the area around this layer's drawing (long pages stay fast and never become 'too large')
+    var lst=strokes.filter(function(z){ return layerOf(z)===act; }), lb=lst.length?boxOf(lst):null;
+    if(!lb){ msg('Nothing drawn on this layer yet – draw a closed outline first'); return; }
+    var mg=Math.round((+fillGap.value||0)/2)+8, ox=Math.max(0,Math.floor(lb.x0)-mg), oy=Math.max(0,Math.floor(lb.y0)-mg), ox2=Math.min(pw,Math.ceil(lb.x1)+mg), oy2=Math.min(ph,Math.ceil(lb.y1)+mg), w=ox2-ox, h=oy2-oy;
+    if(sx<ox||sy<oy||sx>=ox2||sy>=oy2){ msg('Click inside a closed shape drawn on this layer'); return; }
+    sx-=ox; sy-=oy;
+    if(w*h>2.6e7){ msg('The drawing is too large to fill (over 26 million pixels)'); return; }
     var work=document.createElement('canvas'); work.width=w; work.height=h; var g=work.getContext('2d');
-    compose(g,function(){},act);
+    g.save(); g.translate(-ox,-oy); compose(g,function(){},act); g.restore();
     var px=g.getImageData(0,0,w,h).data, bar0=new Uint8Array(w*h), i;
     for(i=0;i<w*h;i++) bar0[i]=px[i*4+3]>=40?1:0;
     var r=Math.round((+fillGap.value||0)/2), blk=dilateMask(bar0,w,h,r), st0=sy*w+sx;
@@ -1023,7 +1029,7 @@
     for(yy3=0;yy3<bh;yy3++) for(xx4=0;xx4<bw;xx4++){ if(grown[(y1+yy3)*w+x1+xx4]){ var o4=(yy3*bw+xx4)*4; od[o4]=cr; od[o4+1]=cg; od[o4+2]=cb; od[o4+3]=255; } }
     og.putImageData(oid,0,0);
     var iid='i'+Date.now().toString(36)+Math.floor(Math.random()*1e5).toString(36); imgs[iid]={src:out.toDataURL('image/png'),w:bw,h:bh};
-    var stf={l:act,tool:'image',iid:iid,size:1,rot:0,ink:+ink.value/100,color:'#000',pts:[{x:x1,y:y1,p:1}]}, idx=strokes.length, k2;
+    var stf={l:act,tool:'image',iid:iid,size:1,rot:0,ink:+ink.value/100,color:'#000',pts:[{x:x1+ox,y:y1+oy,p:1}]}, idx=strokes.length, k2;
     for(k2=0;k2<strokes.length;k2++) if(layerOf(strokes[k2])===act){ idx=k2; break; }
     opSnap(function(){ strokes.splice(idx,0,stf); });
     msg('Filled on this layer, below your lines. Use Select to move it, Ctrl+Z to undo.',4000);
