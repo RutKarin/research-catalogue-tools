@@ -2053,10 +2053,6 @@
       {id:'size',n:'Size slider',slider:true,p:['M3 6h18','M3 12h18','M3 19h18']},
       {id:'draw',n:'Draw',real:bDraw,p:['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z','m15 5 4 4']},
       {id:'move',n:'Select and move (V)',real:tTop[1],p:['M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z']},
-      {id:'selrect',n:'Select rectangle',real:bRect,p:['M5 3a2 2 0 0 0-2 2','M19 3a2 2 0 0 1 2 2','M21 19a2 2 0 0 1-2 2','M5 21a2 2 0 0 1-2-2','M9 3h1','M9 21h1','M14 3h1','M14 21h1','M3 9v1','M21 9v1','M3 14v1','M21 14v1']},
-      {id:'sellasso',n:'Select lasso',real:bLas,p:['M7 22a5 5 0 0 1-2-4','M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z']},
-      {id:'cutrect',n:'Cut out rectangle',real:bCutR,p:['M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M20 4 8.12 15.88','M14.47 14.48 20 20','M8.12 8.12 12 12']},
-      {id:'cutlasso',n:'Cut out lasso',real:bCutL,p:['M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M20 14 11 23','M14 14l6 6']},
       {id:'eraser',n:'Eraser (E)',real:tTop[2],p:['m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21','M22 21H7','m5 11 9 9']},
       {id:'undo',n:'Undo',real:tTop[3],p:['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11']},
       {id:'redo',n:'Redo',real:tTop[4],p:['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13']},
@@ -2073,7 +2069,11 @@
       {id:'blur',n:'Blur',real:bBlurT,p:['M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z']},
       {id:'sharp',n:'Sharpen',real:bSharpT,p:['M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z']},
       {id:'smudge',n:'Smudge',real:bSmudgeT,p:['M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2','M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8','M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15']},
-      {id:'clone',n:'Clone',real:bCloneT,p:['M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z','M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1']}
+      {id:'clone',n:'Clone',real:bCloneT,p:['M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z','M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1']},
+      {id:'selrect',n:'Select rectangle',real:bRect,p:['M5 3a2 2 0 0 0-2 2','M19 3a2 2 0 0 1 2 2','M21 19a2 2 0 0 1-2 2','M5 21a2 2 0 0 1-2-2','M9 3h1','M9 21h1','M14 3h1','M14 21h1','M3 9v1','M21 9v1','M3 14v1','M21 14v1']},
+      {id:'sellasso',n:'Select lasso',real:bLas,p:['M7 22a5 5 0 0 1-2-4','M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z']},
+      {id:'cutrect',n:'Cut out rectangle',real:bCutR,p:['M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M20 4 8.12 15.88','M14.47 14.48 20 20','M8.12 8.12 12 12']},
+      {id:'cutlasso',n:'Cut out lasso',real:bCutL,p:['M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M20 14 11 23','M14 14l6 6']}
     ];
     var DEF=['draw','move','eraser','undo','redo','save','trash','pen','brush','air','line','text','pip'];
     var st={on:DEF.slice(),open:true};
