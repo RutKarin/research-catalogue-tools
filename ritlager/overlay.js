@@ -2245,10 +2245,9 @@
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
-    var note=el('a','display:none;align-items:center;gap:6px;font:11.5px system-ui,sans-serif;color:#111;text-decoration:underline;text-underline-offset:2px;padding:0;margin:8px 0 2px;cursor:pointer;');
-    var nd=el('span','display:inline-block;flex:none;width:9px;height:9px;border-radius:50%;background:#39ff14;box-shadow:0 0 6px 2px #39ff14;'); note.appendChild(nd); note.appendChild(document.createTextNode('New version available · Update ↗'));
+    var note=el('a','display:none;text-align:center;font:11.5px system-ui,sans-serif;font-weight:600;color:#111;background:#39ff14;border-radius:6px;text-decoration:none;padding:5px 8px;margin:26px 0 0;cursor:pointer;','New version available · Update ↗');
     note.href=RL_UPDATE_URL; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','New version available. Open the install page to update'); note._tip='Open the install page and drag the bookmark again'; rlNote=note;
-    function show(v){ note.style.display=(v&&String(v)>RL_VERSION)?'flex':'none'; }
+    function show(v){ note.style.display=(v&&String(v)>RL_VERSION)?'block':'none'; }
     var CK='ritlager-latest', cached=null; try{ cached=JSON.parse(localStorage.getItem(CK)||'null'); }catch(e){}
     if(cached&&cached.v) show(cached.v);
     if(!cached||!cached.t||Date.now()-cached.t>6*3600*1000){
@@ -2563,7 +2562,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var REPO='https://github.com/RutKarin/research-catalogue-tools';
     var d=el('div','font-size:11px;color:#888;line-height:1.5;margin-top:12px;padding:12px 0 6px;border-top:1px solid #e4e4e4;');
     function lnk(t,h){ var a=el('a','color:#111;text-decoration:underline;cursor:pointer;',t); a.href=h; a.target='_blank'; a.rel='noopener noreferrer'; return a; }
-    var top=el('div',''); top.appendChild(document.createTextNode('Ritlager · © 2026 Rut Karin Zettergren ')); var mit=el('span','display:inline-block;border:1px solid #d0d0d0;border-radius:3px;padding:0 3px;font-size:8.5px;line-height:11px;color:#aaa;vertical-align:middle;margin-left:2px;','MIT'); mit.title='MIT licence: free to use, change and share'; top.appendChild(mit); d.appendChild(top); if(rlNote) d.appendChild(rlNote);
+    var top=el('div',''); top.appendChild(document.createTextNode('Ritlager · © 2026 Rut Karin Zettergren ')); var mit=el('span','display:inline-block;border:1px solid #d0d0d0;border-radius:3px;padding:0 3px;font-size:8.5px;line-height:11px;color:#aaa;vertical-align:middle;margin-left:2px;','MIT'); mit.title='MIT licence: free to use, change and share'; top.appendChild(mit); d.appendChild(top);
     var more=el('div','margin-top:4px;display:none;');
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save and open) to keep your work.'));
     more.appendChild(document.createTextNode(' ')); more.appendChild(lnk('Ritlager on GitHub',REPO));
@@ -2608,7 +2607,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     }
     tg.addEventListener('click',function(){ showPanel('info'); });
     tm.addEventListener('click',function(){ showPanel('man'); });
-    var lr=el('div','text-align:left;'); lr.appendChild(tg); lr.appendChild(tm); d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
+    var lr=el('div','text-align:left;'); lr.appendChild(tg); lr.appendChild(tm); d.appendChild(lr); d.appendChild(more); d.appendChild(man); if(rlNote) bar.appendChild(rlNote); bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   setSize(); setDrawing(true);
