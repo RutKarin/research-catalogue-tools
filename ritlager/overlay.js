@@ -2291,7 +2291,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
       {id:'tone',n:'Lighten / darken',real:null,go:function(){ (toneMode==='burn'?bBurn:bDodge).click(); },p:IC2.dd},
       {id:'retouch',n:'Retouch',real:null,go:function(){ RT[retMode].b().click(); },p:IC2.bl},
       {id:'layers',n:'Layers',real:null,go:function(){ layerFlyToggle(); },p:['M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z','m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65','m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65']},
-      {id:'settings',n:'Save / load all settings',real:null,go:function(){ settingsFlyToggle(); },p:['M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z','M17 21v-8H7v8','M7 3v5h8']},
+      {id:'settings',n:'Save / load all settings',real:null,go:function(){ settingsFlyToggle(); },p:['M21 8v13H3V8','M1 3h22v5H1z','M10 12h4']},
       {id:'colour',n:'Colour',colour:true,p:['M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z','M13.5 6.5h.01','M17.5 10.5h.01','M6.5 12.5h.01','M8.5 7.5h.01']}
     ];
     ['draw','pen','brush','air','line'].forEach(function(id){ Q.forEach(function(q){ if(q.id===id) q.h=1; }); });
