@@ -1224,14 +1224,14 @@
 
   // ---- Animate: frames -> preview -> GIF / video ----
   sec('Animate');
-  var frames=[], aSel=-1, aPlay=0, aTimer=0;
+  var frames=[], aSel=-1, aPlay=0, aTimer=0, aFromReplay=false, aAutoT=0;
   var rA1=row(); lab(rA1,'Frames'); var aN=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;box-sizing:border-box;width:52px;'); aN.type='number'; aN.min=2; aN.max=200; aN.value=24; aN.title='How many frames the replay should have'; rA1.appendChild(aN);
   bar.appendChild(rA1);
   var rA1b=row(); rA1b.appendChild(btn('Build-up from my drawing',function(){ aReplay(); },'Makes frames that show the drawing being drawn, stroke by stroke')); bar.appendChild(rA1b);
   var rA2=row(); rA2.appendChild(btn('+ Add this frame',function(){ aAdd(strokes); },'Takes a picture of the drawing as it is now – draw, add, change, add… for hand-made animation'));
   rA2.appendChild(btn('Clear last frame',function(){ if(!frames.length){ msg('No frames to clear'); return; } aPreview(false); frames.pop(); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Removes the last frame'));
   rA2.appendChild(btn('Keep every 2nd',function(){ if(frames.length<3) return; frames=frames.filter(function(f,i){ return i%2===0; }); aSel=Math.min(aSel,frames.length-1); aDraw(); },'Keeps every second frame and removes the rest, for a smaller file'));
-  rA2.appendChild(btn('Clear all',function(){ aPreview(false); frames=[]; aSel=-1; aDraw(); },'Remove all frames'));
+  rA2.appendChild(btn('Clear all',function(){ aPreview(false); aFromReplay=false; frames=[]; aSel=-1; aDraw(); },'Remove all frames'));
   bar.appendChild(rA2);
   var rA3=row(); lab(rA3,'Size'); var aW=el('select',BTN+'padding:3px 6px;'); [[320,'320 px wide'],[480,'480 px wide'],[640,'640 px wide'],[800,'800 px wide'],[1000,'1000 px wide']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aW.appendChild(op); }); aW.value=640; rA3.appendChild(aW);
   var aCrop=chk(rA3,'Drawn area only',true,'Cut away empty space around the drawing'); bar.appendChild(rA3);
@@ -1240,12 +1240,15 @@
   var aStrip=el('div','display:flex;flex-wrap:wrap;gap:5px;max-height:240px;overflow-y:auto;'); bar.appendChild(aStrip);
   var aCount=el('div','font-size:11.5px;color:#666;','No frames yet'); bar.appendChild(aCount);
   var rA5=row(); lab(rA5,'Time / frame'); var aMs=slider(rA5,30,1000,120,90); liveVal(aMs,' ms'); bar.appendChild(rA5);
+  var rA5b=row(); lab(rA5b,'Drawing speed'); var aSp=slider(rA5b,25,400,100,90); aSp.step=5; liveVal(aSp,' %'); bar.appendChild(rA5b);
+  function aSpd(){ return Math.max(.1,(+aSp.value||100)/100); }
   var rA6=row(); lab(rA6,'Hold at end'); var aEnd=slider(rA6,0,3000,600,90); liveVal(aEnd,' ms'); var aLoop=chk(rA6,'Loop',true); bar.appendChild(rA6);
   var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bar.appendChild(rAf);
   var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bar.appendChild(rAg);
   var rAv=row(); lab(rAv,'Strokes vanish after'); var aVa=slider(rAv,0,6000,0,90); aVa.step=100; liveVal(aVa,' ms'); bar.appendChild(rAv);
   var rAw=row(); lab(rAw,'Vanish over'); var aVo=slider(rAw,100,3000,600,90); aVo.step=50; liveVal(aVo,' ms'); bar.appendChild(rAw);
   var rAx=row(); lab(rAx,'Vanish blur'); var aVb=slider(rAx,0,100,0,90); liveVal(aVb,' %'); bar.appendChild(rAx);
+  [aVa,aVo,aVb,aSp].forEach(function(e){ e.addEventListener('input',function(){ if(aFromReplay&&strokes.length){ clearTimeout(aAutoT); aAutoT=setTimeout(function(){ aReplay(true); },300); } }); });
   var rAh=row(); lab(rAh,'Blur while fading'); var aBl=slider(rAh,0,40,0,90); liveVal(aBl,' px'); bar.appendChild(rAh);
   var rAi=row(); lab(rAi,'Blink at end'); var aBk=slider(rAi,0,10,0,90); liveVal(aBk,' times'); bar.appendChild(rAi);
   var rAj=row(); lab(rAj,'Blink speed'); var aBs=slider(rAj,50,1000,250,90); aBs.step=10; liveVal(aBs,' ms'); bar.appendChild(rAj);
@@ -1266,14 +1269,16 @@
   function aAdd(list){
     if(frames.length>=200){ msg('Max 200 frames'); return; }
     if(!list.length&&!under){ msg('Draw something first'); return; }
+    aFromReplay=false;
     if(!aBox||!frames.length) aBox=aBounds();
     var c=aShot(list,aBox); frames.push({c:c}); aSel=frames.length-1; aDraw();
   }
-  function aReplay(){
+  function aReplay(quiet){
     if(!strokes.length){ msg('Draw something first'); return; }
+    var wasPlaying=aPlay;
     var n=Math.max(2,Math.min(200,+aN.value||24)); aPreview(false); frames=[]; aBox=aBounds();
     var wts=strokes.map(function(st){ return (st.tool==='text'||st.tool==='image'||st.tool==='cut')?6:Math.max(1,st.pts.length); }), tot=wts.reduce(function(a,b){ return a+b; },0);
-    var life=+aVa.value, msF=Math.max(30,+aMs.value||120), Lf=life>0?Math.max(1,Math.round(life/msF)):0, Ff=Math.max(1,Math.round((+aVo.value||600)/msF)), vb=+aVb.value, start={}, total=life>0?Math.min(200,n+Lf+Ff):n;
+    var life=+aVa.value, msF=Math.max(20,(+aMs.value||120)/aSpd()), Lf=life>0?Math.max(1,Math.round(life/msF)):0, Ff=Math.max(1,Math.round((+aVo.value||600)/msF)), vb=+aVb.value, start={}, total=life>0?Math.min(200,n+Lf+Ff):n;
     for(var f=1;f<=total;f++){
       var goal=tot*Math.min(f,n)/n, acc=0, list=[];
       for(var i=0;i<strokes.length;i++){
@@ -1292,7 +1297,7 @@
             var al=1-(age-Lf)/(Ff+1);
             if(al<=0.02) continue;
             item=Object.assign({},item,{ink:(item.ink==null?1:item.ink)*al});
-            if(vb>0&&item.tool!=='text'&&item.tool!=='image') item.soft=Math.max(item.soft||0,vb*(1-al));
+            if(vb>0&&item.tool!=='text'&&item.tool!=='image') item.soft=Math.max(item.soft||0,vb*6*(1-al));
           }
         }
         list.push(item);
@@ -1300,7 +1305,7 @@
       }
       frames.push({c:aShot(list,aBox)});
     }
-    aSel=frames.length-1; aDraw(); msg(frames.length+' frames made – press Preview');
+    aSel=frames.length-1; aDraw(); aFromReplay=true; if(quiet===true){ if(wasPlaying) aPreview(true); } else msg(frames.length+' frames made – press Preview');
   }
   function aDraw(){
     aStrip.textContent='';
@@ -1313,7 +1318,7 @@
       [['◀','Move earlier',function(){ if(i>0){ var x=frames[i-1]; frames[i-1]=frames[i]; frames[i]=x; aSel=i-1; aDraw(); } }],['▶','Move later',function(){ if(i<frames.length-1){ var x=frames[i+1]; frames[i+1]=frames[i]; frames[i]=x; aSel=i+1; aDraw(); } }],['⧉','Copy this frame',function(){ frames.splice(i+1,0,{c:f.c}); aSel=i+1; aDraw(); }],['✕','Remove this frame',function(){ frames.splice(i,1); aSel=Math.min(aSel,frames.length-1); aDraw(); }]].forEach(function(o){ var b=el('button','border:0;background:none;cursor:pointer;font-size:11px;padding:1px 2px;',o[0]); b.type='button'; b.title=o[1]; b.addEventListener('click',o[2]); r.appendChild(b); });
       d.appendChild(r); aStrip.appendChild(d);
     });
-    var secs=(frames.length*(+aMs.value)+(+aEnd.value)+(+aFi.value)+(+aFo.value))/1000;
+    var secs=(frames.length*(+aMs.value)/aSpd()+(+aEnd.value)+(+aFi.value)+(+aFo.value))/1000;
     aCount.textContent=frames.length?(frames.length+' frames · about '+secs.toFixed(1)+' s · '+frames[0].c.width+'×'+frames[0].c.height+' px'):'No frames yet';
   }
   [aMs,aEnd,aFi,aFo].forEach(function(x){ x.addEventListener('input',function(){ if(frames.length) aDraw(); }); });
@@ -1328,18 +1333,21 @@
       aTimer=setTimeout(step,wait); })();
   }
   function aSeq(){
-    var seq=frames.map(function(f,i){ return {c:f.c,d:(+aMs.value)+(i===frames.length-1?(+aEnd.value):0)}; });
+    var seq=frames.map(function(f,i){ return {c:f.c,d:(+aMs.value)/aSpd()+(i===frames.length-1?(+aEnd.value):0)}; });
     if(!seq.length) return seq;
     var bg=aBgVal()||'#ffffff', w=frames[0].c.width, h=frames[0].c.height;
     function mix(src,a,bl){ var c=document.createElement('canvas'); c.width=w; c.height=h; var x=c.getContext('2d'); x.fillStyle=bg; x.fillRect(0,0,w,h); x.globalAlpha=a; if(bl>0){ try{ x.filter='blur('+bl+'px)'; }catch(e){} } x.drawImage(src,0,0,w,h); return c; }
     function blank(){ var c=document.createElement('canvas'); c.width=w; c.height=h; var bv=aBgVal(); if(bv){ var x=c.getContext('2d'); x.fillStyle=bv; x.fillRect(0,0,w,h); } return c; }
-    var fi=+aFi.value, fo=+aFo.value, mb=+aBl.value, bk=+aBk.value, bs=+aBs.value, pre=[], post=[], mid=[];
-    if(fi>0){ var n=Math.max(2,Math.min(15,Math.round(fi/60))); for(var k=1;k<=n;k++) pre.push({c:mix(frames[0].c,k/(n+1),mb*(1-k/(n+1))),d:fi/n}); }
+    var fi=+aFi.value, fo=+aFo.value, mb=(+aBl.value)*Math.max(1,w/480), bk=+aBk.value, bs=+aBs.value, pre=[], post=[], mid=[];
+    if(fi>0){
+      if(seq[0].d>=fi){ var n=Math.max(2,Math.min(15,Math.round(fi/60))); for(var k=1;k<=n;k++) pre.push({c:mix(frames[0].c,k/(n+1),mb*(1-k/(n+1))),d:fi/n}); }
+      else { var cum=0; seq.forEach(function(q,qi){ var mid2=cum+q.d/2; cum+=q.d; if(mid2<fi){ var al2=Math.max(0.05,mid2/fi); seq[qi]={c:mix(q.c,al2,mb*(1-al2)),d:q.d}; } }); }
+    }
     if(fo>0){ var m=Math.max(2,Math.min(15,Math.round(fo/60))); for(var j=1;j<=m;j++) post.push({c:mix(frames[frames.length-1].c,1-j/(m+1),mb*j/(m+1)),d:fo/m}); if(post.length&&seq.length) { /* the pause at the end belongs before the fade */ } }
     if(bk>0){ var lastC=frames[frames.length-1].c, bl0=blank(); for(var q=0;q<bk;q++){ mid.push({c:bl0,d:bs}); mid.push({c:mix(lastC,1,0),d:bs}); } }
     return pre.concat(seq,mid,post);
   }
-  function aDelays(){ return frames.map(function(f,i){ return (+aMs.value)+(i===frames.length-1?(+aEnd.value):0); }); }
+  function aDelays(){ return frames.map(function(f,i){ return (+aMs.value)/aSpd()+(i===frames.length-1?(+aEnd.value):0); }); }
   // --- GIF encoder (own, no libraries) ---
   function gifPalette(imgs,transparent){
     var hist=new Map();
@@ -1914,7 +1922,7 @@
       ['Retouch','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'],
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
-      ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones. Strokes that vanish: Strokes vanish after makes every stroke disappear this long after it was drawn, like fading ink (0 = they stay). Vanish over is how long the disappearing takes, and Vanish blur makes it blurrier as it goes. This works in Build-up from my drawing; raise Frames and Time / frame if the animation is too short for the strokes to vanish. Ending the animation: Hold at end is how long the finished drawing stays still. Blink at end then makes it blink the chosen number of times (Blink speed is how long each on or off lasts). Fade out then lets it disappear, and Blur while fading makes it get blurrier as it vanishes (it also clears up during Fade in). Blur needs Chrome or Edge; with a lot of blur, switch off Drawn area only so the blur has room.'],
+      ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones. Drawing speed makes the whole animation play faster or slower (100 % is normal). Fade in fades up the first frames. When frames come from Build-up from my drawing, changing Drawing speed or the Vanish sliders rebuilds the frames by itself. Strokes that vanish: Strokes vanish after makes every stroke disappear this long after it was drawn, like fading ink (0 = they stay). Vanish over is how long the disappearing takes, and Vanish blur makes it blurrier as it goes. This works in Build-up from my drawing; raise Frames and Time / frame if the animation is too short for the strokes to vanish. Ending the animation: Hold at end is how long the finished drawing stays still. Blink at end then makes it blink the chosen number of times (Blink speed is how long each on or off lasts). Fade out then lets it disappear, and Blur while fading makes it get blurrier as it vanishes (it also clears up during Fade in). Blur needs Chrome or Edge; with a lot of blur, switch off Drawn area only so the blur has room.'],
       ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG, TIFF or WebP (small and can be transparent), or SVG (vector lines that scale to any size, good for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.'],
       ['Export formats','Images: PNG (sharp, can be transparent, the safe choice), JPG (small file, no transparency), TIFF (print and archive), WebP (small, can be transparent, for the web) and SVG (vector lines that scale to any size; for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Animation: GIF (works almost everywhere, max 256 colours), video as MP4 (plays on phones, Safari, social media and editing programs; made in Chrome and Edge) and video as WebM (smooth and small, Chrome, Edge and Firefox). Project file: keeps everything editable so you can open and continue later (Save and open). Check which formats the place you upload to accepts; Research Catalogue takes ordinary images, GIF and video.']
     ];
