@@ -1814,8 +1814,6 @@
         L2.forEach(function(L,i){ setTimeout(function(){ try{ exportPng2('save',L.id,L.name); }catch(e){ msg('Export failed: '+(e&&e.message?e.message:e)); } },i*400); });
         return;
       }
-      if(lySel.value==='active'&&!getLayer(act).vis){ msg('The active layer is hidden – hidden layers are never exported'); return; }
-      if(lySel.value==='all'&&!layers.some(function(L){ return L.vis; })){ msg('All layers are hidden – nothing to export'); return; }
       exportPng2(mode, lySel.value==='active' ? act : null);
       if(mode==='save'&&bgSel.value==='shot2'&&ref) setTimeout(saveRef,400);
     }catch(e){ msg('Export failed: '+(e&&e.message?e.message:e)+'. Try Image size: Strokes only.'); }
