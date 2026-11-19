@@ -1018,6 +1018,12 @@
       bLine=btn('Line',function(){setTool('line');},'Straight line (L)'), bEr=btn('Eraser',function(){setTool('eraser');},'Eraser (E)'), bTxt=btn('Text tool (T)',function(){setTool('text');},'Text (T): click where the text should go');
   var bSel0=btn('↖ Select',function(){ setTool('select'); },'Select, move and change strokes (S or V). Opacity, Colour and Thickness then change the selected strokes'); 
   var bAir=btn('Airbrush',function(){changeSel('tool','air'); setTool('air');},'Airbrush (A): soft spray that builds up. Hardness sets how soft the edge is, Opacity how strong it can get'); r2.appendChild(bPen); r2.appendChild(bBrush); r2.appendChild(bAir); r2.appendChild(bLine); r2.appendChild(bEr); r2.appendChild(bSel0); r2.style.display='grid'; r2.style.gridTemplateColumns='repeat(3,1fr)'; r2.style.gap='5px'; bar.appendChild(r2);
+  var rDS=row(); rDS.style.flexWrap='nowrap'; rDS.style.alignItems='center'; rDS.style.gap='6px';
+  var drSr=el('input','flex:1 1 auto;min-width:0;accent-color:#111;'); drSr.type='range'; drSr.min=0; drSr.max=100; drSr.step=0.25; drSr.setAttribute('aria-label','Size (tools)');
+  var drSv=el('span','font-size:11px;color:#555;width:46px;text-align:right;flex:none;'); rDS.appendChild(drSr); rDS.appendChild(drSv); bar.appendChild(rDS);
+  drSr.addEventListener('input',function(){ sz.value=drSr.value; sz.dispatchEvent(new Event('input',{bubbles:true})); });
+  drSr.addEventListener('change',function(){ sz.dispatchEvent(new Event('change',{bubbles:true})); });
+  var drSizeSync=function(){ if(document.activeElement!==drSr) drSr.value=sz.value; drSv.textContent=szv.textContent; };
 
 
   sec('Colour');
@@ -1082,7 +1088,7 @@
   var szv=el('span','font-size:12px;width:46px;','3.0');
   var SMIN=0.2, SMAX=1000, LR=Math.log(SMAX/SMIN);
   sz.min=0; sz.max=100; sz.step=0.25;
-  function showSize(){ szv.textContent = (size<10 ? size.toFixed(1) : String(Math.round(size)))+' px'; if(szn&&document.activeElement!==szn) szn.value=size<10?size.toFixed(1):Math.round(size); if(typeof qSizeSync==='function') qSizeSync(); }
+  function showSize(){ szv.textContent = (size<10 ? size.toFixed(1) : String(Math.round(size)))+' px'; if(szn&&document.activeElement!==szn) szn.value=size<10?size.toFixed(1):Math.round(size); if(typeof qSizeSync==='function') qSizeSync(); if(typeof drSizeSync==='function') drSizeSync(); }
   function setSize2(v,nochg){ size=Math.max(SMIN,Math.min(SMAX,v)); sz.value=100*Math.log(size/SMIN)/LR; showSize(); if(!nochg) changeSel('size'); }
   sz.addEventListener('input',function(){ size=SMIN*Math.exp(LR*(+sz.value)/100); showSize(); });
   sz.addEventListener('change',function(){ changeSel('size'); });
@@ -2238,8 +2244,8 @@
       bSel0.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('↖ ',''); });
       [bRect,bCutR].forEach(function(b){ b.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('▭ ',''); }); });
       bPick.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('↖ ',''); }); })();
-    var st={on:DEF.slice(),open:true};
-    try{ var s0=JSON.parse(localStorage.getItem(KEY)); if(s0&&s0.on) st=s0; else { var s1=JSON.parse(localStorage.getItem('ritlager-quick')); if(s1&&s1.on) st={on:DEF.slice(0,7).concat(s1.on),open:s1.open!==false}; } }catch(e){}
+    var st={on:DEF.slice(),open:true,v:2};
+    try{ var s0=JSON.parse(localStorage.getItem(KEY)); if(s0&&s0.on){ if(!s0.v){ s0.v=2; ['size','nib'].forEach(function(k){ if(s0.on.indexOf(k)<0) s0.on.push(k); }); s0.on=s0.on.filter(function(k){ return k!=='line'; }); } st=s0; } else { var s1=JSON.parse(localStorage.getItem('ritlager-quick')); if(s1&&s1.on) st={on:DEF.slice(0,7).concat(s1.on,['size','nib']),open:s1.open!==false,v:2}; } }catch(e){}
     function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
     function svgOf(paths,sz){ var sv=document.createElementNS(NS,'svg'); sv.setAttribute('width',sz); sv.setAttribute('height',sz); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); return sv; }
     var strip=el('button','display:flex;align-items:center;justify-content:center;width:100%;height:16px;border:0;border-radius:6px;background:#efefef;color:#777;cursor:pointer;padding:0;margin-top:-2px;'); strip.type='button'; strip._tip='Show or hide your shortcuts';
