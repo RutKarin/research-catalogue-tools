@@ -1227,7 +1227,7 @@
   // ---- Animate: frames -> preview -> GIF / video ----
   sec('Animate');
   var frames=[], aSel=-1, aPlay=0, aTimer=0, aFromReplay=false, aAutoT=0;
-  function aSub(t){ bar.appendChild(el('div','font-size:11.5px;font-weight:600;color:#333;background:#f1f1f1;border-radius:6px;padding:3px 8px;margin-top:7px;',t)); }
+  function aSub(t){ bar.appendChild(el('div','font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-top:6px;border-top:1px solid #e4e4e4;padding-top:6px;',t)); }
   function aBoxEl(){ var d=el('div','display:flex;flex-direction:column;gap:5px;margin-left:6px;padding-left:9px;border-left:2px solid #e4e4e4;'); bar.appendChild(d); return d; }
   function aMode(r,t,opts,tip){ lab(r,t); var s=el('select',BTN+'padding:3px 6px;'); opts.forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; s.appendChild(op); }); if(tip) s.title=tip; r.appendChild(s); return s; }
   function aAuto(){ if(aFromReplay&&strokes.length){ clearTimeout(aAutoT); aAutoT=setTimeout(function(){ aReplay(true); },300); } }
