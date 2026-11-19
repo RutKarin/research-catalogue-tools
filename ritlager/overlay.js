@@ -1595,9 +1595,9 @@
     txSize.style.cssText+='width:54px;margin-left:auto;'; rCol.appendChild(txSize);
     setInterval(function(){ all.forEach(function(x){ x._mk(); }); },700);
   })();
-  rNum=el('div','display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;');
-  [['Weight',txWt,100,900,100],['Thicken',txFat,0,12,1],['Letters',txLs,-5,40,1],['Lines',txLh,80,250,5]].forEach(function(o){
-    var c=el('div','display:flex;align-items:center;gap:6px;min-width:0;'), l=el('span','font-size:12.5px;color:#777;cursor:ns-resize;user-select:none;touch-action:none;',o[0]), n=el('input',INP+'width:60px;flex:none;'); n.type='number'; n.min=o[2]; n.max=o[3]; n.step=o[4]; n.value=o[1].value; n.title=o[1].title||''; l.title='Drag up or down to change, or type a number';
+  rNum=el('div','display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 8px;');
+  [['Weight',txWt,100,900,100,'Thinner or thicker letters (fonts with several weights)'],['Thicken',txFat,0,12,1,'Make any font thicker'],['Opacity',txTo,0,100,5,'How see-through the text is (100 = solid)'],['Letter space',txLs,-5,40,1,'Space between the letters'],['Line space',txLh,80,250,5,'Space between lines, in % of the text size'],['Edge soft',txSb,0,25,1,'How soft the edges of the letters are (0 = sharp)']].forEach(function(o){
+    var c=el('div','display:flex;flex-direction:column;gap:2px;min-width:0;'), l=el('span','font-size:11px;color:#777;cursor:ns-resize;user-select:none;touch-action:none;',o[0]), n=el('input',INP+'width:100%;'); n.type='number'; n.min=o[2]; n.max=o[3]; n.step=o[4]; n.value=o[1].value; n.title=o[5]; l.title=o[5]+'. Drag up or down to change, or type a number'; l.style.whiteSpace='nowrap'; l.style.overflow='hidden'; l.style.textOverflow='ellipsis';
     function setV(v){ v=Math.max(o[2],Math.min(o[3],Math.round(v/o[4])*o[4])); n.value=v; o[1].value=v; o[1].dispatchEvent(new Event('input',{bubbles:true})); }
     n.addEventListener('input',function(){ if(n.value!=='') { o[1].value=Math.max(o[2],Math.min(o[3],+n.value)); o[1].dispatchEvent(new Event('input',{bubbles:true})); } });
     n.addEventListener('change',function(){ if(n.value==='') n.value=o[1].value; o[1].dispatchEvent(new Event('change',{bubbles:true})); });
@@ -1606,7 +1606,7 @@
     setInterval(function(){ if(document.activeElement!==n&&String(n.value)!==String(o[1].value)) n.value=o[1].value; },500);
     c.appendChild(l); c.appendChild(n); rNum.appendChild(c); });
   [].slice.call(rT3.querySelectorAll('span')).forEach(function(s){ if(/0 = off/.test(s.textContent)) s.textContent='px'; });
-  sec('Text style'); [rTt,rCol,rText,rT8,rNum,rTc,rTb,rT3,rT12].forEach(function(r){ bar.appendChild(r); });
+  sec('Text style'); [rTt,rCol,rText,rT8,rNum,rT3,rT12].forEach(function(r){ bar.appendChild(r); });
   sec('Shape and direction'); [rShpB,rDirB,rBnd,rSide,rSta,rSkw,rRot].forEach(function(r){ bar.appendChild(r); });
   sec('Text effects'); [rFxT,rO0,rT6,rTa,rTd,rTe,rGr,rGra,rT7,rShc,rShd,rSha,rSho,rT9,rT10,rBs,rBo,rT11].forEach(function(r){ bar.appendChild(r); });
   syncVis();
