@@ -12,8 +12,8 @@ It does not touch the normal Ritlager bookmark.
 3. Open **Connect (beta)** at the bottom of the Ritlager panel.
 
 ```
-javascript:(function(){if(window.__ritlager&&window.__ritlagerBeta){window.__ritlager.toggle();return;}try{window.__ritlager&&window.__ritlager.destroy();}catch(e){}fetch('https://raw.githubusercontent.com/RutKarin/research-catalogue-tools/beta/ritlager/overlay.min.js',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('status '+r.status);return r.text();}).then(function(c){var s=document.createElement('script');s.textContent=c;document.documentElement.appendChild(s);s.remove();window.__ritlagerBeta=true;}).catch(function(e){alert('Ritlager beta could not be loaded: '+e.message);});})();
+javascript:(function(){try{window.__ritlager&&window.__ritlager.destroy();}catch(e){}fetch('https://raw.githubusercontent.com/RutKarin/research-catalogue-tools/beta/ritlager/overlay.min.js?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('status '+r.status);return r.text();}).then(function(c){var s=document.createElement('script');s.textContent=c;document.documentElement.appendChild(s);s.remove();window.__ritlagerBeta=true;}).catch(function(e){alert('Ritlager beta could not be loaded: '+e.message);});})();
 ```
 
-The beta is fetched from GitHub every time you click the bookmark, so it always runs the latest beta
+Every click on the bookmark closes Ritlager and loads the latest beta again (your drawing is autosaved and comes back), so it always runs the latest beta
 (GitHub can cache a version for a few minutes). Pages that block loading scripts from other sites will refuse it.
