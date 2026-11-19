@@ -2704,8 +2704,8 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     function mkBar(h,bg,label){ var b=el('div','position:relative;height:'+h+'px;border-radius:'+(h/2)+'px;border:1px solid rgba(0,0,0,.3);box-sizing:border-box;cursor:pointer;touch-action:none;background:'+bg+';'); b.setAttribute('role','slider'); b.setAttribute('aria-label',label); b.tabIndex=0; var d=h+8; var th=el('div','position:absolute;top:50%;left:0;width:'+d+'px;height:'+d+'px;margin:-'+(d/2)+'px 0 0 -'+(d/2)+'px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px #111;box-sizing:border-box;pointer-events:none;'); b.appendChild(th); b._th=th; return b; }
     var HUEBG='linear-gradient(to right,#000 0,#000 3%,hsl(0,100%,50%) 6%,hsl(60,100%,50%) 20.7%,hsl(120,100%,50%) 35.3%,hsl(180,100%,50%) 50%,hsl(240,100%,50%) 64.7%,hsl(300,100%,50%) 79.3%,hsl(360,100%,50%) 94%,#fff 97%,#fff 100%)';
     var barH=mkBar(18,HUEBG,'Colour (hue)'), barS=mkBar(12,'#888','Dark to light');
-    function dragBar(bar,fn,key){
-      function at(e){ var r=bar.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/Math.max(1,r.width))); }
+    function dragBar(bar,fn,key,ins){
+      ins=ins||0; function at(e){ var r=bar.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left-ins)/Math.max(1,r.width-2*ins))); }
       bar.addEventListener('pointerdown',function(e){ if(e.button>0) return; e.preventDefault(); try{ bar.setPointerCapture(e.pointerId); }catch(x){}
         var mv=function(ev){ fn(at(ev)); }, up=function(){ bar.removeEventListener('pointermove',mv); bar.removeEventListener('pointerup',up); bar.removeEventListener('pointercancel',up); };
         bar.addEventListener('pointermove',mv); bar.addEventListener('pointerup',up); bar.addEventListener('pointercancel',up); fn(at(e)); });
@@ -2727,14 +2727,14 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     // Slim opacity slider under the size slider (same value as Opacity in the Colour menu and the keys 0-9).
     var qOp=el('div','display:none;gap:6px;align-items:center;flex-wrap:nowrap;');
     var QCHK='repeating-conic-gradient(#c8c8c8 0 25%,#fff 0 50%) 0 0/8px 8px';
-    var barO=mkBar(12,'#888','Opacity'); var qOw=el('div','flex:1 1 auto;min-width:0;padding:5px 10px;'); qOw.appendChild(barO);
+    var barO=mkBar(12,'#888','Opacity'); var qOw=el('div','flex:1 1 auto;min-width:0;padding:4px 2px;box-sizing:border-box;'); qOw.appendChild(barO);
     var qOv=el('span','font-size:11px;color:#555;width:42px;text-align:right;flex:none;'); qOp.appendChild(qOw); qOp.appendChild(qOv);
     function qOpSet(v,fin){ v=Math.max(5,Math.min(100,Math.round(v))); ink.value=v; ink.dispatchEvent(new Event('input',{bubbles:true})); if(fin) ink.dispatchEvent(new Event('change',{bubbles:true})); }
-    dragBar(barO,function(pp){ qOpSet(5+pp*95,false); },function(d){ qOpSet((+ink.value||100)+d*2,true); });
+    dragBar(barO,function(pp){ qOpSet(5+pp*95,false); },function(d){ qOpSet((+ink.value||100)+d*2,true); },10);
     barO.addEventListener('pointerup',function(){ ink.dispatchEvent(new Event('change',{bubbles:true})); });
     qOpSync=function(){
       var v=Math.max(5,Math.min(100,+ink.value||100)); var c=(color&&color.length===7)?color:'#111111';
-      barO.style.background='linear-gradient(to right,rgba(255,255,255,0),'+c+'),'+QCHK; barO._th.style.left=((v-5)/95*100)+'%'; barO._th.style.background=c; qOv.textContent=Math.round(v)+'%'; barO.setAttribute('aria-valuenow',Math.round(v));
+      barO.style.background='linear-gradient(to right,rgba(255,255,255,0),'+c+'),'+QCHK; barO._th.style.left='calc(10px + (100% - 20px) * '+((v-5)/95)+')'; barO._th.style.background=c; qOv.textContent=Math.round(v)+'%'; barO.setAttribute('aria-valuenow',Math.round(v));
     };
     bar.addEventListener('input',function(e){ if(e.target===ink) qOpSync(); }); bar.addEventListener('change',function(e){ if(e.target===ink) qOpSync(); });
     qOpSync();
