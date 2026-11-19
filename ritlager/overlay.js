@@ -2241,14 +2241,14 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var RL_VERSION='202611191205', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_VERSION='202611191205', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
-    var note=el('a','display:none;text-align:right;font:11.5px system-ui,sans-serif;color:#888;text-decoration:underline;text-underline-offset:2px;padding:0 4px;margin:-6px 0 -2px;cursor:pointer;','New version available · Update ↗');
-    note.href=RL_UPDATE_URL; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','New version available. Open the install page to update'); note._tip='Open the install page and drag the bookmark again';
-    var pn=head.parentNode; if(pn) pn.insertBefore(note,head.nextSibling);
-    function show(v){ note.style.display=(v&&String(v)>RL_VERSION)?'block':'none'; }
+    var note=el('a','display:none;align-items:center;gap:6px;font:11.5px system-ui,sans-serif;color:#111;text-decoration:underline;text-underline-offset:2px;padding:0;margin:8px 0 2px;cursor:pointer;');
+    var nd=el('span','display:inline-block;flex:none;width:9px;height:9px;border-radius:50%;background:#39ff14;box-shadow:0 0 6px 2px #39ff14;'); note.appendChild(nd); note.appendChild(document.createTextNode('New version available · Update ↗'));
+    note.href=RL_UPDATE_URL; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','New version available. Open the install page to update'); note._tip='Open the install page and drag the bookmark again'; rlNote=note;
+    function show(v){ note.style.display=(v&&String(v)>RL_VERSION)?'flex':'none'; }
     var CK='ritlager-latest', cached=null; try{ cached=JSON.parse(localStorage.getItem(CK)||'null'); }catch(e){}
     if(cached&&cached.v) show(cached.v);
     if(!cached||!cached.t||Date.now()-cached.t>6*3600*1000){
@@ -2563,12 +2563,12 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var REPO='https://github.com/RutKarin/research-catalogue-tools';
     var d=el('div','font-size:11px;color:#888;line-height:1.5;margin-top:12px;padding:12px 0 6px;border-top:1px solid #e4e4e4;');
     function lnk(t,h){ var a=el('a','color:#111;text-decoration:underline;cursor:pointer;',t); a.href=h; a.target='_blank'; a.rel='noopener noreferrer'; return a; }
-    var top=el('div',''); top.appendChild(document.createTextNode('Ritlager · © 2026 Rut Karin Zettergren ')); var mit=el('span','display:inline-block;border:1px solid #d0d0d0;border-radius:3px;padding:0 3px;font-size:8.5px;line-height:11px;color:#aaa;vertical-align:middle;margin-left:2px;','MIT'); mit.title='MIT licence: free to use, change and share'; top.appendChild(mit); d.appendChild(top);
+    var top=el('div',''); top.appendChild(document.createTextNode('Ritlager · © 2026 Rut Karin Zettergren ')); var mit=el('span','display:inline-block;border:1px solid #d0d0d0;border-radius:3px;padding:0 3px;font-size:8.5px;line-height:11px;color:#aaa;vertical-align:middle;margin-left:2px;','MIT'); mit.title='MIT licence: free to use, change and share'; top.appendChild(mit); d.appendChild(top); if(rlNote) d.appendChild(rlNote);
     var more=el('div','margin-top:4px;display:none;');
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save and open) to keep your work.'));
     more.appendChild(document.createTextNode(' ')); more.appendChild(lnk('Ritlager on GitHub',REPO));
     var MANUAL=[
-      ['## Version','You are running version '+RL_VERSION+'. If a newer version has been published, a small “New version available · Update” link appears under the logo; open it and drag the bookmark again. The extension updates by itself.'],
+      ['## Version','You are running version '+RL_VERSION+'. If a newer version has been published, a small “New version available · Update” link appears just above the footer; open it and drag the bookmark again. The extension updates by itself.'],
       ['## Pen styles and brush effects','Under Look there is a grid of pen styles with a small preview of each: basic (Round, Square, Flat, Ink, Marker), natural (Pencil, Charcoal, Chalk, Crayon, Watercolour) and pattern pens (Dotted, Dashed, Stars, Hearts, Leaves). Under Effects, Brush effects has Glow, Fuzzy fur, Lens flare, Clouds, Smoke, Nebula, Glitter, Rainbow, Thermal and Glitch. Click a tile to use that style with the pen. The Pen style menu in your shortcuts shows the same choice. Bigger Size makes the stamps and clouds bigger. Lens flare puts the light at the end of the stroke.'],
       ['## My colours','Under Colour, My colours is your own colour row. Pick a colour and press + to save it (up to 14). The pencil next to My colours switches on delete mode: click a colour with a cross to remove it. The seven standard colours can be hidden with the Standard colours box. In Your shortcuts you can also show the first seven of My colours as dots under Size.'],
       ['## Quick pen styles','In your shortcuts, hold the Pen or Brush button for half a second, or right-click it, to open a small window with all pen styles. Click one to use it. It closes by itself, or press Esc.'],
