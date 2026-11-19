@@ -1572,7 +1572,7 @@
     txAl.style.display='none'; var lb=rT3.querySelector('span'); if(lb) lb.style.display='none'; rT3.insertBefore(rAlS,rT3.firstChild);
     var ob=new MutationObserver(function(){ aB.forEach(function(x){ x._mk(); }); bB._mk(); bI._mk(); }); setInterval(function(){ aB.forEach(function(x){ x._mk(); }); bB._mk(); bI._mk(); },700);
   })();
-  sec('Text style'); [rCol,rTt,rText,rT2,rTw,rTf,rT8,rT3,rT4,rT5,rT12].forEach(function(r){ bar.appendChild(r); });
+  sec('Text style'); [rTt,rCol,rText,rT8,rT2,rTw,rTf,rT3,rT4,rT5,rT12].forEach(function(r){ bar.appendChild(r); });
   sec('Shape and direction'); [rDir,rShp,rBnd,rSide,rSta,rSkw,rRot].forEach(function(r){ bar.appendChild(r); });
   sec('Outline, shadow and box'); [tHd('Colour'),rGr,rGra,rTc,tHd('Outline'),rO0,rT6,rTa,rTb,rTd,rTe,tHd('Shadow'),rS0,rT7,rShc,rShd,rSha,rSho,tHd('Box behind text'),rT9,rT10,rBs,rBo,rT11].forEach(function(r){ bar.appendChild(r); });
   syncVis();
@@ -1634,7 +1634,7 @@
     var bAll=bSelAll=btn('Select all',function(){ setTool('select'); selAll(); },'Select everything in “Select from” (Ctrl+A for the active layer, Shift+Ctrl+A for all layers)'); rSm1.appendChild(bAll);
     var stat=el('div','font-size:11.5px;line-height:1.35;padding:5px 8px;border-radius:7px;background:#efefef;color:#444;');
     var hE=hd('Edit'), hT=hd('Transform'), hS=hd('Select');
-    [rSm1,rSm2,stat,hE,rSm3,hT,rSm4,rSm5].forEach(function(n){ bar.appendChild(n); });
+    [rSm1,rSm2,hE,rSm3,hT,rSm4,rSm5].forEach(function(n){ bar.appendChild(n); });
     selUiState=function(){ var on=sel&&sel.length>0; stat.textContent=on?sel.length+' stroke'+(sel.length>1?'s':'')+' selected. Colour, Opacity and Thickness above now change these.':'Nothing selected. Use Rectangle or Lasso to take out an area, or Pick to click a stroke.';
       [rSm4,rSm5].forEach(function(r){ r.style.opacity=on?'1':'.45'; r.style.pointerEvents=on?'':'none'; }); [].slice.call(rSm3.children).forEach(function(b){ var pasteB=(b.getAttribute('aria-label')||b.textContent)==='Paste'; b.style.opacity=(on||pasteB)?'1':'.45'; b.style.pointerEvents=(on||pasteB)?'':'none'; }); };
     selUiState();
