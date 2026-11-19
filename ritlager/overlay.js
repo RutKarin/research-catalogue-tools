@@ -1217,7 +1217,7 @@
       d.addEventListener('pointerdown',function(e){ if(e.target.tagName==='BUTTON') return; act=L.id; markLayers(); });
       layerBox.appendChild(d);
     })(layers[i],i);
-    markLayers();
+    markLayers(); if(typeof aLyList==='function') aLyList();
   }
   var rLa=row();
   rLa.appendChild(btn('+ Add layer',function(){ var L={id:nextLid++,name:'Layer '+(layers.length+1),vis:true,op:100}; layers.push(L); act=L.id; drawLayerUI(); persist(); }));
@@ -1246,6 +1246,19 @@
   var aCrop=chk(rA3,'Drawn area only',false,'Cut away empty space around the drawing'); bar.appendChild(rA3);
   var rA4=row(); lab(rA4,'Background'); var aBg=el('select',BTN+'padding:3px 6px;'); [['transparent','Transparent'],['white','White'],['color','Colour']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; aBg.appendChild(op); }); rA4.appendChild(aBg);
   var aBgc=el('input','width:26px;height:24px;padding:0;border:1px solid #c9c9c9;border-radius:6px;background:none;cursor:pointer;display:none;'); aBgc.type='color'; aBgc.value='#f4efe6'; rA4.appendChild(aBgc); aBg.addEventListener('change',function(){ aBgc.style.display=aBg.value==='color'?'inline-block':'none'; }); bar.appendChild(rA4);
+  var rALy=row(), aLy=aMode(rALy,'Layers',[['all','All layers together'],['active','Active layer only'],['each','Choose layers (one file per layer)']],'Animate everything together, only the layer you are drawing on, or pick which layers to save, each as its own animation (same size, so they line up on top of each other)'); bar.appendChild(rALy);
+  var aLyBox=aBoxEl(), aLyChk={}, aLyOv=null;
+  function aLyList(){
+    if(!aLyBox) return; aLyBox.textContent=''; aLyBox.style.display=aLy.value==='each'?'flex':'none';
+    layers.forEach(function(L){ var r=row(); var c=chk(r,L.name||'Layer',aLyChk[L.id]!==false,'Include this layer: it is saved as its own animation'); c.addEventListener('change',function(){ aLyChk[L.id]=c.checked; aAuto(); }); aLyBox.appendChild(r); });
+    var q=row(); q.appendChild(btn('All',function(){ layers.forEach(function(L){ aLyChk[L.id]=true; }); aLyList(); aAuto(); })); q.appendChild(btn('None',function(){ layers.forEach(function(L){ aLyChk[L.id]=false; }); aLyList(); aAuto(); })); aLyBox.appendChild(q);
+    aLyBox.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Preview shows the first ticked layer. Save makes one file per ticked layer.'));
+  }
+  aLy.addEventListener('change',function(){ aLyList(); aAuto(); aFmtUpd&&aFmtUpd(); });
+  aLyBox.addEventListener('mouseenter',function(){ if(aLy.value==='each') aLyList(); });
+  function aPicked(){ return layers.filter(function(L){ return L.vis&&aLyChk[L.id]!==false; }); }
+  function aOnly(){ if(aLyOv!=null) return aLyOv; var m=aLy.value; if(m==='active') return act; if(m==='each'){ var p=aPicked(); return p.length?p[0].id:-1; } return null; }
+  aLyList();
   var aStrip=el('div','display:flex;flex-wrap:wrap;gap:5px;max-height:240px;overflow-y:auto;'); bar.appendChild(aStrip);
   var aCount=el('div','font-size:11.5px;color:#666;','No frames yet'); bar.appendChild(aCount);
 
@@ -1314,9 +1327,21 @@
   var aFmtInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(aFmtInfo);
   var aFmtTxt={ gif:'GIF: works almost everywhere. Max 256 colours; transparency is on/off, so soft fades look slightly dotted.', webp:'Animated WebP: small file and soft, smooth transparency, so fades and blur look right on any background. Plays in all modern browsers, but some sites and upload forms do not accept it – keep a GIF as backup. Made in Chrome/Edge/Firefox.', mp4:'MP4 video: plays almost everywhere (phones, Safari, Instagram, editing programs). No transparency. Made in Chrome/Edge.', webm:'WebM video: smooth and small. Chrome/Edge/Firefox. Can keep transparency in Chrome.' };
   var rA8=row(); var bSaveA=btn('Save animation',function(){ aSave(); }); rA8.appendChild(bSaveA); bar.appendChild(rA8);
-  function aFmtUpd(){ aFmtInfo.textContent=aFmtTxt[aFmt.value]; bSaveA.textContent='Save '+({gif:'GIF',webp:'animated WebP',mp4:'MP4 video',webm:'WebM video'})[aFmt.value]; }
+  function aFmtUpd(){ aFmtInfo.textContent=aFmtTxt[aFmt.value]+(aLy.value==='each'?' One file per layer, made with Build-up from the drawing, all the same size so they line up.':''); bSaveA.textContent=(aLy.value==='each'?'Save one per layer: ':'Save ')+({gif:'GIF',webp:'animated WebP',mp4:'MP4 video',webm:'WebM video'})[aFmt.value]; }
   aFmt.addEventListener('change',aFmtUpd); aFmtUpd();
-  function aSave(){ var f=aFmt.value; if(f==='gif') aGif(); else if(f==='webp') aWebp(); else aWebm(f==='mp4'?'mp4':undefined); }
+  function aSaveOne(done,suf){ var f=aFmt.value; if(f==='gif') aGif(done,suf); else if(f==='webp') aWebp(done,suf); else aWebm(f==='mp4'?'mp4':undefined,done,suf); }
+  function aSave(){
+    if(aLy.value!=='each'){ aSaveOne(); return; }
+    var ls=layers.filter(function(L){ return L.vis&&aLyChk[L.id]!==false&&strokes.some(function(st){ return layerOf(st)===L.id&&st.tool!=='eraser'&&st.tool!=='cut'; }); });
+    if(!ls.length){ msg('Tick at least one layer that has a drawing'); return; }
+    aPreview(false); var i=0;
+    (function next(){
+      if(i>=ls.length){ aLyOv=null; msg(ls.length+' animations saved, one per layer'); aReplay(true); return; }
+      var L=ls[i++]; aLyOv=L.id; aReplay(true);
+      if(!frames.length){ next(); return; }
+      aSaveOne(function(){ setTimeout(next,500); },'-'+String(L.name||'layer').replace(/[\\/:*?"<>|]+/g,'-'));
+    })();
+  }
   function aBgVal(){ return aBg.value==='white'?'#ffffff':(aBg.value==='color'?aBgc.value:null); }
   var aBox=null;
   function aBounds(){ if(!aCrop.checked) return {x:0,y:0,w:W,h:H}; var vis=strokes.filter(function(st){ return st.tool!=='eraser'&&st.tool!=='cut'&&getLayer(layerOf(st)).vis; }); var t=vis.length?boxOf(vis):null; if(!t) return {x:0,y:0,w:W,h:H}; var pad=10,x=Math.max(0,Math.floor(t.x0-pad)),y=Math.max(0,Math.floor(t.y0-pad)); return {x:x,y:y,w:Math.max(8,Math.min(W,Math.ceil(t.x1+pad))-x),h:Math.max(8,Math.min(H,Math.ceil(t.y1+pad))-y)}; }
@@ -1324,7 +1349,7 @@
     var k=Math.min(1,(+aW.value)/b.w), cw=Math.max(1,Math.round(b.w*k)), ch=Math.max(1,Math.round(b.h*k));
     var c=document.createElement('canvas'); c.width=cw; c.height=ch; var x=c.getContext('2d'), bg=aBgVal(); if(bg){ x.fillStyle=bg; x.fillRect(0,0,cw,ch); }
     var keep=strokes, old=rscale; strokes=list; rscale=k;
-    try{ compose(x,function(g){ g.scale(k,k); g.translate(-b.x,-b.y); },null); }finally{ strokes=keep; rscale=old; }
+    try{ compose(x,function(g){ g.scale(k,k); g.translate(-b.x,-b.y); },aOnly()); }finally{ strokes=keep; rscale=old; }
     return c;
   }
   function aAdd(list){
@@ -1335,15 +1360,16 @@
     var c=aShot(list,aBox); frames.push({c:c}); aSel=frames.length-1; aDraw();
   }
   function aReplay(quiet){
-    if(!strokes.length){ msg('Draw something first'); return; }
+    var SS=aOnly()==null?strokes:strokes.filter(function(st){ return layerOf(st)===aOnly(); });
+    if(!SS.length){ msg(aOnly()==null?'Draw something first':'This layer has no strokes'); return; }
     var wasPlaying=aPlay;
     var n=Math.max(2,Math.min(200,+aN.value||24)); aPreview(false); frames=[]; aBox=aBounds();
-    var wts=strokes.map(function(st){ return (st.tool==='text'||st.tool==='image'||st.tool==='cut')?6:Math.max(1,st.pts.length); }), tot=wts.reduce(function(a,b){ return a+b; },0);
+    var wts=SS.map(function(st){ return (st.tool==='text'||st.tool==='image'||st.tool==='cut')?6:Math.max(1,st.pts.length); }), tot=wts.reduce(function(a,b){ return a+b; },0);
     var ap=+aAo.value, ab=+aAb.value, Af=ap>0?Math.max(1,Math.round(ap/Math.max(20,(+aMs.value||120)/aSpd()))):0, life=+aVa.value, msF=Math.max(20,(+aMs.value||120)/aSpd()), Lf=life>0?Math.max(1,Math.round(life/msF)):0, Ff=Math.max(1,Math.round((+aVo.value||600)/msF)), vb=+aVb.value, start={}, total=life>0?Math.min(200,n+Lf+Ff):n;
     for(var f=1;f<=total;f++){
       var goal=tot*Math.min(f,n)/n, acc=0, list=[];
-      for(var i=0;i<strokes.length;i++){
-        var w=wts[i], st0=strokes[i], item=null;
+      for(var i=0;i<SS.length;i++){
+        var w=wts[i], st0=SS[i], item=null;
         if(acc+w<=goal+1e-6){ item=st0; acc+=w; }
         else {
           var part=goal-acc;
@@ -1494,10 +1520,10 @@
     bytes.push(0x3B);
     return new Blob([new Uint8Array(bytes)],{type:'image/gif'});
   }
-  function aGif(){
+  function aGif(done,suf){
     if(!frames.length){ msg('Make some frames first'); return; }
     msg('Making the GIF…',3000);
-    setTimeout(function(){ try{ var bl=encodeGif(); saveBlob(bl,fname('ritlager-animation','.gif',''),'GIF with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); }catch(e){ msg('Could not make the GIF: '+(e&&e.message?e.message:e)); } },50);
+    setTimeout(function(){ try{ var bl=encodeGif(); saveBlob(bl,fname('ritlager-animation'+(suf||''),'.gif',suf||''),'GIF with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); if(done) done(); }catch(e){ msg('Could not make the GIF: '+(e&&e.message?e.message:e)); } },50);
   }
 
   // --- animated WebP: each frame is encoded by the browser, then wrapped in an animation container ---
@@ -1519,12 +1545,12 @@
     var body=cat(out), hd=new Uint8Array(12); hd.set(tg('RIFF'),0); hd.set(u32(4+body.length),4); hd.set(tg('WEBP'),8);
     return new Blob([hd,body],{type:'image/webp'});
   }
-  function aWebp(){
+  function aWebp(done,suf){
     if(!frames.length){ msg('Make some frames first'); return; }
     msg('Making the animated WebP…',4000);
     var seq, w, h, parts=[], i=0;
     try{ seq=aSeq(); w=seq[0].c.width; h=seq[0].c.height; }catch(e){ msg('Could not make the WebP: '+e.message); return; }
-    function done(){ try{ var bl=muxWebp(parts,seq.map(function(f){ return f.d; }),w,h,aLoop.checked); saveBlob(bl,fname('ritlager-animation','.webp',''),'Animated WebP with '+seq.length+' frames ('+Math.round(bl.size/1024)+' KB).'); }catch(e){ msg('Could not make the WebP: '+(e&&e.message?e.message:e)); } }
+    function done(){ try{ var bl=muxWebp(parts,seq.map(function(f){ return f.d; }),w,h,aLoop.checked); saveBlob(bl,fname('ritlager-animation'+(suf||''),'.webp',suf||''),'Animated WebP with '+seq.length+' frames ('+Math.round(bl.size/1024)+' KB).'); if(done) done(); }catch(e){ msg('Could not make the WebP: '+(e&&e.message?e.message:e)); } }
     (function next(){
       if(i>=seq.length) return done();
       var c=seq[i].c;
@@ -1532,7 +1558,7 @@
       c.toBlob(function(b){ if(!b||b.type!=='image/webp'){ msg('This browser cannot make WebP images – use GIF'); return; } b.arrayBuffer().then(function(ab){ parts.push(new Uint8Array(ab)); i++; setTimeout(next,0); }); },'image/webp',0.92);
     })();
   }
-  function aWebm(kind){
+  function aWebm(kind,done,suf){
     var mp4=kind==='mp4';
     if(!frames.length){ msg('Make some frames first'); return; }
     if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){ msg('This browser cannot make video here – use Save GIF'); return; }
@@ -1540,7 +1566,7 @@
     var st=c.captureStream(30), mt=(mp4?['video/mp4;codecs=avc1','video/mp4']:['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']).filter(function(m){ return MediaRecorder.isTypeSupported(m); })[0]; if(!mt){ msg(mp4?'This browser cannot make MP4 – use Save video (WebM) or Save GIF':'This browser cannot make WebM – use Save GIF'); return; }
     var seq=aSeq(), rec=new MediaRecorder(st,{mimeType:mt,videoBitsPerSecond:4e6}), chunks=[], dl=seq.map(function(f){ return f.d; });
     rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
-    rec.onstop=function(){ var bl=new Blob(chunks,{type:mp4?'video/mp4':'video/webm'}); saveBlob(bl,fname('ritlager-animation',mp4?'.mp4':'.webm',''),'Video with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); };
+    rec.onstop=function(){ var bl=new Blob(chunks,{type:mp4?'video/mp4':'video/webm'}); saveBlob(bl,fname('ritlager-animation'+(suf||''),mp4?'.mp4':'.webm',suf||''),'Video with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); if(done) done(); };
     var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
     (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(seq[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=seq.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
   }
@@ -2043,7 +2069,7 @@
       ['Retouch','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'],
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
-      ['## Animate','The Animate section has six groups. 1 · Frames: press “Build-up from my drawing” to make frames that show the strokes appearing one after another, or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame (smaller file; raise Time / frame to keep the length). Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Size, Background and Drawn area only apply to the animation, not to the Export settings below. 2 · Timing and loop: Time / frame and Drawing speed (100 % is normal; it goes down to 1 %) set the pace; Hold at end is how long the finished drawing stays still. Loop style: Normal starts over from the beginning; Back and forth plays forward and then backward, so a drawing that is drawn is then un-drawn the same way and the loop never jumps. 3 · Each stroke, when it is drawn: choose Fade in or Fade in + blur to let every new stroke appear softly instead of popping in; Over is how long it takes and Blur how blurry it starts. 4 · Each stroke, after it is drawn: choose Fade out or Dissolve (fade + blur) to let every stroke disappear a while after it was drawn, like fading ink; Stays is how long it stays, Over how long the disappearing takes, Blur how blurry it gets. For a smooth loop give 3 and 4 the same values. These work with Build-up from my drawing (changing them rebuilds the frames by itself); raise Frames and Time / frame if the animation is too short for the strokes to vanish. 5 · The whole drawing: Start can fade the animation in (with or without blur). End can be Fade out, Fade out + blur, Blink (how many times, and Blink speed), or Cloud, which turns the finished drawing into a thick soft cloud that thins out and disappears (Cloud amount is how big and soft it gets, Cloud time how long it takes, Cloud motion makes it drift and swirl like smoke). Only the settings of the chosen option are shown. Blur needs Chrome or Edge; with a lot of blur, switch off Drawn area only so the blur has room. 6 · Preview and save: Preview on the page plays the animation over the page itself, where you drew it (switch it off to see it in the small box); press Stop to get your drawing back. Then choose a Format (GIF, Animated WebP, MP4 or WebM) and press Save. Animated WebP keeps soft transparency, so fades and blur look right on any background, but not every site accepts it; keep a GIF as backup.'],
+      ['## Animate','The Animate section has six groups. 1 · Frames: press “Build-up from my drawing” to make frames that show the strokes appearing one after another, or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame (smaller file; raise Time / frame to keep the length). Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Size, Background and Drawn area only apply to the animation, not to the Export settings below. Layers: animate all layers together, only the active layer, or choose Each layer as its own animation to save one file per layer (made with Build-up from my drawing; they are all the same size, so they line up exactly when you place them on top of each other on a page). 2 · Timing and loop: Time / frame and Drawing speed (100 % is normal; it goes down to 1 %) set the pace; Hold at end is how long the finished drawing stays still. Loop style: Normal starts over from the beginning; Back and forth plays forward and then backward, so a drawing that is drawn is then un-drawn the same way and the loop never jumps. 3 · Each stroke, when it is drawn: choose Fade in or Fade in + blur to let every new stroke appear softly instead of popping in; Over is how long it takes and Blur how blurry it starts. 4 · Each stroke, after it is drawn: choose Fade out or Dissolve (fade + blur) to let every stroke disappear a while after it was drawn, like fading ink; Stays is how long it stays, Over how long the disappearing takes, Blur how blurry it gets. For a smooth loop give 3 and 4 the same values. These work with Build-up from my drawing (changing them rebuilds the frames by itself); raise Frames and Time / frame if the animation is too short for the strokes to vanish. 5 · The whole drawing: Start can fade the animation in (with or without blur). End can be Fade out, Fade out + blur, Blink (how many times, and Blink speed), or Cloud, which turns the finished drawing into a thick soft cloud that thins out and disappears (Cloud amount is how big and soft it gets, Cloud time how long it takes, Cloud motion makes it drift and swirl like smoke). Only the settings of the chosen option are shown. Blur needs Chrome or Edge; with a lot of blur, switch off Drawn area only so the blur has room. 6 · Preview and save: Preview on the page plays the animation over the page itself, where you drew it (switch it off to see it in the small box); press Stop to get your drawing back. Then choose a Format (GIF, Animated WebP, MP4 or WebM) and press Save. Animated WebP keeps soft transparency, so fades and blur look right on any background, but not every site accepts it; keep a GIF as backup.'],
 
       ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG, TIFF or WebP (small and can be transparent), or SVG (vector lines that scale to any size, good for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.'],
       ['Export formats','Images: PNG (sharp, can be transparent, the safe choice), JPG (small file, no transparency), TIFF (print and archive), WebP (small, can be transparent, for the web) and SVG (vector lines that scale to any size; for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Animation: GIF (works almost everywhere, max 256 colours), animated WebP (small, soft transparency, plays in all modern browsers but not accepted everywhere), video as MP4 (plays on phones, Safari, social media and editing programs; made in Chrome and Edge) and video as WebM (smooth and small, Chrome, Edge and Firefox). Project file: keeps everything editable so you can open and continue later (Save and open). Check which formats the place you upload to accepts; Research Catalogue takes ordinary images, GIF and video.']
