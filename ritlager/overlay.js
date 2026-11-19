@@ -2245,9 +2245,9 @@
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
-    var note=el('a','display:none;text-align:center;font:11.5px system-ui,sans-serif;font-weight:600;color:#111;background:#39ff14;border-radius:6px;text-decoration:none;padding:5px 8px;margin:26px 0 0;cursor:pointer;','New version available · Update ↗');
-    note.href=RL_UPDATE_URL; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','New version available. Open the install page to update'); note._tip='Open the install page and drag the bookmark again'; rlNote=note;
-    function show(v){ note.style.display=(v&&String(v)>RL_VERSION)?'block':'none'; }
+    var note=el('a','display:none;font:600 12px system-ui,sans-serif;color:#17d600;text-shadow:0 0 5px rgba(57,255,20,.7);text-decoration:underline;text-underline-offset:2px;margin:0 0 0 18px;padding:0;cursor:pointer;','New update ↗');
+    note.href=RL_UPDATE_URL; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','New update available. Open the install page to update'); note._tip='A new version is available. Open the install page and drag the bookmark again'; rlNote=note;
+    function show(v){ note.style.display=(v&&String(v)>RL_VERSION)?'inline':'none'; }
     var CK='ritlager-latest', cached=null; try{ cached=JSON.parse(localStorage.getItem(CK)||'null'); }catch(e){}
     if(cached&&cached.v) show(cached.v);
     if(!cached||!cached.t||Date.now()-cached.t>6*3600*1000){
@@ -2567,7 +2567,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save and open) to keep your work.'));
     more.appendChild(document.createTextNode(' ')); more.appendChild(lnk('Ritlager on GitHub',REPO));
     var MANUAL=[
-      ['## Version','You are running version '+RL_VERSION+'. If a newer version has been published, a small “New version available · Update” link appears just above the footer; open it and drag the bookmark again. The extension updates by itself.'],
+      ['## Version','You are running version '+RL_VERSION+'. If a newer version has been published, a green “New update” link appears at the bottom, next to User manual; open it and drag the bookmark again. The extension updates by itself.'],
       ['## Pen styles and brush effects','Under Look there is a grid of pen styles with a small preview of each: basic (Round, Square, Flat, Ink, Marker), natural (Pencil, Charcoal, Chalk, Crayon, Watercolour) and pattern pens (Dotted, Dashed, Stars, Hearts, Leaves). Under Effects, Brush effects has Glow, Fuzzy fur, Lens flare, Clouds, Smoke, Nebula, Glitter, Rainbow, Thermal and Glitch. Click a tile to use that style with the pen. The Pen style menu in your shortcuts shows the same choice. Bigger Size makes the stamps and clouds bigger. Lens flare puts the light at the end of the stroke.'],
       ['## My colours','Under Colour, My colours is your own colour row. Pick a colour and press + to save it (up to 14). The pencil next to My colours switches on delete mode: click a colour with a cross to remove it. The seven standard colours can be hidden with the Standard colours box. In Your shortcuts you can also show the first seven of My colours as dots under Size.'],
       ['## Quick pen styles','In your shortcuts, hold the Pen or Brush button for half a second, or right-click it, to open a small window with all pen styles. Click one to use it. It closes by itself, or press Esc.'],
@@ -2599,15 +2599,15 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var man=el('div','margin-top:4px;display:none;');
     MANUAL.forEach(function(m){ var grp=m[0].indexOf('## ')===0; var h=el('div',grp?'font-weight:500;color:#111;font-size:13px;margin-top:14px;padding-top:6px;border-top:1px solid #e3e3e3;':'font-weight:400;color:#111;margin-top:6px;',grp?m[0].slice(3):m[0]); man.appendChild(h); man.appendChild(el('div','',m[1])); });
     var lk='color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:9px;';
-    var tg=el('span',lk,'More info ▸'), tm=el('span',lk+'margin-left:26px;','User manual ▸');
+    var tg=el('span',lk,'About ▸'), tm=el('span',lk+'margin-left:26px;','User manual ▸');
     function showPanel(which){
       var oi=which==='info'&&more.style.display==='none', om=which==='man'&&man.style.display==='none';
       more.style.display=oi?'block':'none'; man.style.display=om?'block':'none';
-      tg.textContent=oi?'Less ▾':'More info ▸'; tm.textContent=om?'Hide manual ▾':'User manual ▸';
+      tg.textContent=oi?'Less ▾':'About ▸'; tm.textContent=om?'Hide manual ▾':'User manual ▸';
     }
     tg.addEventListener('click',function(){ showPanel('info'); });
     tm.addEventListener('click',function(){ showPanel('man'); });
-    var lr=el('div','text-align:left;'); lr.appendChild(tg); lr.appendChild(tm); d.appendChild(lr); d.appendChild(more); d.appendChild(man); if(rlNote) bar.appendChild(rlNote); bar.appendChild(d);
+    var lr=el('div','text-align:left;'); lr.appendChild(tg); lr.appendChild(tm); if(rlNote) lr.appendChild(rlNote); d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   setSize(); setDrawing(true);
