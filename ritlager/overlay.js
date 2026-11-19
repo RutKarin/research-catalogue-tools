@@ -2231,7 +2231,12 @@
       {id:'cutlasso',n:'Cut out lasso',real:bCutL,p:['M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M20 14 11 23','M14 14l6 6']},
       {id:'colour',n:'Colour',colour:true,p:['M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z','M13.5 6.5h.01','M17.5 10.5h.01','M6.5 12.5h.01','M8.5 7.5h.01']}
     ];
+    function addIcon(b,paths){ if(!b||!b.querySelector||b.querySelector('svg')) return; var sv=svgOf(paths,15); sv.style.flex='none'; b.insertBefore(sv,b.firstChild); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.gap='5px'; }
     var DEF=['draw','move','eraser','undo','redo','save','trash','pen','brush','air','text','pip','size','nib'];
+    (function(){ var SB={pen:bPen,brush:bBrush,air:bAir,line:bLine,text:bTxt,dodge:bDodge,burn:bBurn,blur:bBlurT,sharp:bSharpT,smudge:bSmudgeT,clone:bCloneT,selrect:bRect,sellasso:bLas,cutrect:bCutR,cutlasso:bCutL};
+      Q.forEach(function(q){ if(SB[q.id]) addIcon(SB[q.id],q.p); if(q.id==='eraser') addIcon(bEr,q.p); if(q.id==='move') addIcon(bPick,q.p); });
+      [bRect,bCutR].forEach(function(b){ b.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('▭ ',''); }); });
+      bPick.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('↖ ',''); }); })();
     var st={on:DEF.slice(),open:true};
     try{ var s0=JSON.parse(localStorage.getItem(KEY)); if(s0&&s0.on) st=s0; else { var s1=JSON.parse(localStorage.getItem('ritlager-quick')); if(s1&&s1.on) st={on:DEF.slice(0,7).concat(s1.on),open:s1.open!==false}; } }catch(e){}
     function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
@@ -2311,10 +2316,18 @@
     build(); qPreDraw(); applyOpen();
   })();
 
+  // ---- Draw group order: tools, pen style, colour, size + hardness, details, pressure, presets ----
+  (function(){
+    function hdr(t){ return bar.querySelector('[data-sec="'+t+'"]'); }
+    var hCol=hdr('Colour'), hLook=hdr('Look'), hThick=hdr('Thickness');
+    var hPs=sec('Pen style'); bar.insertBefore(hPs,hCol); bar.insertBefore(rNib,hCol); bar.insertBefore(gLook,hCol);
+    bar.insertBefore(rSoft,hLook);
+    hThick._t='Size and hardness'; hThick.setAttribute('data-sec','Size and hardness'); hLook._t='Details'; hLook.setAttribute('data-sec','Details');
+  })();
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Thickness':'Draw','Look':'Draw','Pressure and stabilising':'Draw','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Brush effects':'Effects','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Size and hardness':'Draw','Pen style':'Draw','Details':'Draw','Pressure and stabilising':'Draw','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Brush effects':'Effects','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
@@ -2399,7 +2412,7 @@
       ['Brush and colour','[ and ] thinner and thicker · 1–9 and 0 set opacity to 10–100% · X swap to the previous colour'],
       ['Zoom','Use your browser\'s zoom: Ctrl and + or −, or Cmd on a Mac. The drawing follows the page.'],
       ['Edit','Ctrl+Z undo · Ctrl+Shift+Z or Ctrl+Y redo · Ctrl+A select all · Ctrl+D deselect · Ctrl+J duplicate · Ctrl+C, X, V copy, cut, paste · Delete removes the selection, or erases everything if nothing is selected (Undo brings it back) · Esc deselects'],
-      ['## Draw','Pick a tool under Drawing tools (Pen, Brush, Airbrush, Line, Eraser) and draw on the page. Set colour, thickness and look. With a pen tablet, pressure changes the line. Presets save your favourite pen settings; each preset also appears automatically as a small colour dot under the quick tools row. Press D to switch between drawing and clicking on the page.'],
+      ['## Draw','Pick a tool under Drawing tools (Pen, Brush, Airbrush, Line, Eraser) and draw on the page. The Draw menu goes in this order: tools, pen style, colour, size and hardness, details, pressure and stabilising, and your presets last. With a pen tablet, pressure changes the line. Presets save your favourite pen settings; each preset also appears automatically as a small colour dot under the quick tools row. Press D to switch between drawing and clicking on the page.'],
       ['Colour','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'],
       ['## Text','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'],
       ['## Edit','The tools for changing what you have already put on the page: Select, Cut out and Import images. Undo, redo and Erase all are at the top.'],
