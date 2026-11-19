@@ -1951,10 +1951,16 @@
   function rcPrefs(){ try{ return JSON.parse(localStorage.getItem(RC_KEY))||{}; }catch(e){ return {}; } }
   function rcPutPrefs(o){ try{ localStorage.setItem(RC_KEY,JSON.stringify(o)); }catch(e){} }
   function rcIds(){ var m=location.pathname.match(/\/editor\/(\d+)\/(\d+)/); return /(^|\.)researchcatalogue\.net$/.test(location.hostname)&&m?{research:m[1],weave:m[2]}:null; }
-  function rcFormFrom(html){
-    var d=new DOMParser().parseFromString(html,'text/html'), fs=[].slice.call(d.querySelectorAll('form'));
-    for(var i=0;i<fs.length;i++){ if(fs[i].querySelector('[name="form[image][media]"]')) return fs[i]; }
-    return null;
+  // Steg som Research Catalogue själv gör (verifierat mot RC:s egen uppladdning):
+  //  1. POST  /researches/<id>/simple-medias/new        typ=image + Next        -> filformuläret
+  //  2. POST  /researches/<id>/simple-medias/new        name, copyright, license, alt, description + Finish -> skapar posten (utan fil)
+  //  3. POST  /researches/<id>/simple-medias/<mid>/edit  bara filen (form[image][media])
+  var RC_H={'X-Requested-With':'XMLHttpRequest'};
+  function rcList(ids){
+    return fetch('/editor/'+ids.research+'/'+ids.weave+'/simple-medias',{headers:RC_H,credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('list '+r.status); return r.text(); }).then(function(t){
+      var d=new DOMParser().parseFromString('<table>'+t+'</table>','text/html');
+      return [].slice.call(d.querySelectorAll('tr.simple-media')).map(function(tr){ return { id:tr.getAttribute('data-id'), name:(tr.children[1]&&tr.children[1].textContent||'').trim(), size:(tr.children[3]&&tr.children[3].textContent||'').trim() }; });
+    });
   }
   function rcDialog(bl,name){
     if(!bl){ msg('Nothing to send yet – press Export and send to RC first'); return; }
@@ -1969,8 +1975,8 @@
     var IN='font:inherit;font-size:13px;border:1px solid #c9c9c9;border-radius:6px;padding:5px 8px;width:100%;box-sizing:border-box;';
     function field(t,node){ var w=el('label','display:flex;flex-direction:column;gap:2px;font-size:12px;color:#666;',t); w.appendChild(node); box.appendChild(w); return node; }
     var d=new Date(), pad=function(n){ return (n<10?'0':'')+n; };
-    var nameIn=field('Name',el('input',IN)); nameIn.type='text'; nameIn.value='Ritlager drawing '+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+'-'+pad(d.getMinutes());
-    var cpIn=field('Copyright holder',el('input',IN)); cpIn.type='text'; cpIn.value=pr.copyright||'';
+    var nameIn=field('Name (required)',el('input',IN)); nameIn.type='text'; nameIn.value='Ritlager drawing '+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+'-'+pad(d.getMinutes());
+    var cpIn=field('Copyright holder (required)',el('input',IN)); cpIn.type='text'; cpIn.value=pr.copyright||'';
     var licSel=field('License',el('select',IN)); licSel.disabled=true;
     var altIn=field('Alt text (describes the image for screen readers)',el('input',IN)); altIn.type='text';
     var dsIn=field('Description',el('textarea',IN+'min-height:54px;resize:vertical;'));
@@ -1980,35 +1986,57 @@
     var cl=btn('Cancel',function(){ ov.remove(); });
     row2.appendChild(send); row2.appendChild(dl); row2.appendChild(cl); box.appendChild(row2);
     ov.appendChild(box); ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); }); de.appendChild(ov);
-    var rcForm=null;
-    function fail(why){ st.style.color='#b00020'; st.textContent=why+' You can download the file instead.'; send.disabled=true; }
-    // Steg 1: välj medietyp "image" – RC svarar med själva filformuläret
+    var ready=false, createdId=null, sentName='';
+    function fail(why,keep){ st.style.color='#b00020'; st.textContent=why+' You can download the file instead.'; send.disabled=!keep; }
+    // Steg 1 – välj medietyp "image"; RC svarar med filformuläret (skapar inget). Vi läser licenslistan ur det.
     var f1=new FormData(); f1.append('form[type][type]','image'); f1.append('form[_token_placeholder]',''); f1.append('form[_buttons][next]','');
-    fetch(url,{method:'POST',body:f1,credentials:'same-origin'}).then(function(r){ return r.text().then(function(t){ return {ok:r.ok,status:r.status,text:t}; }); }).then(function(r){
-      rcForm=r.ok?rcFormFrom(r.text):null;
-      if(!rcForm){ fail('Research Catalogue did not give the expected form (status '+r.status+').'); return; }
-      var ls=rcForm.querySelector('[name="form[image][license]"]');
+    fetch(url,{method:'POST',body:f1,headers:RC_H,credentials:'same-origin'}).then(function(r){ return r.text().then(function(t){ return {ok:r.ok,status:r.status,text:t}; }); }).then(function(r){
+      var d1=new DOMParser().parseFromString(r.text,'text/html'), fs=[].slice.call(d1.querySelectorAll('form')), form=null;
+      for(var i=0;i<fs.length;i++){ if(fs[i].querySelector('[name="form[image][media]"]')){ form=fs[i]; break; } }
+      if(!r.ok||!form){ fail('Research Catalogue did not give the expected form (status '+r.status+').'); return; }
+      var ls=form.querySelector('[name="form[image][license]"]');
       if(ls&&ls.tagName==='SELECT'){ licSel.innerHTML=''; [].slice.call(ls.options).forEach(function(o){ var x=el('option',null,o.textContent.trim()); x.value=o.value; if(o.selected) x.selected=true; licSel.appendChild(x); }); if(pr.license&&[].some.call(licSel.options,function(o){ return o.value===pr.license; })) licSel.value=pr.license; licSel.disabled=false; }
       else if(ls){ licSel.innerHTML=''; var x=el('option',null,ls.value||'(default)'); x.value=ls.value; licSel.appendChild(x); licSel.disabled=false; }
-      var cp=rcForm.querySelector('[name="form[image][copyrightHolder]"]'); if(cp&&!cpIn.value) cpIn.value=cp.value||'';
-      st.textContent='Ready. File: '+name+' ('+Math.round(bl.size/1024)+' kB). Goes to Simple Media in this exposition.'; send.disabled=false;
+      var cp=form.querySelector('[name="form[image][copyrightHolder]"]'); if(cp&&!cpIn.value) cpIn.value=cp.value||'';
+      ready=true; st.textContent='Ready. File: '+name+' ('+Math.round(bl.size/1024)+' kB). Goes to Simple Media in this exposition.'; send.disabled=false;
     }).catch(function(e){ fail('Could not reach Research Catalogue ('+(e&&e.message?e.message:e)+').'); });
-    function go(){
-      if(!rcForm) return; send.disabled=true; st.style.color='#666'; st.textContent='Sending…';
-      var fd=new FormData();
-      [].slice.call(rcForm.elements).forEach(function(e){
-        if(!e.name||e.type==='file'||e.type==='submit'||e.type==='button') return;
-        if((e.type==='checkbox'||e.type==='radio')&&!e.checked) return;
-        fd.append(e.name,e.value);
-      });
-      fd.set('form[image][name]',nameIn.value||name); fd.set('form[image][copyrightHolder]',cpIn.value); fd.set('form[image][license]',licSel.value); fd.set('form[image][ariaLabel]',altIn.value); fd.set('form[image][description]',dsIn.value);
-      fd.set('form[image][media]',new File([bl],name,{type:bl.type}));
-      fetch(url,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){ return r.text().then(function(t){ return {ok:r.ok,status:r.status,text:t}; }); }).then(function(r){
-        if(!r.ok){ fail('Research Catalogue answered with an error (status '+r.status+').'); send.disabled=false; return; }
-        if(rcFormFrom(r.text)){ fail('Research Catalogue showed the form again, so the image was probably not accepted. Check the fields.'); send.disabled=false; return; }
+    function upload(id){
+      st.textContent='Uploading the file…';
+      var f3=new FormData(); f3.append('form[image][media]',new File([bl],name,{type:bl.type}));
+      return fetch('/researches/'+ids.research+'/simple-medias/'+id+'/edit',{method:'POST',body:f3,headers:RC_H,credentials:'same-origin'}).then(function(r){
+        if(!r.ok) throw new Error('upload status '+r.status);
+        return rcList(ids);
+      }).then(function(list){
+        var row=list.filter(function(x){ return x.id===String(id); })[0];
+        if(!row||!row.size) throw new Error('RC has the entry but no image in it');
         rcPutPrefs({copyright:cpIn.value,license:licSel.value});
-        ov.remove(); msg('Sent to Simple Media as "'+(nameIn.value||name)+'". Open the Media tab in RC and refresh the list to see it.',8000);
-      }).catch(function(e){ fail('Sending failed ('+(e&&e.message?e.message:e)+').'); send.disabled=false; });
+        ov.remove(); msg('Sent to Simple Media as "'+sentName+'" ('+row.size+' px). Reload the page or the Media list in RC to see it.',9000);
+      });
+    }
+    function go(){
+      if(!ready) return; send.disabled=true; st.style.color='#666';
+      if(!nameIn.value.trim()||!cpIn.value.trim()){ st.style.color='#b00020'; st.textContent='Name and Copyright holder are required by Research Catalogue.'; send.disabled=false; return; }
+      if(createdId){ upload(createdId).catch(function(e){ fail('The file did not upload ('+(e&&e.message?e.message:e)+'). The entry "'+sentName+'" exists in Simple Media without an image: press Send to try the file again.',true); }); return; }
+      st.textContent='Creating the entry…'; sentName=nameIn.value.trim();
+      var before=[];
+      rcList(ids).then(function(l){ before=l.map(function(x){ return x.id; });
+        var fd=new FormData();
+        fd.append('form[image][name]',sentName); fd.append('form[image][copyrightHolder]',cpIn.value.trim()); fd.append('form[image][license]',licSel.value);
+        fd.append('form[image][ariaLabel]',altIn.value); fd.append('form[image][description]',dsIn.value);
+        fd.append('form[_token_placeholder]',''); fd.append('form[_buttons][finish]','');
+        return fetch(url,{method:'POST',body:fd,headers:RC_H,credentials:'same-origin'});
+      }).then(function(r){
+        if(!r.ok) throw new Error('create status '+r.status);
+        return rcList(ids);
+      }).then(function(l){
+        var fresh=l.filter(function(x){ return before.indexOf(x.id)<0 && x.name===sentName; });
+        if(fresh.length!==1) throw new Error(fresh.length? 'several new entries with that name' : 'the new entry was not found');
+        createdId=fresh[0].id; window.__ritlagerRc={id:createdId};
+        return upload(createdId);
+      }).catch(function(e){
+        if(createdId) fail('The file did not upload ('+(e&&e.message?e.message:e)+'). The entry "'+sentName+'" exists in Simple Media without an image: press Send to try the file again.',true);
+        else fail('Sending failed ('+(e&&e.message?e.message:e)+'). Check the Media tab: if an entry "'+sentName+'" without an image appeared, delete it.',false);
+      });
     }
   }
 
@@ -2315,7 +2343,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191330', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191345', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
