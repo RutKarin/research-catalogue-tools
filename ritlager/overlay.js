@@ -1436,8 +1436,20 @@
     })(layers[i],i);
     markLayers(); if(typeof aLyList==='function') aLyList();
   }
+  // New layer: the name field opens straight away with a default name – type a name and press Enter (or Add), or just Enter to keep the default. Esc cancels.
+  function newLayerName(){ var n=layers.length+1, nm='Layer '+n; while(layers.some(function(L){ return L.name===nm; })) nm='Layer '+(++n); return nm; }
+  function addLayerNamed(name){ var L={id:nextLid++,name:String(name||'').replace(/\s+/g,' ').trim().slice(0,30)||newLayerName(),vis:true,op:100}; layers.push(L); act=L.id; drawLayerUI(); persist(); return L; }
+  function askLayerName(host,done){
+    host.textContent='';
+    var inp=el('input','font:inherit;font-size:12.5px;border:1px solid #111;border-radius:6px;padding:5px 7px;flex:1 1 90px;min-width:0;box-sizing:border-box;'); inp.type='text'; inp.maxLength=30; inp.value=newLayerName(); inp.setAttribute('aria-label','Name of the new layer');
+    var fin=false; function end(ok){ if(fin) return; fin=true; done(ok?inp.value:null); }
+    inp.addEventListener('keydown',function(e){ e.stopPropagation(); if(e.key==='Enter'){ e.preventDefault(); end(true); } else if(e.key==='Escape'){ e.preventDefault(); end(false); } },true);
+    host.appendChild(inp); host.appendChild(btn('Add',function(){ end(true); },'Add the layer with this name (Enter)')); host.appendChild(btn('✕',function(){ end(false); },'Cancel (Esc)'));
+    inp.focus(); inp.select();
+  }
   var rLa=row();
-  rLa.appendChild(btn('+ Add layer',function(){ var L={id:nextLid++,name:'Layer '+(layers.length+1),vis:true,op:100}; layers.push(L); act=L.id; drawLayerUI(); persist(); }));
+  function rLaBtn(){ rLa.textContent=''; rLa.appendChild(btn('+ Add layer',function(){ askLayerName(rLa,function(nm){ if(nm!=null) addLayerNamed(nm); rLaBtn(); }); },'Add a layer – you can type its name straight away')); }
+  rLaBtn();
   bar.appendChild(rLa);
   drawLayerUI();
 
@@ -1941,7 +1953,7 @@
 
   // ---- Connect (beta): spara bilden direkt i Research Catalogue (Simple Media) ----
   sec('Connect (beta)');
-  var rcSink=null, rcBatch=null;
+  var rcSink=null, rcBatch=null, rcSkipped=[];
   var cPr=(function(){ try{ return JSON.parse(localStorage.getItem('ritlager-rc'))||{}; }catch(e){ return {}; } })();
   function cSel(label,opts,key,def){
     var r=row(); lab(r,label); var s=el('select',BTN+'padding:3px 6px;max-width:100%;min-width:0;text-overflow:ellipsis;');
@@ -1976,7 +1988,7 @@
     var fmt=cFmt.value;
     if(fmt==='gif'){
       if(!frames.length){ msg('Make frames under Animate first, then send the GIF',5000); return; }
-      rcSink=function(bl,nm){ rcOpen([{bl:bl,name:nm,label:''}]); }; aGif(); return;
+      rcSkipped=[]; rcSink=function(bl,nm){ rcOpen([{bl:bl,name:nm,label:''}]); }; aGif(); return;
     }
     if(!strokes.length&&!under){ msg('Draw something first'); return; }
     var keep={fm:fmSel.value,rs:rsSel.value,cs:csel.value,bg:bgSel.value,bc:bgCol.value};
@@ -1986,10 +1998,11 @@
       var jobs;
       if(cLy.value==='each'){
         var L2=layers.filter(function(L){ return L.vis&&strokes.some(function(st){ return layerOf(st)===L.id; }); });
+        rcSkipped=layers.filter(function(L){ return L.vis&&L2.indexOf(L)<0; }).map(function(L){ return L.name; });
         if(!L2.length){ msg('Draw something first'); return; }
         jobs=L2.map(function(L){ return {only:L.id,label:L.name}; });
-      } else if(cLy.value==='active'){ jobs=[{only:act,label:''}]; }
-      else jobs=[{only:null,label:''}];
+      } else if(cLy.value==='active'){ rcSkipped=[]; jobs=[{only:act,label:''}]; }
+      else { rcSkipped=[]; jobs=[{only:null,label:''}]; }
       rcBatch={n:jobs.length,items:[]};
       jobs.forEach(function(j){ exportPng2('rcq',j.only,j.label); });
     }catch(e){ rcBatch=null; msg('Export failed: '+(e&&e.message?e.message:e)); }
@@ -2040,6 +2053,7 @@
     var pv=el('div','display:flex;gap:6px;overflow-x:auto;');
     items.slice(0,8).forEach(function(it){ var cell=el('div','display:flex;flex-direction:column;gap:2px;align-items:center;flex:0 0 auto;'); var im=el('img','height:84px;max-width:150px;object-fit:contain;border:1px solid #e4e4e4;border-radius:6px;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px;'); im.src=URL.createObjectURL(it.bl); im.title=it.name; cell.appendChild(im); if(items.length>1) cell.appendChild(el('div','font-size:11px;color:#555;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',(it.label||'').trim()||'(layer)')); pv.appendChild(cell); });
     box.appendChild(pv);
+    if(multi&&rcSkipped.length){ box.appendChild(el('div','font-size:12px;line-height:1.4;color:#666;','Not included (visible but empty): '+rcSkipped.join(', '))); } rcSkipped=[];
     var pl=items[0].place, placeTxt='';
     if(pl&&items.every(function(it){ return it.place&&it.place.x===pl.x&&it.place.y===pl.y&&it.place.w===pl.w&&it.place.h===pl.h; })){
       placeTxt='Place it in RC at x '+pl.x+', y '+pl.y+', width '+pl.w+', height '+pl.h+'.';
@@ -2056,7 +2070,15 @@
     var IN='font:inherit;font-size:13px;border:1px solid #c9c9c9;border-radius:6px;padding:5px 8px;width:100%;box-sizing:border-box;';
     function field(t,node){ var w=el('label','display:flex;flex-direction:column;gap:2px;font-size:12px;color:#666;',t); w.appendChild(node); box.appendChild(w); return node; }
     var d=new Date(), pad=function(n){ return (n<10?'0':'')+n; };
-    var nameIn=field(multi?'Name (each image gets the layer name added)':'Name (required)',el('input',IN)); nameIn.type='text'; nameIn.value='Ritlager drawing '+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+'-'+pad(d.getMinutes());
+    var nameIn=field('Name (required)',el('input',IN)); nameIn.type='text'; nameIn.value='Ritlager drawing '+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+'-'+pad(d.getMinutes());
+    var lnChk=null, lnPrev=null;
+    if(multi){
+      var lw=el('label','display:flex;gap:7px;align-items:flex-start;font-size:12.5px;color:#111;cursor:pointer;'); lnChk=el('input'); lnChk.type='checkbox'; lnChk.checked=pr.lname!==false; lnChk.style.marginTop='3px';
+      lw.appendChild(lnChk); lw.appendChild(el('span',null,'Add the layer name to each image name (switch off to get “name (1)”, “name (2)”…)')); box.appendChild(lw);
+      lnPrev=el('div','font-size:11.5px;color:#777;line-height:1.35;word-break:break-word;'); box.appendChild(lnPrev);
+      var namePreview=function(){ lnPrev.textContent='Names in Research Catalogue: '+items.map(function(it,i){ return titleFor(it,i,norm(nameIn.value)); }).join('  ·  '); };
+      nameIn.addEventListener('input',namePreview); lnChk.addEventListener('change',namePreview); namePreview();
+    }
     var cpIn=field('Copyright holder (required)',el('input',IN)); cpIn.type='text'; cpIn.value=pr.copyright||'';
     var licSel=field('License',el('select',IN)); licSel.disabled=true;
     var altIn=field('Alt text (describes the image for screen readers)',el('input',IN)); altIn.type='text';
@@ -2084,7 +2106,7 @@
     }).catch(function(e){ fail('Could not reach Research Catalogue ('+(e&&e.message?e.message:e)+').'); });
     function name1(){ return items[0].name; }
     function norm(x){ return String(x==null?'':x).replace(/\s+/g,' ').trim(); }
-    function titleFor(it,i){ return norm(multi ? base+' – '+(it.label||('part '+(i+1))) : base); }
+    function titleFor(it,i,b0){ var bb=b0!=null?b0:base; if(!multi) return norm(bb); return norm(lnChk&&lnChk.checked ? bb+' – '+(it.label||('part '+(i+1))) : bb+' ('+(i+1)+')'); }
     function upload(it){
       st.textContent='Uploading '+it.sentName+'…';
       var f3=new FormData(); f3.append('form[image][media]',new File([it.bl],it.name,{type:it.bl.type}));
@@ -2145,7 +2167,7 @@
         return pr1.then(function(){ return (wantPlace()&&it.place&&!it.toolId)?placeTool(it):null; });
       }); });
       chain.then(function(){
-        rcPutPrefs({copyright:cpIn.value.trim(),license:licSel.value,place:wantPlace()||(canPlace?false:pr.place)});
+        rcPutPrefs({copyright:cpIn.value.trim(),license:licSel.value,lname:lnChk?lnChk.checked:pr.lname,place:wantPlace()||(canPlace?false:pr.place)});
         if(wantPlace()){
           busy=false; st.style.color='#1b6e2e'; st.textContent=(multi?'Sent '+items.length+' images':'Sent')+' and placed on the page at x '+pl.x+', y '+pl.y+', '+pl.w+' × '+pl.h+'. Reload the page to see '+(multi?'them':'it')+' in the editor (your drawing is autosaved).';
           send.style.display='none'; dl.style.display='none'; cl.textContent='Close';
@@ -2177,7 +2199,7 @@
     if(t!=='select'&&tool==='select'){ clearSel(); refresh(); cv.style.cursor=DOTS; }
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
-    tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone') lastDraw=t;
+    tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone') lastDraw=t; if(typeof qDrawSync==='function') qDrawSync(t);
     if(typeof markTop==='function') markTop(); mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bBlurT,t==='blur'); mark(bSharpT,t==='sharpen'); mark(bSmudgeT,t==='smudge'); mark(bCloneT,t==='clone'); if(t!=='clone') drawCloneMarkOff(); if(typeof pxSz!=='undefined'&&pxSizes[t]!=null) pxSz.value=pxSizes[t]; mark(bSel0,t==='select'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel(); if(typeof qSync==='function') qSync();
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'||t==='dodge'||t==='burn'); show(rAir2,t==='air'||t==='dodge'||t==='burn'); show(rArrow, t==='line');
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
@@ -2482,16 +2504,18 @@
   })();
   // ---- collapsible menus: groups containing sections (remembered between visits) ----
   // ---- quick tools row: your own shortcuts (symbols only), can be folded away ----
-  var qEnd=null, qSync=function(){}, qPreDraw=function(){}, qEditDraw=function(){}, qSizeSync=function(){}, qColSync=function(){}, qImport=function(){};
+  var qEnd=null, qDrawSync=function(){}, qSync=function(){}, qPreDraw=function(){}, qEditDraw=function(){}, qSizeSync=function(){}, qColSync=function(){}, qImport=function(){};
   (function(){
     var NS='http://www.w3.org/2000/svg', KEY='ritlager-quick2';
     var IC={sr:['M5 3a2 2 0 0 0-2 2','M19 3a2 2 0 0 1 2 2','M21 19a2 2 0 0 1-2 2','M5 21a2 2 0 0 1-2-2','M9 3h1','M9 21h1','M14 3h1','M14 21h1','M3 9v1','M21 9v1','M3 14v1','M21 14v1'],sl:['M7 22a5 5 0 0 1-2-4','M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],cr:['M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M20 4 8.12 15.88','M14.47 14.48 20 20','M8.12 8.12 12 12'],cl:['M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M20 14 11 23','M14 14l6 6'],pk:['M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z']};
 var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.93 1.41 1.41','m17.66 17.66 1.41 1.41','M2 12h2','M20 12h2','m6.34 17.66-1.41 1.41','m19.07 4.93-1.41 1.41'],bu:['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'],bl:['M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z'],sh:['M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'],sm:['M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2','M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8','M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],cl2:['M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z','M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1']};
     var toneMode='dodge', retMode='blur', drwMode='pen'; try{ var mm=JSON.parse(localStorage.getItem('ritlager-modes')||'{}'); if(mm.t==='burn') toneMode='burn'; if(['blur','sharpen','smudge','clone'].indexOf(mm.r)>=0) retMode=mm.r; if(['pen','brush','air','line'].indexOf(mm.d)>=0) drwMode=mm.d; }catch(e){}
     function saveModes(){ try{ localStorage.setItem('ritlager-modes',JSON.stringify({t:toneMode,r:retMode,d:drwMode})); }catch(e){} }
+    // the Draw button in the quick row always returns to the drawing tool you used last, however you picked it (panel, key P/B/A/L, this row)
     var RT={blur:{n:'Blur',p:IC2.bl,b:function(){ return bBlurT; }},sharpen:{n:'Sharpen',p:IC2.sh,b:function(){ return bSharpT; }},smudge:{n:'Smudge',p:IC2.sm,b:function(){ return bSmudgeT; }},clone:{n:'Clone',p:IC2.cl2,b:function(){ return bCloneT; }}};
     function qpath(id){ for(var i=0;i<Q.length;i++) if(Q[i].id===id) return Q[i].p; return []; }
     var DT={pen:{n:'Pen',b:function(){ return bPen; }},brush:{n:'Brush',b:function(){ return bBrush; }},air:{n:'Airbrush',b:function(){ return bAir; }},line:{n:'Line',b:function(){ return bLine; }}};
+    qDrawSync=function(t){ if(DT[t]&&drwMode!==t){ drwMode=t; saveModes(); if(typeof modeIcons==='function') modeIcons(); } };
     var Q=[
       {id:'mycol',n:'My colours',slider:true,p:['M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z']},
       {id:'nib',n:'Pen style',slider:true,p:['M12 19l7-7 3 3-7 7-3-3z','M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z']},
@@ -2579,7 +2603,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
         eb.addEventListener('click',function(){ L.vis=!L.vis; rebuild(); drawLayerUI(); layerFly(); });
         r.appendChild(nb); r.appendChild(eb); qFly2.appendChild(r); })(layers[i]);
       var ab=el('button','padding:6px 8px;border:1px dashed #999;border-radius:8px;background:#fff;color:#111;font:12.5px system-ui,sans-serif;cursor:pointer;','+ New layer'); ab.type='button';
-      ab.addEventListener('click',function(){ var L={id:nextLid++,name:'Layer '+(layers.length+1),vis:true,op:100}; layers.push(L); act=L.id; drawLayerUI(); persist(); layerFly(); });
+      ab.addEventListener('click',function(){ var h=el('div','display:flex;gap:4px;align-items:center;'); qFly2.replaceChild(h,ab); askLayerName(h,function(nm){ if(nm!=null) addLayerNamed(nm); layerFly(); }); });
       qFly2.appendChild(ab); qFly2.style.display='flex';
     }
     function layerFlyToggle(){ if(qFly2.style.display!=='none'&&qFly2._lay){ flyClose(); } else layerFly(); }
