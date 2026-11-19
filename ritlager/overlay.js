@@ -2249,7 +2249,10 @@
   function show(e,on){ e.style.display = on?'flex':'none'; }
   // Pen styles and Brush effects only work on the Pen (and on selected pen strokes), so they are only shown then.
   function nibAvail(){ if(tool==='pen') return true; return tool==='select'&&!!sel&&sel.some(function(q){ return q.tool==='pen'&&!q.brush; }); }
-  function styleVis(force){ if(!bar||!bar.querySelector) return; var ok=nibAvail(), dt=['pen','eraser','brush','air','dodge','burn','line','shape'].indexOf(tool)>=0, key=(ok?'1':'0')+(dt?'1':'0'); if(!force&&styleVis._l===key) return; styleVis._l=key; ['Pen style','Brush effects'].forEach(function(n){ var h=bar.querySelector('[data-sec="'+n+'"]'); if(h){ h._hidden=!ok; applySec(h); } }); var hd=bar.querySelector('[data-sec="Details"]'); if(hd){ hd._hidden=!dt; applySec(hd); } if(typeof qNibVis==='function') qNibVis(); }
+  // The Styles menu is one fold-out whose title follows the tool: Pen styles / Brush styles / Airbrush styles.
+  var grpStyles=null;
+  function styleTitle(){ if(!grpStyles) return; var t=nibAvail()?'Pen styles':(tool==='brush'?'Brush styles':(tool==='air'?'Airbrush styles':'Styles')); if(grpStyles._lab!==t){ grpStyles._lab=t; grpStyles._apply(); } }
+  function styleVis(force){ if(!bar||!bar.querySelector) return; try{ styleTitle(); }catch(e){} var ok=nibAvail(), dt=['pen','eraser','brush','air','dodge','burn','line','shape'].indexOf(tool)>=0, key=(ok?'1':'0')+(dt?'1':'0'); if(!force&&styleVis._l===key) return; styleVis._l=key; ['Pen style','Brush effects'].forEach(function(n){ var h=bar.querySelector('[data-sec="'+n+'"]'); if(h){ h._hidden=!ok; applySec(h); } }); var hd=bar.querySelector('[data-sec="Details"]'); if(hd){ hd._hidden=!dt; applySec(hd); } if(typeof qNibVis==='function') qNibVis(); }
   function setTool(t){
     if(t!=='select'&&tool==='select'){ clearSel(); refresh(); cv.style.cursor=DOTS; }
     if(t==='select') cv.style.cursor=baseCur();
@@ -2885,7 +2888,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var GROUP={'Drawing tools':'Styles','Tool':'Styles','Pen style':'Styles','Brush effects':'Styles','Size and hardness':'Styles','Pressure and stabilising':'Pen behaviour','Presets':'Pen behaviour','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save','Connect (beta)':'Connect'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
-    function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
+    function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+(g._lab||g._t); g._wrap.style.display=g._open?'flex':'none'; }
     Array.prototype.slice.call(bar.children).forEach(function(k){
       if(k.hasAttribute&&k.hasAttribute('data-sec')){
         var gn=GROUP[k._t]||'More';
@@ -2904,6 +2907,8 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     });
     var cnt={}; hs.forEach(function(h){ var g=GROUP[h._t]||'More'; cnt[g]=(cnt[g]||0)+1; });
     hs.forEach(function(h){ if(cnt[GROUP[h._t]||'More']===1||GROUP[h._t]==='Text'){ h._flat=true; h._open=true; } });
+    hs.forEach(function(h){ if(GROUP[h._t]==='Styles'){ h._flat=true; h._open=true; } }); // Styles is one fold-out: its parts have no headers of their own
+    gs.forEach(function(g){ if(g._t==='Styles'){ grpStyles=g; g._apply=function(){ applyGrp(g); }; } });
     hs.forEach(applySec); gs.forEach(applyGrp); try{ styleVis(true); }catch(e){}
     // order of the menus follows the work: draw, layers, edit, effects, then text, animate, export, connect
     (function(){ var ORD=['Styles','Layers','Edit','Effects','Text','Animate','Pen behaviour','Export and save','Connect']; if(!gs.length) return; var mk=document.createElement('span'); mk.style.display='none'; bar.insertBefore(mk,gs[0]);
