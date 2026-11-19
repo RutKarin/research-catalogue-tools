@@ -2084,7 +2084,7 @@
     function build(){
       qRow.textContent=''; items=[];
       Q.forEach(function(q){ if(st.on.indexOf(q.id)<0) return; var b=iconBtn(q.n+' (quick)',q.p,function(){ if(q.go) q.go(); else q.real.click(); },q.n); b.style.flex='0 0 calc((100% - 18px)/7)'; b.style.justifyContent='center'; b.style.minWidth='0'; b.style.boxSizing='border-box'; b.style.padding='5px 0'; qRow.appendChild(b); items.push({b:b,real:q.sync||q.real}); });
-      var e=iconBtn('Choose quick tools',['M21 4h-7','M10 4H3','M21 12h-9','M8 12H3','M21 20h-5','M12 20H3','M14 2v4','M8 10v4','M16 18v4'],function(){ qEdit.style.display=qEdit.style.display==='none'?'flex':'none'; },'Edit your shortcuts'); e.style.flex='0 0 calc((100% - 18px)/7)'; e.style.boxSizing='border-box'; e.style.padding='5px 0'; e.style.justifyContent='center'; e.style.background='#efefef'; e.style.color='#777'; e.style.borderColor='#efefef'; qRow.appendChild(e);
+      var e=iconBtn('Choose quick tools',['M21 4h-7','M10 4H3','M21 12h-9','M8 12H3','M21 20h-5','M12 20H3','M14 2v4','M8 10v4','M16 18v4'],function(){ qEdit.style.display=qEdit.style.display==='none'?'flex':'none'; },'Edit your shortcuts'); e.style.flex='0 0 calc((100% - 18px)/7)'; e.style.boxSizing='border-box'; e.style.marginLeft='auto'; e.style.padding='5px 0'; e.style.justifyContent='center'; e.style.background='#efefef'; e.style.color='#777'; e.style.borderColor='#efefef'; qRow.appendChild(e);
       qSync();
     }
     qPreDraw=function(){
