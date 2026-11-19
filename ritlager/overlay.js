@@ -869,6 +869,10 @@
       var out=b;
       if(kind==='sharpen'){ var am=(s.amt||6)/10; out=new Float32Array(o.length); for(i=0;i<o.length;i+=4){ var al=Math.max(0,Math.min(255,o[i+3]+am*(o[i+3]-b[i+3]))); out[i+3]=al; for(var q=0;q<3;q++){ var v=o[i+q]+am*(o[i+q]-b[i+q]); out[i+q]=Math.max(0,Math.min(al,v)); } } }
       blendIn(canvasOfPre(out,rw,rh),maskC());
+    } else if(kind==='cinc'||kind==='cdec'){
+      var idc=c.getImageData(x0,y0,rw,rh), oc=preOf(idc), outc=new Float32Array(oc.length), fct=kind==='cinc'?1.9:0.4, qq, al2;
+      for(i=0;i<oc.length;i+=4){ al2=oc[i+3]; outc[i+3]=al2; if(al2>0){ for(qq=0;qq<3;qq++){ var sv=oc[i+qq]*255/al2, nv=(sv-128)*fct+128; nv=Math.max(0,Math.min(255,nv)); outc[i+qq]=nv*al2/255; } } }
+      blendIn(canvasOfPre(outc,rw,rh),maskC());
     } else if(kind==='clone'){
       var sc=document.createElement('canvas'); sc.width=rw; sc.height=rh;
       sc.getContext('2d').drawImage(c.canvas,x0+(s.dx||0)*k,y0+(s.dy||0)*k,rw,rh,0,0,rw,rh);
@@ -1060,6 +1064,12 @@
     if(t&&t!==cv){ try{ t.dispatchEvent(new WheelEvent('wheel',{bubbles:true,cancelable:true,clientX:e.clientX,clientY:e.clientY,deltaX:e.deltaX,deltaY:e.deltaY,deltaMode:e.deltaMode,ctrlKey:e.ctrlKey})); }catch(x){} }
   },{passive:true});
   var ug=null, ugRaf=0;
+  // Pen side buttons (Wacom): the lower one sends a right-click and makes the brush bigger, the upper one (set it to Middle Click in the Wacom driver) makes it smaller. Only while Ritlager is open and in draw mode.
+  function penSize(f){ if(typeof pxSizes!=='undefined'&&pxSizes[tool]!=null){ pxSizes[tool]=Math.max(4,Math.min(500,pxSizes[tool]*f)); pxSz.value=pxSizes[tool]; msg(Math.round(pxSizes[tool])+' px',900); } else { setSize2(size*f); msg(szv.textContent,900); } }
+  function penOk(){ return drawing&&visible&&tool!=='select'&&tool!=='text'&&tool!=='fill'; }
+  cv.addEventListener('contextmenu',function(e){ if(!drawing||!visible) return; e.preventDefault(); if(penOk()) penSize(1.25); });
+  cv.addEventListener('mousedown',function(e){ if(e.button===1&&drawing&&visible) e.preventDefault(); });
+  cv.addEventListener('auxclick',function(e){ if(e.button!==1||!drawing||!visible) return; e.preventDefault(); if(penOk()) penSize(0.8); });
   cv.addEventListener('pointerdown', function(e){
     if(moveUnder && under){ var q0=cpt(e); ug={px:q0.x,py:q0.y,x:under.x,y:under.y}; cv.setPointerCapture(e.pointerId); e.preventDefault(); return; }
     if(pickMode){ doPick(e); e.preventDefault(); return; }
@@ -1075,7 +1085,7 @@
     if(!getLayer(act).vis){ msg('This layer is hidden – show it to draw on it'); return; }
     var q=pos(e), T=tool;
     if(penEr.checked&&e.pointerType==='pen'&&(e.buttons&32)&&T!=='eraser'){ T='eraser'; }
-    var isFx=(T==='dodge'||T==='burn'), isPx=(T==='blur'||T==='sharpen'||T==='smudge'||T==='clone');
+    var isFx=(T==='dodge'||T==='burn'), isPx=(T==='blur'||T==='sharpen'||T==='smudge'||T==='clone'||T==='cinc'||T==='cdec');
     cur={l:act,tool:(T==='brush'?'pen':(isFx?'air':(isPx?'px':T))),fx:isFx?T:undefined,color:isFx?(T==='dodge'?'#ffffff':'#000000'):color,size:size,soft:+soft.value,sens:+sens.value/100,ink:isFx?(+fxExp.value/100):(+ink.value/100),pressure:pr.checked, brush:T==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
          arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value,pts:[q],sm:{x:q.x,y:q.y,p:q.p}};
     if(T==='brush') cur.bs=brushSt; if(T==='air') cur.as=airSt;
@@ -1396,7 +1406,7 @@
   var rPe=row(); var penEr=chk(rPe,'Pen eraser end erases',true,'When you turn your pen around and use the eraser end (Wacom and similar), Ritlager erases for that stroke and goes back to your tool afterwards, like in Photoshop.'); bar.appendChild(rPe);
   try{ penEr.checked=localStorage.getItem('ritlager-penerase')!=='0'; }catch(e){}
   penEr.addEventListener('change',function(){ try{ localStorage.setItem('ritlager-penerase',penEr.checked?'1':'0'); }catch(e){} });
-  var wacomHint=el('div','font-size:11px;color:#777;line-height:1.4;','Keys that work with a Wacom (set ExpressKeys / touch ring to send them, per app in the Wacom driver): [ and ] = smaller / larger brush · E = eraser · B, P, A, L, O = pen, brush, airbrush, line, shape · I = pick colour · X = swap colour · 0–9 = opacity · Ctrl+Z / Ctrl+Shift+Z = undo / redo.');
+  var wacomHint=el('div','font-size:11px;color:#777;line-height:1.4;','Keys that work with a Wacom (set ExpressKeys / touch ring to send them, per app in the Wacom driver): [ and ] = smaller / larger brush · E = eraser · B, P, A, L, O = pen, brush, airbrush, line, shape · I = pick colour · X = swap colour · 0–9 = opacity · Ctrl+Z / Ctrl+Shift+Z = undo / redo. Pen side buttons: set the lower one to Right Click (bigger brush) and the upper one to Middle Click (smaller brush) in the Wacom driver; they work only while Ritlager is open and in draw mode.');
   bar.appendChild(wacomHint);
   var rSens=row(); lab(rSens,'Sensitivity'); var sens=slider(rSens,0,150,100,110); sens.title='100 = normal (very pressure sensitive). Higher = even more, lower = less'; bar.appendChild(rSens);
   var rPm=row(); lab(rPm,'Pressure from');
@@ -1626,23 +1636,39 @@
 
   sec('Brush effects');
   var gFx=el('div'); bar.appendChild(gFx); nibGrid(gFx,['glow','fuzzy','flare','cloud','smoke','nebula','glitter','rainbow','thermal','glitch']);
-  sec('Dodge and burn');
-  var rDb=row(); var bDodge=btn('Dodge (lighter)',function(){ setTool('dodge'); },'Paint over your drawing to make it lighter'), bBurn=btn('Burn (darker)',function(){ setTool('burn'); },'Paint over your drawing to make it darker'); rDb.appendChild(bDodge); rDb.appendChild(bBurn); bar.appendChild(rDb);
-  var rDe=row(); lab(rDe,'Exposure'); var fxExp=slider(rDe,2,100,25,110); liveVal(fxExp); fxExp.title='How strong each stroke is'; bar.appendChild(rDe);
-
   sec('Retouch');
-  var rRt=row(); var bBlurT=btn('Blur',function(){ setTool('blur'); },'Paint to blur what you have drawn on the active layer'), bSharpT=btn('Sharpen',function(){ setTool('sharpen'); },'Paint to make soft edges crisper'), bSmudgeT=btn('Smudge',function(){ setTool('smudge'); },'Drag the paint along, like a finger in wet paint'), bCloneT=btn('Clone',function(){ setTool('clone'); },'Copy one part of the layer to another. Alt+click the source first');
-  [bBlurT,bSharpT,bSmudgeT,bCloneT].forEach(function(b){ rRt.appendChild(b); }); bar.appendChild(rRt);
-  var pxSizes={blur:40,sharpen:40,smudge:40,clone:40};
-  var rP0=row(); lab(rP0,'Brush size'); var pxSz=slider(rP0,4,500,40,110); liveVal(pxSz,' px'); pxSz.title='Each retouch tool remembers its own size'; bar.appendChild(rP0);
+  var bDodge=btn('Dodge (lighter)',function(){ setTool('dodge'); },'Paint over your drawing to make it lighter'), bBurn=btn('Burn (darker)',function(){ setTool('burn'); },'Paint over your drawing to make it darker');
+  var bBlurT=btn('Blur',function(){ setTool('blur'); },'Paint to blur what you have drawn on the active layer'), bSharpT=btn('Sharpen',function(){ setTool('sharpen'); },'Paint to make soft edges crisper'), bSmudgeT=btn('Smudge',function(){ setTool('smudge'); },'Drag the paint along, like a finger in wet paint'), bCloneT=btn('Clone',function(){ setTool('clone'); },'Copy one part of the layer to another. Alt+click the source first');
+  var RTI={clone:['M8 8h12v12H8z','M16 8V4H4v12h4'],light:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.93 1.41 1.41','m17.66 17.66 1.41 1.41','M2 12h2','M20 12h2','m6.34 17.66-1.41 1.41','m19.07 4.93-1.41 1.41'],contrast:['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0','M12 3v18'],bs:['M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z'],smudge:['M3 8c3-3 5 3 9 0s6 3 9 0','M3 16c3-3 5 3 9 0s6 3 9 0']};
+  function rtIc(paths){ var ns='http://www.w3.org/2000/svg', sv=document.createElementNS(ns,'svg'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('width','18'); sv.setAttribute('height','18'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','1.8'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(ns,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); return sv; }
+  var RTM=[['clone','Clone','Copy one part of the layer to another'],['light','Light/dark','Make parts lighter or darker'],['contrast','Contrast','Increase or decrease the contrast where you paint'],['bs','Blur/sharpen','Blur soft, or sharpen edges'],['smudge','Smudge','Drag the paint along, like a finger in wet paint']];
+  var RTS={light:[['Lighten','dodge','Paint over your drawing to make it lighter'],['Darken','burn','Paint over your drawing to make it darker']],contrast:[['Increase','cinc','More contrast where you paint'],['Decrease','cdec','Less contrast where you paint']],bs:[['Blur','blur','Paint to blur what you have drawn on the active layer'],['Sharpen','sharpen','Paint to make soft edges crisper']]};
+  var rtMode='bs', rtSub={light:'dodge',contrast:'cinc',bs:'blur'}, rtB={};
+  var rRt=el('div','display:grid;grid-template-columns:repeat(3,1fr);gap:5px;');
+  RTM.forEach(function(m){ var b=el('button',BTN+'display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font-size:11px;'); b.type='button'; b.title=m[2]; b.appendChild(rtIc(RTI[m[0]])); b.appendChild(el('span',null,m[1])); b.addEventListener('click',function(){ setTool(m[0]==='clone'||m[0]==='smudge'?m[0]:rtSub[m[0]]); }); rtB[m[0]]=b; rRt.appendChild(b); });
+  bar.appendChild(rRt);
+  var rSw=row(); bar.appendChild(rSw);
+  var rtHint=el('div','font-size:11px;color:#777;line-height:1.35;','Brush size: use the Size slider at the top. Hardness is under Size and hardness.'); bar.appendChild(rtHint);
+  var pxSizes={blur:40,sharpen:40,smudge:40,clone:40,cinc:40,cdec:40};
+  var rP0=row(); lab(rP0,'Brush size'); var pxSz=slider(rP0,4,500,40,110); liveVal(pxSz,' px'); pxSz.title='Each retouch mode remembers its own size'; bar.appendChild(rP0);
   pxSz.addEventListener('input',function(){ if(pxSizes[tool]!=null) pxSizes[tool]=+pxSz.value; });
-  var rP1=row(); lab(rP1,'Strength'); var pxStr=slider(rP1,5,100,60,110); liveVal(pxStr); bar.appendChild(rP1);
+  var rP3=row(); lab(rP3,'Hardness'); var pxHard=slider(rP3,0,100,30,110); liveVal(pxHard); pxHard.title='0 = very soft edge, 100 = hard edge'; bar.appendChild(rP3);
+  var rP1=row(); lab(rP1,'Strength'); var pxStr=slider(rP1,5,100,60,110); liveVal(pxStr); pxStr.title='How strong each stroke is'; bar.appendChild(rP1);
+  var rDe=row(); lab(rDe,'Strength'); var fxExp=slider(rDe,2,100,25,110); liveVal(fxExp); fxExp.title='How strong each stroke is'; bar.appendChild(rDe);
   var rP2=row(); lab(rP2,'Amount'); var pxAmt=slider(rP2,1,40,6,110); pxAmt.title='Blur: how far it spreads. Sharpen: how much crisper.'; bar.appendChild(rP2);
-  var rP3=row(); lab(rP3,'Hardness'); var pxHard=slider(rP3,0,100,30,110); liveVal(pxHard); bar.appendChild(rP3);
   var rP5=row(); var pxAll=chk(rP5,'Apply to all layers',false,'Off: only the pixels on the active layer change. On: the stroke goes through every visible layer (each layer keeps its own pixels), so a smudge or blur affects everything under the brush.'); bar.appendChild(rP5);
   try{ pxAll.checked=localStorage.getItem('ritlager-pxall')==='1'; }catch(e){}
   pxAll.addEventListener('change',function(){ try{ localStorage.setItem('ritlager-pxall',pxAll.checked?'1':'0'); }catch(e){} msg(pxAll.checked?'Retouch now works on all layers':'Retouch now works on the active layer only',3000); });
-  var rP4=row(); rP4.appendChild(btn('Set clone source',function(){ cloneSet=true; setTool('clone'); msg('Now click on the spot you want to copy from'); },'Or hold Alt and click with the Clone tool')); bar.appendChild(rP4);
+  var rP4=row(); rP4.appendChild(btn('Set source',function(){ cloneSet=true; setTool('clone'); msg('Now click on the spot you want to copy from'); },'Or hold Alt (Option on a Mac) and click with Clone')); bar.appendChild(rP4);
+  var RTMAP={clone:'clone',dodge:'light',burn:'light',cinc:'contrast',cdec:'contrast',blur:'bs',sharpen:'bs',smudge:'smudge'};
+  function rtMark(t){
+    var m=RTMAP[t]; if(m){ rtMode=m; if(rtSub[m]) rtSub[m]=t; }
+    Object.keys(rtB).forEach(function(k){ mark(rtB[k],!!m&&k===m); });
+    var L=m&&RTS[m]; rSw.textContent=''; if(L){ L.forEach(function(o){ var b=btn(o[0],function(){ setTool(o[1]); },o[2]); b.style.flex='1 1 0'; mark(b,o[1]===t); rSw.appendChild(b); }); }
+    var px=['blur','sharpen','smudge','clone','cinc','cdec'].indexOf(t)>=0, fxT=(t==='dodge'||t==='burn');
+    show(rSw,!!L); show(rP0,px); show(rP3,px); show(rP1,px); show(rP5,px); show(rP2,t==='blur'||t==='sharpen'); show(rP4,t==='clone'); show(rDe,fxT); show(rtHint,fxT);
+  }
+  rtMark('pen');
 
   sec('Layer effects');
   var fxName=el('div','font-size:12px;color:#444;','');
@@ -2490,9 +2516,10 @@
     if(t!=='select'&&tool==='select'){ clearSel(); refresh(); cv.style.cursor=DOTS; restoreSelUI(); }
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
-    tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone') lastDraw=t; if(typeof qDrawSync==='function') qDrawSync(t);
+    tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone'&&t!=='cinc'&&t!=='cdec') lastDraw=t; if(typeof qDrawSync==='function') qDrawSync(t);
     if(typeof markTop==='function') markTop(); mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bBlurT,t==='blur'); mark(bSharpT,t==='sharpen'); mark(bSmudgeT,t==='smudge'); mark(bCloneT,t==='clone'); if(t!=='clone') drawCloneMarkOff(); if(typeof pxSz!=='undefined'&&pxSizes[t]!=null) pxSz.value=pxSizes[t]; mark(bSel0,t==='select'); mark(bShape,t==='shape'); mark(bFill,t==='fill'); mark(bLine,t==='line'); mark(bEr,t==='eraser'||t==='cut'); mark(bTxt,t==='text'); markSel(); if(typeof qSync==='function') qSync();
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser'); show(rCt,t==='eraser'||t==='cut'); show(rCk,t==='cut'); show(rCf,t==='cut');  show(rDry, t==='brush'); show(rAir,t==='air'||t==='dodge'||t==='burn'); show(rAir2,t==='air'||t==='dodge'||t==='burn'); show(rArrow, t==='line'); show(rShape,t==='shape'); show(rShape2,t==='shape'); show(rShape3,t==='shape'); radVis(); if(rBst) show(rBst,t==='brush'); if(rAst) show(rAst,t==='air'); if(rFill) show(rFill,t==='fill'); try{ lookSync(); }catch(e){}
+    try{ rtMark(t); }catch(e){}
     var pressOK = t!=='line'&&t!=='shape'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=false; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
     try{ styleVis(); }catch(e){}
   }
@@ -2802,11 +2829,11 @@
   (function(){
     var NS='http://www.w3.org/2000/svg', KEY='ritlager-quick2';
     var IC={sr:['M5 3a2 2 0 0 0-2 2','M19 3a2 2 0 0 1 2 2','M21 19a2 2 0 0 1-2 2','M5 21a2 2 0 0 1-2-2','M9 3h1','M9 21h1','M14 3h1','M14 21h1','M3 9v1','M21 9v1','M3 14v1','M21 14v1'],sl:['M7 22a5 5 0 0 1-2-4','M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],cr:['M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M20 4 8.12 15.88','M14.47 14.48 20 20','M8.12 8.12 12 12'],cl:['M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1','M20 14 11 23','M14 14l6 6'],pk:['M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z']};
-var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.93 1.41 1.41','m17.66 17.66 1.41 1.41','M2 12h2','M20 12h2','m6.34 17.66-1.41 1.41','m19.07 4.93-1.41 1.41'],bu:['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'],bl:['M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z'],sh:['M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'],sm:['M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2','M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8','M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],cl2:['M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z','M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1']};
-    var toneMode='dodge', retMode='blur', drwMode='pen'; try{ var mm=JSON.parse(localStorage.getItem('ritlager-modes')||'{}'); if(mm.t==='burn') toneMode='burn'; if(['blur','sharpen','smudge','clone'].indexOf(mm.r)>=0) retMode=mm.r; if(['pen','brush','air','line','shape'].indexOf(mm.d)>=0) drwMode=mm.d; }catch(e){}
+var IC2={ct:['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0','M12 3v18'],dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.93 1.41 1.41','m17.66 17.66 1.41 1.41','M2 12h2','M20 12h2','m6.34 17.66-1.41 1.41','m19.07 4.93-1.41 1.41'],bu:['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'],bl:['M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z'],sh:['M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'],sm:['M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2','M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8','M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'],cl2:['M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z','M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1']};
+    var toneMode='dodge', retMode='blur', drwMode='pen'; try{ var mm=JSON.parse(localStorage.getItem('ritlager-modes')||'{}'); if(mm.t==='burn') toneMode='burn'; if(['blur','sharpen','smudge','clone','dodge','burn','cinc','cdec'].indexOf(mm.r)>=0) retMode=mm.r; if(['pen','brush','air','line','shape'].indexOf(mm.d)>=0) drwMode=mm.d; }catch(e){}
     function saveModes(){ try{ localStorage.setItem('ritlager-modes',JSON.stringify({t:toneMode,r:retMode,d:drwMode})); }catch(e){} }
     // the Draw button in the quick row always returns to the drawing tool you used last, however you picked it (panel, key P/B/A/L, this row)
-    var RT={blur:{n:'Blur',p:IC2.bl,b:function(){ return bBlurT; }},sharpen:{n:'Sharpen',p:IC2.sh,b:function(){ return bSharpT; }},smudge:{n:'Smudge',p:IC2.sm,b:function(){ return bSmudgeT; }},clone:{n:'Clone',p:IC2.cl2,b:function(){ return bCloneT; }}};
+    var RT={clone:{n:'Clone',p:IC2.cl2,b:function(){ return bCloneT; }},dodge:{n:'Lighten',p:IC2.dd,b:function(){ return bDodge; }},burn:{n:'Darken',p:IC2.bu,b:function(){ return bBurn; }},cinc:{n:'More contrast',p:IC2.ct,b:function(){ return {click:function(){ setTool('cinc'); }}; }},cdec:{n:'Less contrast',p:IC2.ct,b:function(){ return {click:function(){ setTool('cdec'); }}; }},blur:{n:'Blur',p:IC2.bl,b:function(){ return bBlurT; }},sharpen:{n:'Sharpen',p:IC2.sh,b:function(){ return bSharpT; }},smudge:{n:'Smudge',p:IC2.sm,b:function(){ return bSmudgeT; }}};
     function qpath(id){ for(var i=0;i<Q.length;i++) if(Q[i].id===id) return Q[i].p; return []; }
     var DT={pen:{n:'Pen',b:function(){ return bPen; }},brush:{n:'Brush',b:function(){ return bBrush; }},air:{n:'Airbrush',b:function(){ return bAir; }},line:{n:'Line',b:function(){ return bLine; }},shape:{n:'Shape',b:function(){ return bShape; }},fill:{n:'Fill',b:function(){ return bFill; }}};
     qDrawSync=function(t){ if(DT[t]&&drwMode!==t){ drwMode=t; saveModes(); if(typeof modeIcons==='function') modeIcons(); } };
@@ -2834,7 +2861,6 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
       {id:'mark',n:'Select area',real:null,go:function(){ (selMode==='lasso'?bLas:bRect).click(); },p:IC.sr},
       {id:'cut',n:'Cut out',real:null,go:function(){ (cutMode==='lasso'?bCutL:bCutR).click(); },p:['M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0','M20 4 8.12 15.88','M14.47 14.48 20 20','M8.12 8.12 12 12']},
       {id:'text',n:'Text (T)',real:bTxt,p:['M4 7V4h16v3','M9 20h6','M12 4v16']},
-      {id:'tone',n:'Lighten / darken',real:null,go:function(){ (toneMode==='burn'?bBurn:bDodge).click(); },p:IC2.dd},
       {id:'retouch',n:'Retouch',real:null,go:function(){ RT[retMode].b().click(); },p:IC2.bl},
       {id:'layers',n:'Layers',real:null,go:function(){ layerFlyToggle(); },p:['M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z','m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65','m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65']},
       {id:'settings',n:'Save / load all settings',real:null,go:function(){ settingsFlyToggle(); },p:['M21 8v13H3V8','M1 3h22v5H1z','M10 12h4']},
@@ -2851,7 +2877,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
       [bRect,bCutR].forEach(function(b){ b.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('▭ ',''); }); });
       bPick.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('↖ ',''); }); })();
     var st={on:DEF.slice(),open:true,v:3};
-    try{ var s0=JSON.parse(localStorage.getItem(KEY)); if(s0&&s0.on){ if(s0.v===2){ s0.v=3; if(s0.on.indexOf('colour')<0) s0.on.push('colour'); } if(!s0.v){ s0.v=3; s0.on.push('colour'); ['size','nib'].forEach(function(k){ if(s0.on.indexOf(k)<0) s0.on.push(k); }); s0.on=s0.on.filter(function(k){ return k!=='line'; }); } if(!s0.m3){ s0.m3=1; if(s0.on.indexOf('layers')<0) s0.on.push('layers'); } if(!s0.m2){ s0.m2=1; if(s0.on.indexOf('retouch')<0) s0.on.push('retouch'); } if(!s0.m4){ s0.m4=1; if(s0.on.indexOf('shapes')<0) s0.on.push('shapes'); } if(!s0.m5){ s0.m5=1; if(s0.on.indexOf('opac')<0) s0.on.push('opac'); } if(!s0.m6){ s0.m6=1; s0.on=s0.on.filter(function(k){ return k!=='pip'; }); } if(!s0.m){ s0.m=1; if(s0.on.indexOf('mark')<0) s0.on.push('mark'); if(s0.on.indexOf('drawtool')<0) s0.on.push('drawtool'); } (function(){ var o=[]; s0.on.forEach(function(k){ if(k==='draw') k='drawtool'; if(k==='dodge'||k==='burn') k='tone'; if(k==='pen'||k==='brush'||k==='air'||k==='line') k='drawtool'; if(['blur','sharp','smudge','clone'].indexOf(k)>=0) k='retouch'; if(o.indexOf(k)<0) o.push(k); }); s0.on=o; })(); st=s0; } else { var s1=JSON.parse(localStorage.getItem('ritlager-quick')); if(s1&&s1.on) st={on:DEF.slice(0,7).concat(s1.on,['colour','size','nib']),open:s1.open!==false,v:3}; } }catch(e){}
+    try{ var s0=JSON.parse(localStorage.getItem(KEY)); if(s0&&s0.on){ if(s0.v===2){ s0.v=3; if(s0.on.indexOf('colour')<0) s0.on.push('colour'); } if(!s0.v){ s0.v=3; s0.on.push('colour'); ['size','nib'].forEach(function(k){ if(s0.on.indexOf(k)<0) s0.on.push(k); }); s0.on=s0.on.filter(function(k){ return k!=='line'; }); } if(!s0.m3){ s0.m3=1; if(s0.on.indexOf('layers')<0) s0.on.push('layers'); } if(!s0.m2){ s0.m2=1; if(s0.on.indexOf('retouch')<0) s0.on.push('retouch'); } if(!s0.m4){ s0.m4=1; if(s0.on.indexOf('shapes')<0) s0.on.push('shapes'); } if(!s0.m5){ s0.m5=1; if(s0.on.indexOf('opac')<0) s0.on.push('opac'); } if(!s0.m7){ s0.m7=1; if(s0.on.indexOf('tone')>=0){ s0.on=s0.on.filter(function(k){ return k!=='tone'; }); if(s0.on.indexOf('retouch')<0) s0.on.push('retouch'); } } if(!s0.m6){ s0.m6=1; s0.on=s0.on.filter(function(k){ return k!=='pip'; }); } if(!s0.m){ s0.m=1; if(s0.on.indexOf('mark')<0) s0.on.push('mark'); if(s0.on.indexOf('drawtool')<0) s0.on.push('drawtool'); } (function(){ var o=[]; s0.on.forEach(function(k){ if(k==='draw') k='drawtool'; if(k==='dodge'||k==='burn'||k==='tone') k='retouch'; if(k==='pen'||k==='brush'||k==='air'||k==='line') k='drawtool'; if(['blur','sharp','smudge','clone'].indexOf(k)>=0) k='retouch'; if(o.indexOf(k)<0) o.push(k); }); s0.on=o; })(); st=s0; } else { var s1=JSON.parse(localStorage.getItem('ritlager-quick')); if(s1&&s1.on) st={on:DEF.slice(0,7).concat(s1.on,['colour','size','nib']),open:s1.open!==false,v:3}; } }catch(e){}
     function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
     function svgOf(paths,sz){ var sv=document.createElementNS(NS,'svg'); sv.setAttribute('width',sz); sv.setAttribute('height',sz); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); return sv; }
     var strip=el('button','display:flex;align-items:center;justify-content:center;width:100%;height:16px;border:0;border-radius:6px;background:#efefef;color:#777;cursor:pointer;padding:0;margin-top:-2px;'); strip.type='button'; strip._tip='Show or hide your shortcuts';
@@ -2911,7 +2937,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     function flyStyles(){ var m=drwMode; if(m==='pen'||!DT[m]){ qOpt.style.display='none'; var cur2=nibSel.value; NIBG.forEach(function(g,gi){ if(g[1].indexOf(cur2)>=0) flyCat=gi; }); flyShow(); qFly.style.display='flex'; nibMark(); } else { qFly.style.display='none'; optShow(m); } }
     function flyClose(){ qFly.style.display='none'; qFly2.style.display='none'; qOpt.style.display='none'; qFly2._lay=false; qFly2._set=false; }
     function setIc(b,paths){ var sv=b&&b.querySelector('svg'); if(!sv) return; while(sv.firstChild) sv.removeChild(sv.firstChild); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); }
-    function modeIcons(){ setIc(qModeB.mark,selMode==='lasso'?IC.sl:IC.sr); setIc(qModeB.cut,cutMode==='lasso'?IC.cl:IC.cr); setIc(qModeB.drawtool,drwMode==='pen'?qpath('drawtool'):qpath(drwMode)); setIc(qModeB.tone,toneMode==='burn'?IC2.bu:IC2.dd); setIc(qModeB.retouch,RT[retMode].p); if(qModeB.shapes) setIc(qModeB.shapes,shapeIcon(shpSel.value)); }
+    function modeIcons(){ setIc(qModeB.mark,selMode==='lasso'?IC.sl:IC.sr); setIc(qModeB.cut,cutMode==='lasso'?IC.cl:IC.cr); setIc(qModeB.drawtool,drwMode==='pen'?qpath('drawtool'):qpath(drwMode)); setIc(qModeB.retouch,RT[retMode].p); if(qModeB.shapes) setIc(qModeB.shapes,shapeIcon(shpSel.value)); }
     function layerFly(){
       qFly2.textContent=''; qFly2.style.flexDirection='column'; qFly2.style.flexWrap='nowrap'; qFly2._lay=true; qFly.style.display='none';
       for(var i=layers.length-1;i>=0;i--) (function(L){
@@ -2942,7 +2968,6 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
       if(id==='settings'){ settingsFly(); return; }
       if(id==='mark'){ modeFly([{n:'Rectangle',p:IC.sr,on:selMode==='rect',fn:function(){ bRect.click(); }},{n:'Lasso',p:IC.sl,on:selMode==='lasso',fn:function(){ bLas.click(); }}]); return; }
       if(id==='drawtool'){ modeFly(Object.keys(DT).map(function(k){ return {n:DT[k].n,p:qpath(k),on:drwMode===k,fn:function(){ drwMode=k; saveModes(); DT[k].b().click(); }}; }),true); return; }
-      if(id==='tone'){ modeFly([{n:'Lighten',p:IC2.dd,on:toneMode==='dodge',fn:function(){ toneMode='dodge'; saveModes(); bDodge.click(); }},{n:'Darken',p:IC2.bu,on:toneMode==='burn',fn:function(){ toneMode='burn'; saveModes(); bBurn.click(); }}]); return; }
       if(id==='retouch'){ modeFly(Object.keys(RT).map(function(k){ return {n:RT[k].n,p:RT[k].p,on:retMode===k,fn:function(){ retMode=k; saveModes(); RT[k].b().click(); }}; }).concat([{n:pxAll.checked?'All layers':'Active layer',p:qpath('layers'),on:pxAll.checked,fn:function(){ pxAll.checked=!pxAll.checked; pxAll.dispatchEvent(new Event('change')); }}])); return; }
       if(id==='shapes'){ modeFly(SHAPES.map(function(o){ return {n:o[1],p:[o[2]],on:shpSel.value===o[0],fn:function(){ shpSel.value=o[0]; shpSave(); setDrawing(true); bShape.click(); }}; }),false,true); return; }
       if(id==='cut'){ modeFly([{n:'Rectangle',p:IC.cr,on:cutMode==='rect',fn:function(){ bCutR.click(); }},{n:'Lasso',p:IC.cl,on:cutMode==='lasso',fn:function(){ bCutL.click(); }}]); return; }
@@ -3119,7 +3144,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qFly2,qRow.nextSibling); bar.insertBefore(qFly,qFly2.nextSibling); bar.insertBefore(qOpt,qFly.nextSibling); bar.insertBefore(qNb,qFly2.nextSibling); bar.insertBefore(qGrid,qNb.nextSibling); qGrid.appendChild(qHue); qGrid.appendChild(qSz); qGrid.appendChild(qOp); bar.insertBefore(qColX,qGrid.nextSibling); bar.insertBefore(qAn,qColX.nextSibling); bar.insertBefore(qMc,qAn.nextSibling); bar.insertBefore(qPre,qMc.nextSibling); bar.insertBefore(qCol,qPre.nextSibling); bar.insertBefore(qEdit,qCol.nextSibling); qEnd=qEdit;
     qImport=function(){
       var s2=null; try{ s2=JSON.parse(localStorage.getItem(KEY)); }catch(e){} if(s2&&s2.on){ st=s2; }
-      try{ var m2=JSON.parse(localStorage.getItem('ritlager-modes')||'{}'); if(m2.t==='burn'||m2.t==='dodge') toneMode=m2.t; if(['blur','sharpen','smudge','clone'].indexOf(m2.r)>=0) retMode=m2.r; if(['pen','brush','air','line','shape'].indexOf(m2.d)>=0) drwMode=m2.d; }catch(e){}
+      try{ var m2=JSON.parse(localStorage.getItem('ritlager-modes')||'{}'); if(m2.t==='burn'||m2.t==='dodge') toneMode=m2.t; if(['blur','sharpen','smudge','clone','dodge','burn','cinc','cdec'].indexOf(m2.r)>=0) retMode=m2.r; if(['pen','brush','air','line','shape'].indexOf(m2.d)>=0) drwMode=m2.d; }catch(e){}
       build(); qPreDraw(); qMcDraw(); applyOpen(); try{ editDraw(); }catch(e){}
     };
     build(); qPreDraw(); qMcDraw(); applyOpen();
@@ -3156,7 +3181,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     // the file group runs Import → Save and open → Export: bring those sections together first
     (function(){ function part(t){ var h=bar.querySelector('[data-sec="'+t+'"]'); if(!h) return null; var a=[h]; for(var n=h.nextSibling;n&&!(n.hasAttribute&&n.hasAttribute('data-sec'));n=n.nextSibling) a.push(n); return a; } var ex=part('Export'); if(!ex) return; ['Import images','Save and open'].forEach(function(t){ var p=part(t); if(p) p.forEach(function(n){ bar.insertBefore(n,ex[0]); }); }); })();
     var closedDefault={'Pressure and stabilising':1,'Paragraph':1,'Shape and direction':1,'Colour and outline':1,'Shadow':1,'Box behind text':1,'Convert':1};
-    var GROUP={'Drawing tools':'Styles','Tool':'Styles','Pen style':'Styles','Brush effects':'Styles','Size and hardness':'Styles','Pressure and stabilising':'Styles','Presets':'Styles','Select tool':'Edit','Font':'Text','Paragraph':'Text','Shape and direction':'Text','Colour and outline':'Text','Shadow':'Text','Box behind text':'Text','Convert':'Text','Effect tools':'Edit','Import images':'Import, save and export','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export':'Import, save and export','Save and open':'Import, save and export','Research Catalogue':'Connect'};
+    var GROUP={'Drawing tools':'Styles','Tool':'Styles','Pen style':'Styles','Brush effects':'Styles','Size and hardness':'Styles','Pressure and stabilising':'Styles','Presets':'Styles','Select tool':'Edit','Font':'Text','Paragraph':'Text','Shape and direction':'Text','Colour and outline':'Text','Shadow':'Text','Box behind text':'Text','Convert':'Text','Effect tools':'Edit','Import images':'Import, save and export','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export':'Import, save and export','Save and open':'Import, save and export','Research Catalogue':'Connect'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+(g._lab||g._t); g._wrap.style.display=g._open?'flex':'none'; }
