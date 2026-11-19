@@ -805,7 +805,7 @@
   var BTN = 'font:inherit;font-size:12.5px;color:#111;background:#fff;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;cursor:pointer;margin:0;';
   function el(t,css,txt){ var x=document.createElement(t); if(css) x.style.cssText=css; if(txt!=null) x.textContent=txt; return x; }
   function row(){ return el('div','display:flex;gap:5px;align-items:center;flex-wrap:wrap;'); }
-  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; var grey=(txt==='Use webpage'||txt==='Close'); b.style.padding='5px 4px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width',grey?'12':'19'); sv.setAttribute('height',grey?'12':'19'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt); if(grey){ b.style.cssText+='height:16px;width:26px;justify-content:center;border:0;border-radius:6px;background:#efefef;color:#777;padding:0;cursor:pointer;display:inline-flex;align-items:center;'; }
+  function iconBtn(txt,paths,fn,title){ var b=btn('',fn,title); b.style.display='inline-flex'; b.style.alignItems='center'; var grey=(txt==='Use webpage'||txt==='Close'||txt==='Hide drawing'); b.style.padding='5px 4px'; var NS='http://www.w3.org/2000/svg', sv=document.createElementNS(NS,'svg'); sv.setAttribute('width',grey?'12':'19'); sv.setAttribute('height',grey?'12':'19'); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); b.appendChild(sv); b.setAttribute('aria-label',txt); if(grey){ b.style.cssText+='height:16px;width:26px;justify-content:center;border:0;border-radius:6px;background:#efefef;color:#777;padding:0;cursor:pointer;display:inline-flex;align-items:center;'; }
     b.removeAttribute('title'); if(title&&(txt==='Erase all'||grey)){ var tip=null, tipT=0;
       b.addEventListener('mouseenter',function(){ var r=b.getBoundingClientRect(); tip=document.createElement('div'); tip.textContent=title; tip.style.cssText='position:fixed;z-index:2147483647;pointer-events:none;background:rgba(90,90,90,.8);color:#fff;font:300 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;max-width:200px;line-height:1.3;top:'+(r.bottom+6)+'px;'; document.documentElement.appendChild(tip); clearTimeout(tipT); tipT=setTimeout(function(){ if(tip){ tip.remove(); tip=null; } },1800); var w=tip.offsetWidth; tip.style.left=Math.max(4,Math.min(window.innerWidth-w-4,r.left+r.width/2-w/2))+'px'; });
       b.addEventListener('mouseleave',function(){ if(tip){ tip.remove(); tip=null; } });
@@ -862,7 +862,9 @@
   }
   function markTop(){ var m=drawing&&tool==='select', er=drawing&&tool==='eraser'; mark(bDraw,drawing&&!m&&!er); mark(bMove,m); mark(bEr,er); var pg=!drawing; bPass.style.background=pg?'#111':'#efefef'; bPass.style.color=pg?'#fff':'#777'; }
   var origR1=r1.appendChild.bind(r1); r1.appendChild=function(n){ n.style.flex='1 1 0'; n.style.justifyContent='center'; n.style.minWidth='0'; n.style.padding='5px 0'; return origR1(n); };
-  r1.appendChild(bDraw); r1.appendChild(bMove); r1.appendChild(bEr); hg.appendChild(bPass); hg.appendChild(hide);
+  r1.appendChild(bDraw); r1.appendChild(bMove); r1.appendChild(bEr); var ghost=false, bGhost=iconBtn('Hide drawing',['M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2','M9.6 4.6A2 2 0 1 1 11 8H2','M12.6 19.4A2 2 0 1 0 14 16H2'],function(){ setGhost(!ghost); },'Hide drawing – the page shows without your drawing, and the panel stays. Press again to show it.');
+  function setGhost(g){ ghost=g; cv.style.visibility=g?'hidden':''; bGhost.style.background=g?'#111':'#efefef'; bGhost.style.color=g?'#fff':'#777'; bGhost.setAttribute('aria-label',g?'Show drawing':'Hide drawing'); if(g&&drawing) setDrawing(false); else msg(g?'Drawing hidden – press the smoke button to show it':'Drawing shown'); }
+  hg.appendChild(bPass); hg.appendChild(bGhost); hg.appendChild(hide);
   r1.appendChild(iconBtn('Undo',['M9 14 4 9l5-5','M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],function(){ undo(); },'Undo (Ctrl+Z)'));
   r1.appendChild(iconBtn('Redo',['m15 14 5-5-5-5','M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],function(){ redoFn(); },'Redo (Ctrl+Shift+Z)'));
   r1.appendChild(bSv);
@@ -1385,7 +1387,7 @@
   [aMs,aEnd,aFi,aFo].forEach(function(x){ x.addEventListener('input',function(){ if(frames.length) aDraw(); }); });
   function aShow(i){ var f=frames[i]; if(!f) return; aShowC(f.c); }
   var aPg=null;
-  function aPgHide(){ if(aPg) aPg.style.display='none'; cv.style.visibility=''; }
+  function aPgHide(){ if(aPg) aPg.style.display='none'; cv.style.visibility=ghost?'hidden':''; }
   function aShowC(c){
     if(aOnPg.checked&&aPlay){
       var b=aBox||aBounds(), host=cv.parentNode||de;
@@ -1701,7 +1703,7 @@
   }
   var prevColor='#ffffff';
   function setColor(c){ if(c!==color&&color) prevColor=color; color=c; changeSel('color'); if(c.length===7){ cp.value=c; hexIn.value=c; var n=parseInt(c.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; } sw.forEach(function(s){ s[0].style.outline = s[1]===c ? '2px solid #111' : 'none'; s[0].style.outlineOffset='2px'; }); if(tool==='eraser') setTool(lastDraw); }
-  function setDrawing(d){ drawing=d; cv.style.pointerEvents = d?'auto':'none'; markTop(); msg(d?'Draw mode':'Click mode – you can click on the page'); }
+  function setDrawing(d){ if(d&&ghost) setGhost(false); drawing=d; cv.style.pointerEvents = d?'auto':'none'; markTop(); msg(d?'Draw mode':'Click mode – you can click on the page'); }
   setTool('pen'); setColor('#111111'); setSize2(3); styleListen();
 
   // dra verktygsfältet
