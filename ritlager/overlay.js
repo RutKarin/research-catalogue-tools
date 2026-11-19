@@ -918,13 +918,14 @@
     if(tool==='clone'&&!cloneSrc){ msg('First Alt+click (or press “Set source” and click) on the spot you want to copy from',5000); return; }
     cv.setPointerCapture(e.pointerId);
     if(!getLayer(act).vis){ msg('This layer is hidden – show it to draw on it'); return; }
-    var q=pos(e);
-    var isFx=(tool==='dodge'||tool==='burn'), isPx=(tool==='blur'||tool==='sharpen'||tool==='smudge'||tool==='clone');
-    cur={l:act,tool:(tool==='brush'?'pen':(isFx?'air':(isPx?'px':tool))),fx:isFx?tool:undefined,color:isFx?(tool==='dodge'?'#ffffff':'#000000'):color,size:size,soft:+soft.value,sens:+sens.value/100,ink:isFx?(+fxExp.value/100):(+ink.value/100),pressure:pr.checked, brush:tool==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
+    var q=pos(e), T=tool;
+    if(penEr.checked&&e.pointerType==='pen'&&(e.buttons&32)&&T!=='eraser'){ T='eraser'; }
+    var isFx=(T==='dodge'||T==='burn'), isPx=(T==='blur'||T==='sharpen'||T==='smudge'||T==='clone');
+    cur={l:act,tool:(T==='brush'?'pen':(isFx?'air':(isPx?'px':T))),fx:isFx?T:undefined,color:isFx?(T==='dodge'?'#ffffff':'#000000'):color,size:size,soft:+soft.value,sens:+sens.value/100,ink:isFx?(+fxExp.value/100):(+ink.value/100),pressure:pr.checked, brush:T==='brush', nib:nibSel.value, dry:+dry.value/100, hair:hair.checked, pmin:1, pmax:0, lt:e.timeStamp, lx:q.x, ly:q.y,
          arrow:ar.checked,hard:+airHard.value,flow:+airFlow.value,pts:[q],sm:{x:q.x,y:q.y,p:q.p}};
-    if(tool==='shape'){ cur.shp=shpSel.value; cur.fm=shpFm.value; cur.o={x:q.x,y:q.y}; }
+    if(T==='shape'){ cur.shp=shpSel.value; cur.fm=shpFm.value; cur.o={x:q.x,y:q.y}; }
     if(isPx&&pxAll.checked) cur.scp='all';
-    if(isPx){ cur.size=Math.max(1,(pxSizes[tool]||40)/3); cur.kind=tool; cur.hard=+pxHard.value; cur.ink=+pxStr.value/100; cur.amt=+pxAmt.value; cur.pressure=false; if(tool==='clone'){ if(!cloneOff) cloneOff={dx:cloneSrc.x-q.x,dy:cloneSrc.y-q.y}; cur.dx=cloneOff.dx; cur.dy=cloneOff.dy; } }
+    if(isPx){ cur.size=Math.max(1,(pxSizes[T]||40)/3); cur.kind=T; cur.hard=+pxHard.value; cur.ink=+pxStr.value/100; cur.amt=+pxAmt.value; cur.pressure=false; if(T==='clone'){ if(!cloneOff) cloneOff={dx:cloneSrc.x-q.x,dy:cloneSrc.y-q.y}; cur.dx=cloneOff.dx; cur.dy=cloneOff.dy; } }
     e.preventDefault(); refresh();
   });
   cv.addEventListener('pointermove', function(e){
@@ -1137,17 +1138,17 @@
   var r4=row();
   var sz=el('input','width:150px;accent-color:#111;'); sz.type='range';
   var szv=el('span','font-size:12px;width:46px;','3.0');
-  var SMIN=0.2, SMAX=1000, LR=Math.log(SMAX/SMIN);
+  var SMIN=0.2, SMAX=5000, LR=Math.log(SMAX/SMIN);
   sz.min=0; sz.max=100; sz.step=0.25;
   function showSize(){ szv.textContent = (size<10 ? size.toFixed(1) : String(Math.round(size)))+' px'; if(szn&&document.activeElement!==szn) szn.value=size<10?size.toFixed(1):Math.round(size); if(typeof qSizeSync==='function') qSizeSync(); if(typeof drSizeSync==='function') drSizeSync(); }
   function setSize2(v,nochg){ size=Math.max(SMIN,Math.min(SMAX,v)); sz.value=100*Math.log(size/SMIN)/LR; showSize(); if(!nochg) changeSel('size'); }
   sz.addEventListener('input',function(){ size=SMIN*Math.exp(LR*(+sz.value)/100); showSize(); });
   sz.addEventListener('change',function(){ changeSel('size'); });
-  var szn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:56px;box-sizing:border-box;'); szn.type='number'; szn.min=0.2; szn.max=1000; szn.step=1; szn.title='Type an exact size in px (up to 1000)';
+  var szn=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:3px 5px;width:56px;box-sizing:border-box;'); szn.type='number'; szn.min=0.2; szn.max=5000; szn.step=1; szn.title='Type an exact size in px (up to 5000)';
   szn.addEventListener('input',function(){ var v=+szn.value; if(v>=SMIN) setSize2(v,true); }); szn.addEventListener('change',function(){ changeSel('size'); });
   r4.appendChild(sz); r4.appendChild(szv); r4.appendChild(szn); bar.appendChild(r4); showSize();
   var rp=row();
-  [0.2,0.5,1,2,4,8,16,32,64,128,256,512].forEach(function(n){
+  [0.2,0.5,1,2,4,8,16,32,64,128,256,512,1000,2000].forEach(function(n){
     var b=el('button','border:1px solid #c9c9c9;background:#fff;border-radius:6px;cursor:pointer;margin:0;padding:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center;');
     b.type='button'; b.title=n+' px';
     var d=el('span','display:block;border-radius:50%;background:#111;width:'+Math.min(16,Math.max(2,n/2.4))+'px;height:'+Math.min(16,Math.max(2,n/2.4))+'px;');
@@ -1210,6 +1211,10 @@
 
   var secPress=sec('Pressure and stabilising');
   var rPr=row(); var pr=chk(rPr,'Pressure sensitive',true); bar.appendChild(rPr);
+  var rPe=row(); var penEr=chk(rPe,'Pen eraser end erases',true,'When you turn your pen around and use the eraser end (Wacom and similar), Ritlager erases for that stroke and goes back to your tool afterwards, like in Photoshop.'); bar.appendChild(rPe);
+  try{ penEr.checked=localStorage.getItem('ritlager-penerase')!=='0'; }catch(e){}
+  penEr.addEventListener('change',function(){ try{ localStorage.setItem('ritlager-penerase',penEr.checked?'1':'0'); }catch(e){} });
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.4;','Keys that work with a Wacom (set ExpressKeys / touch ring to send them, per app in the Wacom driver): [ and ] = smaller / larger brush · E = eraser · B, P, A, L, O = pen, brush, airbrush, line, shape · I = pick colour · X = swap colour · 0–9 = opacity · Ctrl+Z / Ctrl+Shift+Z = undo / redo.'));
   var rSens=row(); lab(rSens,'Sensitivity'); var sens=slider(rSens,0,150,100,110); sens.title='100 = normal (very pressure sensitive). Higher = even more, lower = less'; bar.appendChild(rSens);
   var rPm=row(); lab(rPm,'Pressure from');
   var pm=el('select',BTN+'padding:3px 6px;');
