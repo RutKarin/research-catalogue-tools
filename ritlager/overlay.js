@@ -1756,7 +1756,7 @@
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
     tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone') lastDraw=t;
-    if(typeof markTop==='function') markTop(); mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bBlurT,t==='blur'); mark(bSharpT,t==='sharpen'); mark(bSmudgeT,t==='smudge'); mark(bCloneT,t==='clone'); if(t!=='clone') drawCloneMarkOff(); if(typeof pxSz!=='undefined'&&pxSizes[t]!=null) pxSz.value=pxSizes[t]; mark(bSel0,t==='select'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel();
+    if(typeof markTop==='function') markTop(); mark(bPen,t==='pen'); mark(bBrush,t==='brush'); mark(bAir,t==='air'); mark(bDodge,t==='dodge'); mark(bBurn,t==='burn'); mark(bBlurT,t==='blur'); mark(bSharpT,t==='sharpen'); mark(bSmudgeT,t==='smudge'); mark(bCloneT,t==='clone'); if(t!=='clone') drawCloneMarkOff(); if(typeof pxSz!=='undefined'&&pxSizes[t]!=null) pxSz.value=pxSizes[t]; mark(bSel0,t==='select'); mark(bLine,t==='line'); mark(bEr,t==='eraser'); mark(bTxt,t==='text'); markSel(); if(typeof qSync==='function') qSync();
     show(rNib, t==='pen'); show(rSoft, t==='pen'||t==='eraser');  show(rDry, t==='brush'); show(rAir,t==='air'||t==='dodge'||t==='burn'); show(rAir2,t==='air'||t==='dodge'||t==='burn'); show(rArrow, t==='line');
     var pressOK = t!=='line'&&t!=='select'&&t!=='text'&&t!=='cut'; secPress._hidden=!pressOK; applySec(secPress); show(rPr,pressOK); show(rSens,pressOK); show(rPm,pressOK);
   }
@@ -2040,9 +2040,60 @@
       var x=btn('✕',function(){ var a=loadPre(); a.splice(i,1); savePre(a); drawPre(); },'Delete this preset'); x.style.cssText+='border-top-left-radius:0;border-bottom-left-radius:0;border-left:0;padding:4px 5px;color:#888;';
       g.appendChild(b); g.appendChild(x); preBox.appendChild(g);
     });
+    if(typeof qPreDraw==='function') qPreDraw();
   }
   drawPre();
   // ---- collapsible menus: groups containing sections (remembered between visits) ----
+  // ---- quick tools row: your own shortcuts (symbols only), can be folded away ----
+  var qEnd=null, qSync=function(){}, qPreDraw=function(){};
+  (function(){
+    var NS='http://www.w3.org/2000/svg', KEY='ritlager-quick';
+    var Q=[
+      {id:'pen',n:'Pen (B)',real:bPen,p:['M12 19l7-7 3 3-7 7-3-3z','M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z','M2 2l7.586 7.586','M11 11a2 2 0 1 0 0 4 2 2 0 0 0 0-4']},
+      {id:'brush',n:'Brush (P)',real:bBrush,p:['m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08','M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z']},
+      {id:'air',n:'Airbrush (A)',real:bAir,p:['M3 3h.01','M7 5h.01','M11 7h.01','M3 7h.01','M7 9h.01','M3 11h.01','M15 5h4v4h-4z','m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2','m13 14 8-2','m13 19 8-2']},
+      {id:'line',n:'Line (L)',real:bLine,p:['M4 20 20 4']},
+      {id:'text',n:'Text (T)',real:bTxt,p:['M4 7V4h16v3','M9 20h6','M12 4v16']},
+      {id:'pip',n:'Pipette (I)',go:function(){ pickColour(); },p:['m2 22 1-1h3l9-9','M3 21v-3l9-9','m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z']},
+      {id:'dodge',n:'Dodge (lighter)',real:bDodge,p:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.93 1.41 1.41','m17.66 17.66 1.41 1.41','M2 12h2','M20 12h2','m6.34 17.66-1.41 1.41','m19.07 4.93-1.41 1.41']},
+      {id:'burn',n:'Burn (darker)',real:bBurn,p:['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z']},
+      {id:'blur',n:'Blur',real:bBlurT,p:['M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z']},
+      {id:'sharp',n:'Sharpen',real:bSharpT,p:['M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z']},
+      {id:'smudge',n:'Smudge',real:bSmudgeT,p:['M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2','M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2','M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8','M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15']},
+      {id:'clone',n:'Clone',real:bCloneT,p:['M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z','M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1']}
+    ];
+    var st={on:['pen','brush','air','line','text','pip'],open:true}; try{ var s0=JSON.parse(localStorage.getItem(KEY)); if(s0&&s0.on) st=s0; }catch(e){}
+    function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
+    function svgOf(paths,sz){ var sv=document.createElementNS(NS,'svg'); sv.setAttribute('width',sz); sv.setAttribute('height',sz); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); return sv; }
+    var strip=el('button','display:flex;align-items:center;justify-content:center;width:100%;height:16px;border:0;border-radius:6px;background:#efefef;color:#777;cursor:pointer;padding:0;margin-top:-2px;'); strip.type='button'; strip._tip='Show or hide your quick tools';
+    var qRow=row(); qRow.style.flexWrap='nowrap'; qRow.style.gap='3px';
+    var qPre=row(); qPre.style.gap='4px'; qPre.style.alignItems='center';
+    var qEdit=el('div','display:none;flex-direction:column;gap:4px;padding:6px 8px;border:1px solid #e4e4e4;border-radius:8px;background:#fff;');
+    var items=[];
+    function applyOpen(){ strip.textContent=''; strip.appendChild(svgOf(st.open?['m18 15-6-6-6 6']:['m6 9 6 6 6-6'],12)); qRow.style.display=st.open?'flex':'none'; qPre.style.display=(st.open&&qPre.childNodes.length)?'flex':'none'; if(!st.open) qEdit.style.display='none'; }
+    function build(){
+      qRow.textContent=''; items=[];
+      Q.forEach(function(q){ if(st.on.indexOf(q.id)<0) return; var b=iconBtn(q.n+' (quick)',q.p,function(){ if(q.go) q.go(); else q.real.click(); },q.n); b.style.flex='1 1 0'; b.style.justifyContent='center'; b.style.minWidth='0'; b.style.padding='5px 0'; qRow.appendChild(b); items.push({b:b,real:q.real}); });
+      var e=iconBtn('Choose quick tools',['M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'],function(){ qEdit.style.display=qEdit.style.display==='none'?'flex':'none'; },'Choose which tools show here'); e.style.flex='0 0 26px'; e.style.padding='5px 0'; e.style.justifyContent='center'; e.style.background='#efefef'; e.style.color='#777'; e.style.borderColor='#efefef'; qRow.appendChild(e);
+      qSync();
+    }
+    qPreDraw=function(){
+      qPre.textContent=''; var a=loadPre();
+      a.forEach(function(p){ var c=(p.s&&p.s.color)||'#111', z=Math.max(6,Math.min(16,6+Math.sqrt(Math.max(0.3,(p.s&&p.s.size)||3))*2));
+        var b=el('button','display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;padding:0;'); b.type='button'; b._tip=p.n; b.title=p.n; b.setAttribute('aria-label','Preset '+p.n+' (quick)');
+        var d=el('span','display:block;border-radius:50%;border:1px solid rgba(0,0,0,.35);width:'+z+'px;height:'+z+'px;background:'+c+';'); b.appendChild(d);
+        b.addEventListener('click',function(){ applySettings(p.s); msg('Preset: '+p.n); }); qPre.appendChild(b); });
+      qPre.style.display=(st.open&&a.length)?'flex':'none';
+    };
+    qSync=function(){ items.forEach(function(it){ if(!it.real) return; it.b.style.background=it.real.style.background; it.b.style.color=it.real.style.color; it.b.style.borderColor=it.real.style.borderColor; }); };
+    qEdit.appendChild(el('div','font-size:11px;color:#777;','Show in the quick row:'));
+    Q.forEach(function(q){ var r=row(); r.style.flexWrap='nowrap'; var ic=svgOf(q.p,16); ic.style.flex='none'; r.appendChild(ic); var c=chk(r,q.n,st.on.indexOf(q.id)>=0); c.addEventListener('change',function(){ st.on=Q.filter(function(z){ return z===q?c.checked:st.on.indexOf(z.id)>=0; }).map(function(z){ return z.id; }); save(); build(); }); qEdit.appendChild(r); });
+    var done=btn('Done',function(){ qEdit.style.display='none'; }); qEdit.appendChild(done);
+    strip.addEventListener('click',function(){ st.open=!st.open; save(); applyOpen(); });
+    bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qPre,qRow.nextSibling); bar.insertBefore(qEdit,qPre.nextSibling); qEnd=qEdit;
+    build(); qPreDraw(); applyOpen();
+  })();
+
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
@@ -2074,7 +2125,7 @@
     function allLabel(){ allBtn.textContent=anyOpenNow()?'Collapse all menus':'Expand all menus'; }
     allBtn.addEventListener('click',function(){ var anyOpen=anyOpenNow(); gs.forEach(function(g){ g._open=!anyOpen; st['grp:'+g._t]=g._open?1:0; applyGrp(g); }); hs.forEach(function(h){ if(h._flat) return; h._open=!anyOpen; st[h._t]=h._open?1:0; applySec(h); }); saveSt(); allLabel(); });
     bar.addEventListener('click',function(){ setTimeout(allLabel,0); });
-    allLabel(); r1.parentNode.insertBefore(allBtn,r1.nextSibling);
+    allLabel(); r1.parentNode.insertBefore(allBtn,(qEnd||r1).nextSibling);
   })();
   // ---- short hover tips on every button and slider (can be switched off with the ? button) ----
   (function(){
@@ -2130,7 +2181,7 @@
       ['Brush and colour','[ and ] thinner and thicker · 1–9 and 0 set opacity to 10–100% · X swap to the previous colour'],
       ['Zoom','Use your browser\'s zoom: Ctrl and + or −, or Cmd on a Mac. The drawing follows the page.'],
       ['Edit','Ctrl+Z undo · Ctrl+Shift+Z or Ctrl+Y redo · Ctrl+A select all · Ctrl+D deselect · Ctrl+J duplicate · Ctrl+C, X, V copy, cut, paste · Delete removes the selection, or erases everything if nothing is selected (Undo brings it back) · Esc deselects'],
-      ['## Draw','Pick a tool under Drawing tools (Pen, Brush, Airbrush, Line, Eraser) and draw on the page. Set colour, thickness and look. With a pen tablet, pressure changes the line. Presets save your favourite pen settings. Press D to switch between drawing and clicking on the page.'],
+      ['## Draw','Pick a tool under Drawing tools (Pen, Brush, Airbrush, Line, Eraser) and draw on the page. Set colour, thickness and look. With a pen tablet, pressure changes the line. Presets save your favourite pen settings; each preset also appears automatically as a small colour dot under the quick tools row. Press D to switch between drawing and clicking on the page.'],
       ['Colour','Click the square to choose any colour, or type a colour code. Use Pipette to pick one from the page or your drawing.'],
       ['## Text','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'],
       ['## Edit','The tools for changing what you have already put on the page: Select, Cut out and Import images. Undo, redo and Erase all are at the top.'],
@@ -2145,6 +2196,7 @@
       ['## Animate','Work from the top down: first choose, then build, then preview and save. 1 · What to animate: Layers says which layers the animation is made from: the visible layers, only the active layer (the one you are drawing on), or Choose layers and tick the ones you want (hidden layers are never included). Size is how wide the animation is. Area: Whole page covers the whole page, so everything lines up; Drawn area cuts away the empty space around all your drawing; Each layer’s own area cuts to just that layer (smallest files; the position is added to the file name, for example -x120-y340, so you can place it). Background: transparent, white or a colour. 2 · Timing and loop: Frames is how many frames the build-up gets. Time / frame and Drawing speed (100 % is normal; it goes down to 1 %) set the pace; Hold at end is how long the finished drawing stays still. Loop style: Normal starts over from the beginning; Back and forth plays forward and then backward, so a drawing that is drawn is then un-drawn the same way and the loop never jumps. 3 · Each stroke, when it is drawn: choose Fade in or Fade in + blur to let every new stroke appear softly instead of popping in; Over is how long it takes and Blur how blurry it starts. 4 · Each stroke, after it is drawn: choose Fade out or Dissolve (fade + blur) to let every stroke disappear a while after it was drawn, like fading ink; Stays is how long it stays, Over how long the disappearing takes, Blur how blurry it gets. For a smooth loop give 3 and 4 the same values. 5 · The whole drawing: Start can fade the animation in (with or without blur). End can be Fade out, Fade out + blur, Blink (how many times, and Blink speed), or Cloud, which turns the finished drawing into a thick soft cloud that thins out and disappears (Cloud amount is how big and soft it gets, Cloud time how long it takes, Cloud motion makes it drift and swirl like smoke). Only the settings of the chosen option are shown. Blur needs Chrome or Edge; with a lot of blur, choose Area: Whole page so the blur has room. 6 · Build the frames: press Build-up from my drawing to make frames that show the strokes appearing one after another, with all your choices above (if you change a choice afterwards, the frames are rebuilt by themselves). Or build by hand: change the drawing, press + Add this frame, change it again, and so on. Keep every 2nd removes every other frame (smaller file; raise Time / frame to keep the length). Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. 7 · Preview and save: Preview on the page plays the animation over the page itself, where you drew it (switch it off to see it in the small box); press Stop to get your drawing back. Save as: One file with all the layers, One file per layer (a separate animation for each layer, made with Build-up from my drawing; with Area: Whole page or Drawn area they are all the same size, so they line up exactly when you place them on top of each other on a page), or Active layer only. Then choose a Format (GIF, Animated WebP, MP4 or WebM) and press Save. Animated WebP keeps soft transparency, so fades and blur look right on any background, but not every site accepts it; keep a GIF as backup.'],
 
 
+      ['## Quick tools row','Under the top icons is a row of shortcuts (symbols only). The arrow bar folds it away. The pencil button lets you choose which tools appear. Your presets show up here automatically as colour dots (bigger dot = thicker line) and disappear if you delete them. The choices are remembered.'],
       ['## Tips and hover help','The ? button in the top bar (before the X) turns the short hover tips on or off. With it on, rest the mouse on any button, slider or menu for a second to see a few words about what it does. Hardness (pen: 0 = very soft edge, 100 = hard edge; the airbrush has the same slider) sets how soft the edge of the strokes is. The globe (use the page) and the eye (hide or show the drawing) are in the tool row.'],
       ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG, TIFF or WebP (small and can be transparent), or SVG (vector lines that scale to any size, good for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge. Only visible layers are exported, as images and as animations: a layer you have hidden (the eye) never ends up in a file. Under Layers you can export the visible layers in one image, or each visible layer as its own image.'],
       ['Export formats','Images: PNG (sharp, can be transparent, the safe choice), JPG (small file, no transparency), TIFF (print and archive), WebP (small, can be transparent, for the web) and SVG (vector lines that scale to any size; for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Animation: GIF (works almost everywhere, max 256 colours), animated WebP (small, soft transparency, plays in all modern browsers but not accepted everywhere), video as MP4 (plays on phones, Safari, social media and editing programs; made in Chrome and Edge) and video as WebM (smooth and small, Chrome, Edge and Firefox). Project file: keeps everything editable so you can open and continue later (Save and open). Check which formats the place you upload to accepts; Research Catalogue takes ordinary images, GIF and video.']
