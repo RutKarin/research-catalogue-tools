@@ -2046,6 +2046,12 @@
       var plEl=el('div','font-size:12px;line-height:1.4;background:#f4f4f4;border-radius:6px;padding:6px 8px;color:#111;',placeTxt+' RC shrinks new pictures to at most 500 px wide, so set the size in the tool properties to match your drawing.');
       box.appendChild(plEl);
     }
+    var canPlace=!!placeTxt, placeChk=null;
+    if(canPlace){
+      var pw=el('label','display:flex;gap:7px;align-items:flex-start;font-size:12.5px;color:#111;cursor:pointer;'); placeChk=el('input'); placeChk.type='checkbox'; placeChk.checked=pr.place!==false; placeChk.style.marginTop='3px';
+      pw.appendChild(placeChk); pw.appendChild(el('span',null,'Also place it on the page at that position and size (reload the page afterwards to see it)')); box.appendChild(pw);
+    }
+    function wantPlace(){ return !!(placeChk&&placeChk.checked); }
     var st=el('div','font-size:12px;color:#666;','Asking Research Catalogue for its form…'); box.appendChild(st);
     var IN='font:inherit;font-size:13px;border:1px solid #c9c9c9;border-radius:6px;padding:5px 8px;width:100%;box-sizing:border-box;';
     function field(t,node){ var w=el('label','display:flex;flex-direction:column;gap:2px;font-size:12px;color:#666;',t); w.appendChild(node); box.appendChild(w); return node; }
@@ -2108,6 +2114,22 @@
         it.createdId=fresh[0].id;
       });
     }
+    // RC:s egen drop-funktion: POST tools/new?simpleMedia=<mediaId> med typ + position + storlek -> svar = verktygets HTML (med data-id)
+    function placeTool(it){
+      var pl=it.place; st.textContent='Placing '+it.sentName+' on the page…';
+      var body='toolType=picture&left='+pl.x+'&top='+pl.y+'&width='+pl.w+'&height='+pl.h;
+      return fetch('/editor/'+ids.research+'/'+ids.weave+'/tools/new?simpleMedia='+encodeURIComponent(it.createdId),{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'}).then(function(r){
+        if(!r.ok) throw new Error('place: status '+r.status); return r.text();
+      }).then(function(t){
+        var m=t.match(/data-id="(\d+)"/); if(!m) throw new Error('place: no tool id in the answer');
+        var sm=t.match(/style="([^"]*)"/), css=sm?sm[1]:'', g=function(k){ var q=css.match(new RegExp('(?:^|;|\\s)'+k+':\\s*(-?[\\d.]+)px')); return q?Math.round(+q[1]):null; };
+        it.toolId=m[1];
+        if(g('left')===pl.x&&g('top')===pl.y&&g('width')===pl.w&&g('height')===pl.h) return;
+        // RC valde en annan storlek/plats: sätt den som när man drar/ändrar storlek för hand
+        var u='resize=false&data%5B'+it.toolId+'%5D%5Bleft%5D='+pl.x+'&data%5B'+it.toolId+'%5D%5Btop%5D='+pl.y+'&data%5B'+it.toolId+'%5D%5Bwidth%5D='+pl.w+'&data%5B'+it.toolId+'%5D%5Bheight%5D='+pl.h+'&data%5B'+it.toolId+'%5D%5Brotate%5D=0';
+        return fetch('/editor/'+ids.research+'/'+ids.weave+'/tools/update',{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/x-www-form-urlencoded'},body:u,credentials:'same-origin'}).then(function(r2){ if(!r2.ok) throw new Error('place: update status '+r2.status); });
+      });
+    }
     function go(){
       if(!ready||busy) return;
       if(!nameIn.value.trim()||!cpIn.value.trim()){ st.style.color='#b00020'; st.textContent='Name and Copyright holder are required by Research Catalogue.'; return; }
@@ -2115,17 +2137,25 @@
       items.forEach(function(it,i){ if(!it.sentName) it.sentName=titleFor(it,i); });
       var chain=Promise.resolve();
       items.forEach(function(it,i){ chain=chain.then(function(){
-        if(it.done) return;
-        return (it.createdId?Promise.resolve():create(it,i)).then(function(){ return upload(it); });
+        var pr1=Promise.resolve();
+        if(!it.done) pr1=(it.createdId?Promise.resolve():create(it,i)).then(function(){ return upload(it); });
+        return pr1.then(function(){ return (wantPlace()&&it.place&&!it.toolId)?placeTool(it):null; });
       }); });
       chain.then(function(){
-        rcPutPrefs({copyright:cpIn.value.trim(),license:licSel.value});
+        rcPutPrefs({copyright:cpIn.value.trim(),license:licSel.value,place:wantPlace()||(canPlace?false:pr.place)});
+        if(wantPlace()){
+          busy=false; st.style.color='#1b6e2e'; st.textContent=(multi?'Sent '+items.length+' images':'Sent')+' and placed on the page at x '+pl.x+', y '+pl.y+', '+pl.w+' × '+pl.h+'. Reload the page to see '+(multi?'them':'it')+' in the editor (your drawing is autosaved).';
+          send.style.display='none'; dl.style.display='none'; cl.textContent='Close';
+          var rl=btn('Reload page now',function(){ location.reload(); }); rl.style.background='#111'; rl.style.color='#fff'; rl.style.borderColor='#111'; row2.insertBefore(rl,cl);
+          return;
+        }
         ov.remove();
         try{ if(placeTxt&&navigator.clipboard) navigator.clipboard.writeText(placeTxt.replace(/^Place it in RC at /,'').replace(/\.$/,'')); }catch(e){}
         msg((multi?'Sent '+items.length+' images to Simple Media ("'+base+' – …").':'Sent to Simple Media as "'+items[0].sentName+'" ('+items[0].done+' px).')+' Reload the page or the Media list in RC to see '+(multi?'them':'it')+'.'+(placeTxt?' '+placeTxt+' (copied)':''),14000);
       }).catch(function(e){
         var half=items.filter(function(it){ return it.createdId&&!it.done; });
-        if(half.length) fail('The file did not upload ('+(e&&e.message?e.message:e)+'). The entry "'+half[0].sentName+'" exists in Simple Media without an image: press Send to try again.',true);
+        if(e&&e.message&&e.message.indexOf('place:')===0) fail('The image is in Simple Media, but placing it on the page failed ('+e.message.slice(6).trim()+'). Press Send to try placing again, or drag it onto the page by hand at '+placeTxt.replace(/^Place it in RC at /,'').replace(/\.$/,'')+'.',true);
+        else if(half.length) fail('The file did not upload ('+(e&&e.message?e.message:e)+'). The entry "'+half[0].sentName+'" exists in Simple Media without an image: press Send to try again.',true);
         else fail('Sending failed ('+(e&&e.message?e.message:e)+'). Check the Media tab: if an entry without an image appeared, delete it.',items.some(function(it){ return !it.done; })&&items.some(function(it){ return it.done; }));
       });
     }
@@ -2434,7 +2464,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191450', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191520', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
