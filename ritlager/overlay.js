@@ -1097,7 +1097,7 @@
   plusBtn=btn('+',function(){ var c=color.length===7?color:cp.value; if(custom.indexOf(c)>=0){ msg('That colour is already saved'); return; } if(custom.length>=MAXC){ msg('My colours is full ('+MAXC+'). Remove one with the pencil first.'); return; } custom.push(c); saveCustom(); addSw(c,true); setColor(c); },'Save the current colour in My colours'); rMine.appendChild(mineL); rMine.appendChild(mineS); rMine.appendChild(mineR); rMine.appendChild(plusBtn); plusBtn.style.flex='none'; plusBtn.style.padding='1px 8px';
   custom.forEach(function(c){ addSw(c,true); }); setTimeout(function(){ mineUpd(); },80);
   var bEditCol=btn('✎',function(){ editCol=!editCol; bEditCol.style.background=editCol?'#111':'#fff'; bEditCol.style.color=editCol?'#fff':'#111'; markEdit(); },'Remove colours from My colours: click a colour to delete it'); bEditCol.style.padding='1px 7px'; rMineLab.appendChild(bEditCol);
-  bar.appendChild(rMineLab); bar.appendChild(rMine); bar.appendChild(rStdLab); bar.appendChild(rStd);
+  bar.appendChild(rMineLab); bar.appendChild(rMine); /* Standard colours row is no longer shown (kept detached so saved settings still load) */
   var rHex=row(); rHex.style.flexWrap='nowrap';
   cp.style.cssText='width:38px;height:26px;padding:1px;border:1px solid #888;border-radius:6px;background:none;cursor:pointer;flex:none;'; cp.title='Current colour. Click this square to choose any colour you like';
   var hexIn=el('input','font:12px monospace;border:1px solid #c9c9c9;border-radius:6px;padding:4px 6px;width:74px;box-sizing:border-box;'); hexIn.type='text'; hexIn.value='#111111'; hexIn.maxLength=7; hexIn.spellcheck=false; hexIn.title='Colour code. Type a code like #d6282b and press Enter';
@@ -1129,7 +1129,7 @@
     var c='#'+hex2(d[0])+hex2(d[1])+hex2(d[2]); setColor(c); msg('Picked '+c.toUpperCase());
   }
   var r3b=row(); lab(r3b,'Opacity'); var ink=slider(r3b,5,100,100,100); liveVal(ink); ink.addEventListener('change',function(){ changeSel('ink'); }); ink.title='How dark/dense the colour is. 100 = full black';
-  bar.appendChild(r3b);
+  /* Opacity row is not shown in the menu any more: the quick-row opacity slider and the keys 0-9 set it. 'ink' stays the source of truth. */
   var rC=row(); lab(rC,'Contrast'); var ctr=slider(rC,0,100,0,110); liveVal(ctr);
   ctr.title='Redraws strokes several times so light and thin strokes get darker. High = thin strokes turn fully black. Applies to all strokes, including already drawn ones. It only changes strokes that are thin or less than fully opaque – solid thick strokes at 100% opacity look the same. It does not affect Brush, Airbrush, text or pictures.';
   var ctrRaf=0; ctr.addEventListener('input',function(){ contrast=+ctr.value; cancelAnimationFrame(ctrRaf); ctrRaf=requestAnimationFrame(rebuild); });
@@ -2724,7 +2724,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
       var tc=hsl2hex(qhu,100,50); barH._th.style.background=c.s<=8?color:tc; barS._th.style.background=color;
     }
     qHueSync();
-    // Slim opacity slider under the size slider (same value as Opacity in the Colour menu and the keys 0-9).
+    // Slim opacity slider under the size slider (the only opacity control in the menus; same value as the keys 0-9).
     var qOp=el('div','display:none;gap:6px;align-items:center;flex-wrap:nowrap;');
     var QCHK='repeating-conic-gradient(#c8c8c8 0 25%,#fff 0 50%) 0 0/8px 8px';
     var barO=mkBar(12,'#888','Opacity'); var qOw=el('div','flex:1 1 auto;min-width:0;padding:4px 2px;box-sizing:border-box;'); qOw.appendChild(barO);
@@ -2738,10 +2738,10 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     };
     bar.addEventListener('input',function(e){ if(e.target===ink) qOpSync(); }); bar.addEventListener('change',function(e){ if(e.target===ink) qOpSync(); });
     qOpSync();
-    // "More colour options": the old Colour menu (exact colour code, My colours, Standard colours, pipette, opacity) folds out under the colour bars.
+    // "More colour options": the old Colour menu (exact colour code, Copy, pipette, My colours) folds out under the colour bars.
     var colxOpen=false; try{ colxOpen=localStorage.getItem('ritlager-colx')==='1'; }catch(e){}
     var qColX=el('div','display:none;flex-direction:column;gap:7px;padding:7px 8px;border:1px solid #e4e4e4;border-radius:8px;background:#fff;');
-    [rHex,rgbEl,rMineLab,rMine,rStdLab,rStd,r3b].forEach(function(r){ qColX.appendChild(r); });
+    [rHex,rgbEl,rMineLab,rMine].forEach(function(r){ qColX.appendChild(r); });
     var qHx=el('button','flex:none;width:22px;height:22px;border:1px solid #c9c9c9;border-radius:6px;background:#fff;cursor:pointer;padding:0;font-size:11px;line-height:1;color:#555;'); qHx.type='button'; qHx.title='More colour options: colour code, saved colours, pipette'; qHx.setAttribute('aria-label','More colour options');
     qHue.appendChild(qHx); qHx.style.gridColumn='3'; qHx.style.gridRow='1 / span 2'; qHx.style.alignSelf='center';
     qColX.insertBefore(qHb,qColX.firstChild);
@@ -2963,7 +2963,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var MANUAL=[
       ['## Version','You are running Ritlager version '+RL_LABEL+' (build '+RL_VERSION+'). If a newer version has been published, the version link (for example v1.1) at the bottom, next to User manual, opens the GitHub page and turns into a green “New update” link; open it and drag the bookmark again. Ritlager checks for new versions at most every half hour. The extension updates by itself.'],
       ['## Pen styles and brush effects','Under Styles there is a grid of pen styles with a small preview of each: basic (Round, Square, Flat, Ink, Marker), natural (Pencil, Charcoal, Chalk, Crayon, Watercolour) and pattern pens (Dotted, Dashed, Stars, Hearts, Leaves). Under Styles, Brush effects has Glow, Fuzzy fur, Lens flare, Clouds, Smoke, Nebula, Glitter, Rainbow, Thermal and Glitch. Click a tile to use that style with the pen. The Pen style menu in your shortcuts shows the same choice. Bigger Size makes the stamps and clouds bigger. Lens flare puts the light at the end of the stroke.'],
-      ['## My colours','Press the small arrow next to the colour bars (More colour options). There, My colours is your own colour row. Pick a colour and press + to save it (up to 14). The pencil next to My colours switches on delete mode: click a colour with a cross to remove it. The seven standard colours can be hidden with the Standard colours box. In Your shortcuts you can also show the first seven of My colours as dots under Size.'],
+      ['## My colours','Press the small arrow next to the colour bars (More colour options). There, My colours is your own colour row. Pick a colour and press + to save it (up to 14). The pencil next to My colours switches on delete mode: click a colour with a cross to remove it. In Your shortcuts you can also show the first seven of My colours as dots under Size.'],
       ['## Quick pen styles','In your shortcuts, hold the Pen or Brush button for half a second, or right-click it, to open a small window with all pen styles. Click one to use it. It closes by itself, or press Esc.'],
       ['## Shortcuts','Like Photoshop where possible. On a Mac, use Cmd instead of Ctrl.'],
       ['Tools','V select and move · H use the page (scroll and click) · D switch between draw and click · B pen · P brush · A airbrush · L line · E eraser · T text · I pipette'],
@@ -2971,7 +2971,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
       ['Zoom','Use your browser\'s zoom: Ctrl and + or −, or Cmd on a Mac. The drawing follows the page.'],
       ['Edit','Ctrl+Z undo · Ctrl+Shift+Z or Ctrl+Y redo · Ctrl+A select all · Ctrl+D deselect · Ctrl+J duplicate · Ctrl+C, X, V copy, cut, paste · Delete removes the selection, or erases everything if nothing is selected (Undo brings it back) · Esc deselects'],
       ['## Draw','Pick a tool under Drawing tools (Pen, Brush, Airbrush, Line, Eraser) and draw on the page. The Styles menu holds pen style and brush effects, size and hardness, and the settings of the tool you use (hardness, dryness, build-up, arrowheads, shapes). How the pen behaves (pressure, stabilising, thin lines, contrast) and your presets are under Pen behaviour. With a pen tablet, pressure changes the line. Presets save your favourite pen settings; each preset also appears automatically as a small colour dot under the quick tools row. Press D to switch between drawing and clicking on the page.'],
-      ['Colour','Use the colour bars under the sliders. The small arrow beside them opens more: the colour code (type one like #d6282b), Copy, Pipette to pick a colour from the page or your drawing (or press I), My colours, Standard colours and Opacity.'],
+      ['Colour','Use the colour bars under the sliders. The small arrow beside them opens more: the colour code (type one like #d6282b), Copy, Pipette to pick a colour from the page or your drawing (or press I) and My colours. Opacity is the slim slider under Size (or keys 0–9).'],
       ['## Text','Choose the Text tool, click where the text should go and type. Ctrl+Enter or a click elsewhere finishes, Esc cancels. Double-click a text to edit it. With text selected (Select tool), changing a setting here updates it. Typefaces come from your own computer, so a font you do not have is replaced by a similar one; exported PNGs keep the look. Use the Select tool to move, resize or rotate.'],
       ['## Edit','The tools for changing what you have already put on the page: Select, Cut out and Import images. Undo, redo and Erase all are at the top.'],
       ['Select tool','Click a stroke to select it, or drag a box around several (Pick only clicks; Lasso draws a free shape). Drag inside the box to move, a corner square to resize (Shift = stretch freely), the round handle on top to rotate (Shift = 15° steps). Layer selects the whole active layer. Esc deselects.'],
