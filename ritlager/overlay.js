@@ -75,7 +75,7 @@
   function opSnap(fn){ var prev=strokes; strokes=prev.slice(); fn(); ulog.push({t:'s',prev:prev}); redo=[]; rebuild(); }
   var restyle=false, tgt=[], quietChg=false; // changes only reach existing strokes when they are selected
   function targets(){ if(tool==='select'&&sel&&sel.length) return sel; if(!restyle) return []; return tgt.filter(function(st){ return strokes.indexOf(st)>=0; }); }
-  function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; if(typeof styleVis==='function'){ try{ styleVis(); }catch(e){} } }
+  function clearSel(){ sel=[]; selCur=[]; selBox=null; marq=null; selDrag=null; try{ restoreSelUI(); }catch(e){} if(typeof styleVis==='function'){ try{ styleVis(); }catch(e){} } }
   function scaleTextProps(n,st,k){ if(st.tool!=='text') return; ['bw','ls','ol','sh','bxl','bxp','fat','sb','ob','bxs'].forEach(function(p){ if(st[p]) n[p]=st[p]*k; }); }
   function isObj(st){ return st.tool==='text'||st.tool==='image'; }
   function objCorners(st){ if(st.tool==='text') return textBox(st); var im=imgs[st.iid]||{w:100,h:100}, w=im.w*st.size, h=im.h*st.size, co=Math.cos(st.rot||0), si=Math.sin(st.rot||0), p=st.pts[0]; return [[0,0],[w,0],[w,h],[0,h]].map(function(q){ return {x:p.x+q[0]*co-q[1]*si,y:p.y+q[0]*si+q[1]*co}; }); }
@@ -1466,7 +1466,8 @@
     msg('Last stroke selected – change Opacity, Colour or Thickness to change it, or drag it');
   }
   function styleListen(){ [nibSel,thinSel,soft,dry,ar,airHard,airFlow].forEach(function(x){ x.addEventListener('change',function(){ changeSel('style'); }); }); }
-  function setSelUI(){ if(typeof styleVis==='function'){ try{ styleVis(); }catch(e){} } if(sel&&sel.length) tgt=sel.slice(); var t=sel.filter(function(st){ return st.tool==='text'; })[0]; if(t&&typeof setControls==='function') setControls(t); var a=sel.filter(function(st){ return st.tool!=='text'&&st.tool!=='image'&&st.tool!=='cut'; })[0]; if(a&&a.color&&a.color.length===7){ color=a.color; cp.value=a.color; hexIn.value=a.color; var n=parseInt(a.color.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; sw.forEach(function(q){ q[0].style.outline=q[1]===a.color?'2px solid #111':'none'; }); } var ps=sel.filter(function(st){ return st.tool==='pen'||st.tool==='line'||st.tool==='air'; })[0]; if(ps){ if(ps.tool==='air'){ if(ps.hard!=null) airHard.value=ps.hard; if(ps.flow!=null) airFlow.value=ps.flow; } else { if(ps.nib) nibSel.value=ps.nib; if(ps.soft!=null) soft.value=ps.soft; if(ps.dry!=null) dry.value=Math.round(ps.dry*100); thinSel.value=ps.hair?'black':'smooth'; if(ps.arrow!=null) ar.checked=!!ps.arrow; } }
+  var selSaved=null;
+  function setSelUI(){ if(!selSaved&&sel&&sel.length) selSaved={color:color,prevColor:prevColor,ink:ink.value,size:size}; if(typeof styleVis==='function'){ try{ styleVis(); }catch(e){} } if(sel&&sel.length) tgt=sel.slice(); var t=sel.filter(function(st){ return st.tool==='text'; })[0]; if(t&&typeof setControls==='function') setControls(t); var a=sel.filter(function(st){ return st.tool!=='text'&&st.tool!=='image'&&st.tool!=='cut'; })[0]; if(a&&a.color&&a.color.length===7){ color=a.color; cp.value=a.color; hexIn.value=a.color; var n=parseInt(a.color.slice(1),16); rgbEl.textContent='rgb('+(n>>16)+', '+((n>>8)&255)+', '+(n&255)+')'; sw.forEach(function(q){ q[0].style.outline=q[1]===a.color?'2px solid #111':'none'; }); } var ps=sel.filter(function(st){ return st.tool==='pen'||st.tool==='line'||st.tool==='air'; })[0]; if(ps){ if(ps.tool==='air'){ if(ps.hard!=null) airHard.value=ps.hard; if(ps.flow!=null) airFlow.value=ps.flow; } else { if(ps.nib) nibSel.value=ps.nib; if(ps.soft!=null) soft.value=ps.soft; if(ps.dry!=null) dry.value=Math.round(ps.dry*100); thinSel.value=ps.hair?'black':'smooth'; if(ps.arrow!=null) ar.checked=!!ps.arrow; } }
     if(sel[0]&&sel[0].ink!=null&&sel[0].tool!=='cut') ink.value=Math.round(sel[0].ink*100); try{ qOpSync(); }catch(e){} if(a&&a.size&&a.tool!=='image'){ size=a.size; showSize(); } }
   function changeSel(kind,arg){
     if(quietChg) return false;
@@ -2355,8 +2356,9 @@
   var grpStyles=null;
   function styleTitle(){ if(!grpStyles) return; var t=nibAvail()?'Pen styles':(tool==='brush'?'Brush styles':(tool==='air'?'Airbrush styles':'Styles')); if(grpStyles._lab!==t){ grpStyles._lab=t; grpStyles._apply(); } }
   function styleVis(force){ if(!bar||!bar.querySelector) return; try{ styleTitle(); }catch(e){} var ok=nibAvail(), dt=['pen','eraser','brush','air','dodge','burn','line','shape','fill'].indexOf(tool)>=0, key=(ok?'1':'0')+(dt?'1':'0'); if(!force&&styleVis._l===key) return; styleVis._l=key; ['Pen style','Brush effects'].forEach(function(n){ var h=bar.querySelector('[data-sec="'+n+'"]'); if(h){ h._hidden=!ok; applySec(h); } }); var hd=bar.querySelector('[data-sec="Details"]'); if(hd){ hd._hidden=!dt; applySec(hd); } if(typeof qNibVis==='function') qNibVis(); }
+  function restoreSelUI(){ if(!selSaved) return; var v=selSaved; selSaved=null; try{ setColor(v.color); prevColor=v.prevColor; ink.value=v.ink; try{ qOpSync(); }catch(e){} setSize2(v.size,true); }catch(e){} }
   function setTool(t){
-    if(t!=='select'&&tool==='select'){ clearSel(); refresh(); cv.style.cursor=DOTS; }
+    if(t!=='select'&&tool==='select'){ clearSel(); refresh(); cv.style.cursor=DOTS; restoreSelUI(); }
     if(t==='select') cv.style.cursor=baseCur();
     if(t==='cut'&&tool!=='cut') clearSel();
     tool=t; if(t!=='eraser'&&t!=='select'&&t!=='text'&&t!=='cut'&&t!=='dodge'&&t!=='burn'&&t!=='blur'&&t!=='sharpen'&&t!=='smudge'&&t!=='clone') lastDraw=t; if(typeof qDrawSync==='function') qDrawSync(t);
@@ -2583,6 +2585,7 @@
     var mod=e.ctrlKey||e.metaKey;
     if(mod&&k==='z'&&drawing){ e.preventDefault(); if(e.shiftKey) redoFn(); else undo(); return; }
     if(mod&&k==='y'&&drawing){ e.preventDefault(); redoFn(); return; }
+    if(mod&&drawing&&k==='a'){ e.preventDefault(); e.stopPropagation(); selScope=e.shiftKey?'all':'active'; try{ scSel.value=selScope; }catch(_){} if(tool!=='select') setTool('select'); selAll(); return; }
     if(mod&&drawing&&tool==='select'){
       if(k==='c'){ e.preventDefault(); selCopy(); return; }
       if(k==='x'){ e.preventDefault(); selCut(); return; }
@@ -2745,7 +2748,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     qMcDraw=function(){ qMc.textContent=''; qMs.textContent=''; custom.forEach(function(c){ var b=el('button','width:22px;height:22px;border-radius:50%;border:1px solid #888;padding:0;cursor:pointer;background:'+c+';'); b.type='button'; b.setAttribute('aria-label','My colour '+c); b.style.flex='none'; b.style.scrollSnapAlign='start'; b.addEventListener('click',function(){ setColor(c); }); qMs.appendChild(b); }); qMc.appendChild(qMl); qMc.appendChild(qMs); qMc.appendChild(qMr); var pl2=el('button','width:22px;height:22px;border-radius:50%;border:1px dashed #999;background:#fff;color:#555;cursor:pointer;padding:0;font-size:14px;line-height:18px;'); pl2.type='button'; pl2.textContent='+'; pl2.setAttribute('aria-label','Save colour (quick)'); pl2._tip='Save the current colour in My colours'; pl2.style.flex='none'; pl2.addEventListener('click',function(){ plusBtn.click(); }); qMc.appendChild(pl2); setTimeout(function(){ pagerUpd(qMs,qMl,qMr,custom.length); },80); qMc.style.display=(st.open&&st.on.indexOf('mycol')>=0)?'flex':'none'; qMcSync(); };
     function qMcSync(){ Array.prototype.forEach.call(qMs.children,function(b){ var on=b.getAttribute('aria-label')==='My colour '+color; b.style.outline=on?'2px solid #111':'none'; b.style.outlineOffset='2px'; }); }
     var qFly=el('div','display:none;flex-direction:column;gap:4px;padding:6px;border:1px solid #e4e4e4;border-radius:8px;background:#fff;');
-    var qFlyT=el('div','display:flex;gap:4px;'), qFlyH=[], qFlyB=[], flyCat=0; try{ flyCat=+localStorage.getItem('ritlager-flycat')||0; }catch(e){}
+    var qFlyT=el('div','display:flex;gap:4px;'), qFlyH=[], qFlyB=[], flyCat=0; /* the Pen list always opens on Basic */
     qFly.appendChild(qFlyT);
     NIBG.forEach(function(g,gi){
       var tb=el('button','flex:1 1 0;min-width:0;border:1px solid #ccc;border-radius:7px;background:#fff;font:11px system-ui,sans-serif;padding:3px 0;cursor:pointer;'); tb.type='button'; tb.textContent=g[0]; qFlyT.appendChild(tb); qFlyB.push(tb);
@@ -3150,6 +3153,19 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var lr=el('div','display:flex;justify-content:space-between;align-items:baseline;gap:8px;'); lr.appendChild(tg); lr.appendChild(tm); if(rlNote) lr.appendChild(rlNote); d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
+  // On a Mac the hover tips and the manual say ⌘ and ⌥ instead of Ctrl and Alt
+  (function(){
+    var mac=/Mac|iPhone|iPad/.test((navigator.platform||'')+' '+(navigator.userAgent||'')); if(!mac) return;
+    function mf(t){ return t.replace(/Ctrl\+Shift\+/g,'⇧⌘').replace(/Ctrl\+/g,'⌘').replace(/Alt\+click/g,'⌥-click').replace(/Alt\+/g,'⌥').replace(/\bCtrl\b/g,'⌘').replace(/\bAlt\b/g,'⌥ (Option)'); }
+    function walk(n){
+      if(n.nodeType===3){ var v=mf(n.nodeValue); if(v!==n.nodeValue) n.nodeValue=v; return; }
+      if(n.nodeType!==1) return;
+      if(n.title){ var tv=mf(n.title); if(tv!==n.title) n.title=tv; }
+      for(var c=n.firstChild;c;c=c.nextSibling) walk(c);
+    }
+    walk(bar);
+    try{ new MutationObserver(function(ms){ ms.forEach(function(m){ if(m.type==='attributes'){ walk(m.target); } else if(m.type==='characterData'){ walk(m.target); } else { m.addedNodes.forEach(walk); } }); }).observe(bar,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title']}); }catch(e){}
+  })();
   setSize(); setDrawing(true);
   var nRest=restore();
   if(nRest){ rebuild(); }
