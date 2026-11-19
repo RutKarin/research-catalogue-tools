@@ -20,6 +20,8 @@ The beta lives on the `beta` branch. It does not touch the normal Ritlager bookm
 - **Pen side buttons (Wacom):** right button = thicker, middle button = thinner.
 - **Mac:** keys show as ⌘ and ⌥.
 
+- **Latest round:** the Draw shortcut always stays and *Reset tools* restores the real shortcut bar; the Styles menu is now simply *Draw*; My colours is gone; layers can be dragged up and down (⋮⋮); *Save project* explains versions and project files; the Text panel has three sections with B / I and align buttons; the lasso in Select shows your own shape as the outline.
+
 ## Try it
 
 1. Create a new bookmark in your browser (name it e.g. "Ritlager beta") and paste the line below as its address (URL).
