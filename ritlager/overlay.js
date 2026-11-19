@@ -1240,15 +1240,18 @@
   var aStrip=el('div','display:flex;flex-wrap:wrap;gap:5px;max-height:240px;overflow-y:auto;'); bar.appendChild(aStrip);
   var aCount=el('div','font-size:11.5px;color:#666;','No frames yet'); bar.appendChild(aCount);
   var rA5=row(); lab(rA5,'Time / frame'); var aMs=slider(rA5,30,1000,120,90); liveVal(aMs,' ms'); bar.appendChild(rA5);
-  var rA5b=row(); lab(rA5b,'Drawing speed'); var aSp=slider(rA5b,25,400,100,90); aSp.step=5; liveVal(aSp,' %'); bar.appendChild(rA5b);
-  function aSpd(){ return Math.max(.1,(+aSp.value||100)/100); }
+  var rA5b=row(); lab(rA5b,'Drawing speed'); var aSp=slider(rA5b,1,400,100,90); aSp.step=1; liveVal(aSp,' %'); bar.appendChild(rA5b);
+  function aVanOn(){ return aFromReplay&&(+aVa.value)>0; }
+  function aSpd(){ return Math.max(.01,(+aSp.value||100)/100); }
   var rA6=row(); lab(rA6,'Hold at end'); var aEnd=slider(rA6,0,3000,600,90); liveVal(aEnd,' ms'); var aLoop=chk(rA6,'Loop',true); bar.appendChild(rA6);
   var rAf=row(); lab(rAf,'Fade in'); var aFi=slider(rAf,0,3000,0,90); aFi.step=50; liveVal(aFi,' ms'); bar.appendChild(rAf);
   var rAg=row(); lab(rAg,'Fade out'); var aFo=slider(rAg,0,3000,0,90); aFo.step=50; liveVal(aFo,' ms'); bar.appendChild(rAg);
   var rAv=row(); lab(rAv,'Strokes vanish after'); var aVa=slider(rAv,0,6000,0,90); aVa.step=100; liveVal(aVa,' ms'); bar.appendChild(rAv);
+  var rAy=row(); lab(rAy,'Appear over'); var aAo=slider(rAy,0,3000,0,90); aAo.step=50; liveVal(aAo,' ms'); bar.appendChild(rAy);
+  var rAz=row(); lab(rAz,'Appear blur'); var aAb=slider(rAz,0,100,0,90); liveVal(aAb,' %'); bar.appendChild(rAz);
   var rAw=row(); lab(rAw,'Vanish over'); var aVo=slider(rAw,100,3000,600,90); aVo.step=50; liveVal(aVo,' ms'); bar.appendChild(rAw);
   var rAx=row(); lab(rAx,'Vanish blur'); var aVb=slider(rAx,0,100,0,90); liveVal(aVb,' %'); bar.appendChild(rAx);
-  [aVa,aVo,aVb,aSp].forEach(function(e){ e.addEventListener('input',function(){ if(aFromReplay&&strokes.length){ clearTimeout(aAutoT); aAutoT=setTimeout(function(){ aReplay(true); },300); } }); });
+  [aVa,aVo,aVb,aSp,aAo,aAb].forEach(function(e){ e.addEventListener('input',function(){ if(aFromReplay&&strokes.length){ clearTimeout(aAutoT); aAutoT=setTimeout(function(){ aReplay(true); },300); } }); });
   var rAh=row(); lab(rAh,'Blur while fading'); var aBl=slider(rAh,0,40,0,90); liveVal(aBl,' px'); bar.appendChild(rAh);
   var rAi=row(); lab(rAi,'Blink at end'); var aBk=slider(rAi,0,10,0,90); liveVal(aBk,' times'); bar.appendChild(rAi);
   var rAk=row(); lab(rAk,'Cloud dissolve'); var aCl=slider(rAk,0,100,0,90); liveVal(aCl,' %'); bar.appendChild(rAk);
@@ -1281,7 +1284,7 @@
     var wasPlaying=aPlay;
     var n=Math.max(2,Math.min(200,+aN.value||24)); aPreview(false); frames=[]; aBox=aBounds();
     var wts=strokes.map(function(st){ return (st.tool==='text'||st.tool==='image'||st.tool==='cut')?6:Math.max(1,st.pts.length); }), tot=wts.reduce(function(a,b){ return a+b; },0);
-    var life=+aVa.value, msF=Math.max(20,(+aMs.value||120)/aSpd()), Lf=life>0?Math.max(1,Math.round(life/msF)):0, Ff=Math.max(1,Math.round((+aVo.value||600)/msF)), vb=+aVb.value, start={}, total=life>0?Math.min(200,n+Lf+Ff):n;
+    var ap=+aAo.value, ab=+aAb.value, Af=ap>0?Math.max(1,Math.round(ap/Math.max(20,(+aMs.value||120)/aSpd()))):0, life=+aVa.value, msF=Math.max(20,(+aMs.value||120)/aSpd()), Lf=life>0?Math.max(1,Math.round(life/msF)):0, Ff=Math.max(1,Math.round((+aVo.value||600)/msF)), vb=+aVb.value, start={}, total=life>0?Math.min(200,n+Lf+Ff):n;
     for(var f=1;f<=total;f++){
       var goal=tot*Math.min(f,n)/n, acc=0, list=[];
       for(var i=0;i<strokes.length;i++){
@@ -1294,6 +1297,8 @@
         }
         var partial=item!==st0;
         if(start[i]==null) start[i]=f;
+        var age0=f-start[i];
+        if(Af>0&&age0<Af){ var aa=(age0+1)/(Af+1); item=Object.assign({},item,{ink:(item.ink==null?1:item.ink)*aa}); if(ab>0&&item.tool!=='text'&&item.tool!=='image') item.soft=Math.max(item.soft||0,ab*6*(1-aa)); }
         if(life>0){
           var age=f-start[i];
           if(age>Lf){
@@ -1336,7 +1341,7 @@
       aTimer=setTimeout(step,wait); })();
   }
   function aSeq(){
-    var seq=frames.map(function(f,i){ return {c:f.c,d:(+aMs.value)/aSpd()+(i===frames.length-1?(+aEnd.value):0)}; });
+    var seq=frames.map(function(f,i){ return {c:f.c,d:(+aMs.value)/aSpd()+(i===frames.length-1&&!aVanOn()?(+aEnd.value):0)}; });
     if(!seq.length) return seq;
     var bg=aBgVal()||'#ffffff', w=frames[0].c.width, h=frames[0].c.height;
     function mix(src,a,bl){ var c=document.createElement('canvas'); c.width=w; c.height=h; var x=c.getContext('2d'); x.fillStyle=bg; x.fillRect(0,0,w,h); x.globalAlpha=a; if(bl>0){ try{ x.filter='blur('+bl+'px)'; }catch(e){} } x.drawImage(src,0,0,w,h); return c; }
@@ -1359,10 +1364,10 @@
     }
     if(fo>0){ var m=Math.max(2,Math.min(15,Math.round(fo/60))); for(var j=1;j<=m;j++) post.push({c:mix(frames[frames.length-1].c,1-j/(m+1),mb*j/(m+1)),d:fo/m}); if(post.length&&seq.length) { /* the pause at the end belongs before the fade */ } }
     if(bk>0){ var lastC=frames[frames.length-1].c, bl0=blank(); for(var q=0;q<bk;q++){ mid.push({c:bl0,d:bs}); mid.push({c:mix(lastC,1,0),d:bs}); } }
-    if(cl>0){ var cn=Math.max(3,Math.min(20,Math.round(ct/90))), cm=cl/100*70*Math.max(1,w/480), lc=frames[frames.length-1].c; for(var cj=1;cj<=cn;cj++){ var pp=cj/(cn+1); mid.push({c:cloud(lc,Math.pow(1-pp,1.4),cm*Math.pow(pp,.7),pp),d:ct/cn}); } mid.push({c:blank(),d:Math.max(60,seq[0].d)}); }
+    if(cl>0){ var cn=Math.max(3,Math.min(20,Math.round(ct/90))), cm=cl/100*70*Math.max(1,w/480), lc=frames[frames.length-1].c; for(var cj=1;cj<=cn;cj++){ var pp=cj/(cn+1); mid.push({c:cloud(lc,Math.pow(1-pp,1.4),cm*Math.pow(pp,.7),pp),d:ct/cn}); } mid.push({c:blank(),d:40}); }
     return pre.concat(seq,mid,post);
   }
-  function aDelays(){ return frames.map(function(f,i){ return (+aMs.value)/aSpd()+(i===frames.length-1?(+aEnd.value):0); }); }
+  function aDelays(){ return frames.map(function(f,i){ return (+aMs.value)/aSpd()+(i===frames.length-1&&!aVanOn()?(+aEnd.value):0); }); }
   // --- GIF encoder (own, no libraries) ---
   function gifPalette(imgs,transparent){
     var hist=new Map();
@@ -1937,7 +1942,7 @@
       ['Retouch','These work on the pixels you have drawn on the active layer (not on the page behind). Size comes from Thickness. Clone: Alt+click where to copy from, then paint elsewhere; the red cross shows where it is copying from. Each stroke is kept as an edit, so Undo works and you can still change the layers below.'],
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
-      ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones. Drawing speed makes the whole animation play faster or slower (100 % is normal). Fade in fades up the first frames. When frames come from Build-up from my drawing, changing Drawing speed or the Vanish sliders rebuilds the frames by itself. Strokes that vanish: Strokes vanish after makes every stroke disappear this long after it was drawn, like fading ink (0 = they stay). Vanish over is how long the disappearing takes, and Vanish blur makes it blurrier as it goes. This works in Build-up from my drawing; raise Frames and Time / frame if the animation is too short for the strokes to vanish. Ending the animation: Hold at end is how long the finished drawing stays still. Blink at end then makes it blink the chosen number of times (Blink speed is how long each on or off lasts). Fade out then lets it disappear, and Cloud dissolve turns the finished drawing into a thick, soft cloud that thins out and disappears (the percentage is how big and soft the cloud gets; Cloud time is how long it takes; Cloud motion makes it drift and swirl like smoke (0 = it only softens); it comes after the blink and before Fade out, and it works separately from them; switch off Drawn area only to give the cloud room). Blur while fading makes it get blurrier as it vanishes (it also clears up during Fade in). Blur needs Chrome or Edge; with a lot of blur, switch off Drawn area only so the blur has room.'],
+      ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones. Drawing speed makes the whole animation play faster or slower (100 % is normal). Fade in fades up the first frames. When frames come from Build-up from my drawing, changing Drawing speed or the Vanish sliders rebuilds the frames by itself. Appear over and Appear blur make each new stroke fade in and sharpen up instead of popping in (for a smooth loop, give it the same values as the Vanish sliders). Strokes that vanish: Strokes vanish after makes every stroke disappear this long after it was drawn, like fading ink (0 = they stay). Vanish over is how long the disappearing takes, and Vanish blur makes it blurrier as it goes. This works in Build-up from my drawing; raise Frames and Time / frame if the animation is too short for the strokes to vanish. Ending the animation: Hold at end is how long the finished drawing stays still. Blink at end then makes it blink the chosen number of times (Blink speed is how long each on or off lasts). Fade out then lets it disappear, and Cloud dissolve turns the finished drawing into a thick, soft cloud that thins out and disappears (the percentage is how big and soft the cloud gets; Cloud time is how long it takes; Cloud motion makes it drift and swirl like smoke (0 = it only softens); it comes after the blink and before Fade out, and it works separately from them; switch off Drawn area only to give the cloud room). Blur while fading makes it get blurrier as it vanishes (it also clears up during Fade in). Blur needs Chrome or Edge; with a lot of blur, switch off Drawn area only so the blur has room.'],
       ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG, TIFF or WebP (small and can be transparent), or SVG (vector lines that scale to any size, good for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.'],
       ['Export formats','Images: PNG (sharp, can be transparent, the safe choice), JPG (small file, no transparency), TIFF (print and archive), WebP (small, can be transparent, for the web) and SVG (vector lines that scale to any size; for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Animation: GIF (works almost everywhere, max 256 colours), video as MP4 (plays on phones, Safari, social media and editing programs; made in Chrome and Edge) and video as WebM (smooth and small, Chrome, Edge and Firefox). Project file: keeps everything editable so you can open and continue later (Save and open). Check which formats the place you upload to accepts; Research Catalogue takes ordinary images, GIF and video.']
     ];
