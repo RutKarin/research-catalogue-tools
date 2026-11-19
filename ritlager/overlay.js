@@ -854,7 +854,7 @@
     var r=bSv.getBoundingClientRect(); svBox=document.createElement('div');
     svBox.style.cssText='position:fixed;z-index:2147483647;background:#fff;border:1px solid #c9c9c9;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;gap:5px;font:300 13px system-ui,sans-serif;top:'+(r.bottom+6)+'px;right:'+Math.max(4,window.innerWidth-r.right)+'px;';
     function item(t,sub,fn){ var d=document.createElement('div'); d.style.cssText='cursor:pointer;padding:6px 10px;border-radius:6px;color:#111;'; d.innerHTML=''; var h=document.createElement('div'); h.textContent=t; h.style.fontWeight='400'; var u=document.createElement('div'); u.textContent=sub; u.style.cssText='font-size:11px;color:#666;'; d.appendChild(h); d.appendChild(u); d.addEventListener('mouseenter',function(){ d.style.background='#f0f0f0'; }); d.addEventListener('mouseleave',function(){ d.style.background=''; }); d.addEventListener('click',function(){ svBox.remove(); svBox=null; fn(); }); svBox.appendChild(d); }
-    var L={png:'PNG',jpg:'JPG',tif:'TIFF',svg:'SVG'}[fmSel.value]||'PNG';
+    var L={png:'PNG',jpg:'JPG',tif:'TIFF',webp:'WebP',svg:'SVG'}[fmSel.value]||'PNG';
     item('Save as image ('+L+')','To use or share, with the settings under Export',function(){ exportPng('save'); });
     item('Save project','To keep editing later, as a file',function(){ saveProject(); });
     document.documentElement.appendChild(svBox);
@@ -1246,7 +1246,7 @@
   var rA7=row(); var bPlay=btn('▶ Preview',function(){ if(!aPlay&&!frames.length){ if(!strokes.length){ msg('Nothing to preview yet – draw something first'); return; } aReplay(); } if(!aPlay&&frames.length===1&&strokes.length>1) msg('Only 1 frame, so nothing moves. Press “Build-up from my drawing” to make many frames, or change the drawing and press “+ Add current drawing as frame” again.',7000); aPreview(!aPlay); try{ aPrev.scrollIntoView({block:'nearest'}); }catch(e){} },'Play the animation here. With no frames yet, it makes them from your drawing first.'); rA7.appendChild(bPlay);
   bar.appendChild(rA7);
   var aPrev=document.createElement('canvas'); aPrev.width=240; aPrev.height=160; aPrev.style.cssText='width:100%;border:1px solid #ddd;border-radius:6px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/14px 14px;display:none;'; bar.appendChild(aPrev);
-  var rA8=row(); rA8.appendChild(btn('Save GIF',function(){ aGif(); },'Animated GIF – works almost everywhere, max 256 colours')); rA8.appendChild(btn('Save video (WebM)',function(){ aWebm(); },'Smoother and smaller, Chrome/Edge/Firefox')); bar.appendChild(rA8);
+  var rA8=row(); rA8.appendChild(btn('Save GIF',function(){ aGif(); },'Animated GIF – works almost everywhere, max 256 colours')); rA8.appendChild(btn('Save video (MP4)',function(){ aWebm('mp4'); },'Plays almost everywhere (phones, Safari, Instagram, editing programs). Made in Chrome/Edge')); rA8.appendChild(btn('Save video (WebM)',function(){ aWebm(); },'Smoother and smaller, Chrome/Edge/Firefox')); bar.appendChild(rA8);
   function aBgVal(){ return aBg.value==='white'?'#ffffff':(aBg.value==='color'?aBgc.value:null); }
   var aBox=null;
   function aBounds(){ if(!aCrop.checked) return {x:0,y:0,w:W,h:H}; var vis=strokes.filter(function(st){ return st.tool!=='eraser'&&st.tool!=='cut'&&getLayer(layerOf(st)).vis; }); var t=vis.length?boxOf(vis):null; if(!t) return {x:0,y:0,w:W,h:H}; var pad=10,x=Math.max(0,Math.floor(t.x0-pad)),y=Math.max(0,Math.floor(t.y0-pad)); return {x:x,y:y,w:Math.max(8,Math.min(W,Math.ceil(t.x1+pad))-x),h:Math.max(8,Math.min(H,Math.ceil(t.y1+pad))-y)}; }
@@ -1379,14 +1379,15 @@
     msg('Making the GIF…',3000);
     setTimeout(function(){ try{ var bl=encodeGif(); saveBlob(bl,fname('ritlager-animation','.gif',''),'GIF with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); }catch(e){ msg('Could not make the GIF: '+(e&&e.message?e.message:e)); } },50);
   }
-  function aWebm(){
+  function aWebm(kind){
+    var mp4=kind==='mp4';
     if(!frames.length){ msg('Make some frames first'); return; }
     if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){ msg('This browser cannot make video here – use Save GIF'); return; }
     var w=frames[0].c.width, h=frames[0].c.height, c=document.createElement('canvas'); c.width=w; c.height=h; var g=c.getContext('2d'), bg=aBgVal();
-    var st=c.captureStream(30), mt=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].filter(function(m){ return MediaRecorder.isTypeSupported(m); })[0]; if(!mt){ msg('This browser cannot make WebM – use Save GIF'); return; }
+    var st=c.captureStream(30), mt=(mp4?['video/mp4;codecs=avc1','video/mp4']:['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']).filter(function(m){ return MediaRecorder.isTypeSupported(m); })[0]; if(!mt){ msg(mp4?'This browser cannot make MP4 – use Save video (WebM) or Save GIF':'This browser cannot make WebM – use Save GIF'); return; }
     var seq=aSeq(), rec=new MediaRecorder(st,{mimeType:mt,videoBitsPerSecond:4e6}), chunks=[], dl=seq.map(function(f){ return f.d; });
     rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
-    rec.onstop=function(){ var bl=new Blob(chunks,{type:'video/webm'}); saveBlob(bl,fname('ritlager-animation','.webm',''),'Video with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); };
+    rec.onstop=function(){ var bl=new Blob(chunks,{type:mp4?'video/mp4':'video/webm'}); saveBlob(bl,fname('ritlager-animation',mp4?'.mp4':'.webm',''),'Video with '+frames.length+' frames ('+Math.round(bl.size/1024)+' KB).'); };
     var i=0; rec.start(); msg('Recording the video… it takes as long as the animation',4000);
     (function step(){ if(bg){ g.fillStyle=bg; g.fillRect(0,0,w,h); } else g.clearRect(0,0,w,h); g.drawImage(seq[i].c,0,0,w,h); var t=dl[i]; i++; if(i>=seq.length){ setTimeout(function(){ rec.stop(); },t+100); return; } setTimeout(step,t); })();
   }
@@ -1410,9 +1411,9 @@
   rLy.appendChild(lySel); bar.appendChild(rLy);
   var rFm=row(); lab(rFm,'File type');
   var fmSel=el('select',BTN+'padding:3px 6px;');
-  [['png','PNG (sharp, can be transparent)'],['jpg','JPG (small file, no transparency)'],['tif','TIFF (for print and archive)'],['svg','SVG (vector lines: scalable, for the web, print and editing)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; fmSel.appendChild(op); });
+  [['png','PNG (sharp, can be transparent)'],['jpg','JPG (small file, no transparency)'],['tif','TIFF (for print and archive)'],['webp','WebP (small file, can be transparent, for the web)'],['svg','SVG (vector lines: scalable, for the web, print and editing)']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; fmSel.appendChild(op); });
   rFm.appendChild(fmSel); bar.appendChild(rFm);
-  var rQ=row(); lab(rQ,'JPG quality'); var jq=slider(rQ,10,100,92,110); liveVal(jq); rQ.style.display='none'; bar.appendChild(rQ);
+  var rQ=row(); lab(rQ,'JPG / WebP quality'); var jq=slider(rQ,10,100,92,110); liveVal(jq); rQ.style.display='none'; bar.appendChild(rQ);
   var rDpi=row(); lab(rDpi,'DPI (print size)'); var dpiEl=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;width:70px;box-sizing:border-box;'); dpiEl.type='number'; dpiEl.min=36; dpiEl.max=1200; dpiEl.value=72; var dpiTouched=false; dpiEl.addEventListener('input',function(){ dpiTouched=true; }); dpiEl.title='Stored in the file so Photoshop, InDesign and printers know the print size. It does not change the number of pixels – use Resolution for that.'; rDpi.appendChild(dpiEl); bar.appendChild(rDpi);
   var rRs=row(); lab(rRs,'Resolution');
   var rsSel=el('select',BTN+'padding:3px 6px;');
@@ -1420,10 +1421,10 @@
   rRs.appendChild(rsSel); bar.appendChild(rRs);
   var rsInfo=el('div','font-size:11px;color:#777;line-height:1.35;'); bar.appendChild(rsInfo);
   function expBox(){ var b={w:W,h:H}; if(csel.value==='crop'){ try{ var t=bounds(); if(t) b={w:Math.min(W,Math.ceil(t.w+16)),h:Math.min(H,Math.ceil(t.h+16))}; }catch(e){} } return b; }
-  function fmtUpdate(){ var k=+rsSel.value, b=expBox(); rQ.style.display=fmSel.value==='jpg'?'flex':'none';
+  function fmtUpdate(){ var k=+rsSel.value, b=expBox(); rQ.style.display=(fmSel.value==='jpg'||fmSel.value==='webp')?'flex':'none';
     var w=Math.round(b.w*k), h=Math.round(b.h*k); rsInfo.textContent='The image will be about '+w+' × '+h+' px'+(fmSel.value!=='jpg'||true?' (at '+(+dpiEl.value||300)+' DPI = '+(w/(+dpiEl.value||300)*2.54).toFixed(1)+' × '+(h/(+dpiEl.value||300)*2.54).toFixed(1)+' cm)':'')+(fmSel.value==='jpg'&&bgSel.value==='none'?'. JPG cannot be transparent, so the background becomes white unless you choose another.':'.')+(w*h>1e8?' That is very large – the browser may refuse; choose a lower resolution.':'')+(isShot()?' (With Screenshot background the resolution is the screenshot\'s own.)':'');
     if(fmSel.value==='svg') rsInfo.textContent='SVG is vector, so it scales to any size without losing sharpness (size and DPI do not matter). Textured brushes (pencil, brush, water, airbrush) become smooth lines, and pixel effects (blur, retouch, cut out) are left out.';
-    var L={png:'PNG',jpg:'JPG',tif:'TIFF',svg:'SVG'}[fmSel.value]; if(typeof bSave!=='undefined'&&bSave) bSave.textContent='Export '+L; if(typeof quick!=='undefined'&&quick) quick.textContent='Export '+L; }
+    var L={png:'PNG',jpg:'JPG',tif:'TIFF',webp:'WebP',svg:'SVG'}[fmSel.value]; if(typeof bSave!=='undefined'&&bSave) bSave.textContent='Export '+L; if(typeof quick!=='undefined'&&quick) quick.textContent='Export '+L; }
   var szHint=el('div','font-size:11px;color:#777;line-height:1.35;');
   function hint(){ szHint.textContent = csel.value==='crop' ? 'Strokes only: the image is cropped to the area around your strokes. Smaller file, but you have to place it yourself on the page.' : 'Whole page: the image is as large as the page. Place it at the page top-left and the strokes line up exactly.'; }
   csel.addEventListener('change',hint); hint(); csel.addEventListener('change',function(){ if(csel.value==='full'){ try{ rescan(); }catch(e){} fmtUpdate(); } });
@@ -1740,11 +1741,11 @@
       if(only==null&&plainLayers()&&kk===1) oc.drawImage(base,b.x,b.y,b.w,b.h,0,0,b.w,b.h);
       else { rscale=kk; try{ compose(oc,function(c){ c.scale(kk,kk); c.translate(-b.x,-b.y); },only==null?null:only); }finally{ rscale=1; } }
     }
-    var fmt=(mode==='copy')?'png':fmSel.value, mime=fmt==='jpg'?'image/jpeg':fmt==='tif'?'image/tiff':'image/png';
+    var fmt=(mode==='copy')?'png':fmSel.value, mime=fmt==='jpg'?'image/jpeg':fmt==='tif'?'image/tiff':fmt==='webp'?'image/webp':'image/png';
     if(fmt==='jpg'&&!bgValue()&&!isShot()){ var o2=document.createElement('canvas'); o2.width=out.width; o2.height=out.height; var c2=o2.getContext('2d'); c2.fillStyle='#ffffff'; c2.fillRect(0,0,o2.width,o2.height); c2.drawImage(out,0,0); out=o2; }
     var finish=function(bl){
       if(!bl){ msg('The image became too large for the browser. Choose Image size: Strokes only.'); return; }
-      lastBlob=bl; var tag=label?'-'+String(label).replace(/[^\w-]+/g,'_'):''; lastName=fname('ritlager'+tag+'-'+out.width+'x'+out.height,fmt==='jpg'?'.jpg':fmt==='tif'?'.tif':'.png',tag);
+      lastBlob=bl; var tag=label?'-'+String(label).replace(/[^\w-]+/g,'_'):''; lastName=fname('ritlager'+tag+'-'+out.width+'x'+out.height,fmt==='jpg'?'.jpg':fmt==='tif'?'.tif':fmt==='webp'?'.webp':'.png',tag);
       if(mode==='copy'){
         try{ navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(function(){msg('Image copied');},function(){msg('Copying was denied – use Export PNG');}); }
         catch(e){ msg('Copying is not supported here – use Export PNG'); }
@@ -1753,7 +1754,7 @@
       }
     };
     var dpiV=Math.max(36,Math.min(1200,Math.round(+dpiEl.value)||300)); if(fmt==='tif'){ try{ finish(encodeTiff(out,dpiV)); }catch(e){ msg('TIFF failed: '+(e&&e.message?e.message:e)+'. Try a lower resolution.'); } }
-    else out.toBlob(function(bl){ if(!bl||mode==='copy'){ finish(bl); return; } setDpi(bl,fmt,dpiV,finish); },mime,fmt==='jpg'?(+jq.value/100):undefined);
+    else out.toBlob(function(bl){ if(!bl||mode==='copy'){ finish(bl); return; } setDpi(bl,fmt,dpiV,finish); },mime,(fmt==='jpg'||fmt==='webp')?(+jq.value/100):undefined);
   }
 
   // ---- tangenter ----
@@ -1890,7 +1891,8 @@
       ['Layer effects','These effects belong to the active layer and change how the whole layer looks (also in exports). Nothing is destroyed – turn them off and the layer is as before. Blur needs Chrome, Edge or Firefox.'],
       ['## Layers','Drawing and the eraser work on the highlighted layer. Blend modes mix a layer with the layers below it; they show in the combined export and over a screenshot background, but a PNG placed on a webpage cannot blend with the page itself.'],
       ['## Animate','To make an animation from your drawing: 1) Press “Build-up from my drawing”, or build frame by frame with “+ Add this frame”. 2) ▶ Preview. 3) Save GIF or video. Build-up from my drawing makes frames that show the strokes appearing one after another. Or press + Add this frame, change the drawing, press + Add this frame again, and so on. Keep every 2nd removes every other frame, which makes the animation file smaller and lighter to load; the animation then plays faster, so raise Time / frame if you want it to last as long. Use ◀ ▶ to move a frame, ⧉ to copy it and ✕ to remove it. Frames use the Background and Drawn area settings above, not the Export ones.'],
-      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG or TIFF, or SVG (vector lines that scale to any size, good for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.']
+      ['## Export and save','Save: your drawing is autosaved in this browser, for this page only. To keep editing the strokes later, save a project file or a named version. Export: makes an image as PNG (can be transparent), JPG, TIFF or WebP (small and can be transparent), or SVG (vector lines that scale to any size, good for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Choose size (1×–6×) and DPI, and the whole page or only the area around your strokes. Whole page makes the image as large as the page, so when you import it to a webpage it fits exactly (place it at the top-left). Strokes only makes a smaller file that you place yourself. Layers can be exported together or one image each. Under Background you can export your drawing on top of a screenshot of the page, or the screenshot and the drawing as two separate images. The browser asks to share the tab when you choose it. Works best in Chrome and Edge; scroll to the right place first. The size follows the page: if the page grows longer, Ritlager measures it again by itself. Files go to Downloads, or to a folder you choose in Chrome and Edge.'],
+      ['Export formats','Images: PNG (sharp, can be transparent, the safe choice), JPG (small file, no transparency), TIFF (print and archive), WebP (small, can be transparent, for the web) and SVG (vector lines that scale to any size; for your own website, print and editing in Illustrator, Inkscape or Figma; textured brushes become smooth lines and pixel effects are left out). Animation: GIF (works almost everywhere, max 256 colours), video as MP4 (plays on phones, Safari, social media and editing programs; made in Chrome and Edge) and video as WebM (smooth and small, Chrome, Edge and Firefox). Project file: keeps everything editable so you can open and continue later (Save and open). Check which formats the place you upload to accepts; Research Catalogue takes ordinary images, GIF and video.']
     ];
     var man=el('div','margin-top:4px;display:none;');
     MANUAL.forEach(function(m){ var grp=m[0].indexOf('## ')===0; var h=el('div',grp?'font-weight:500;color:#111;font-size:13px;margin-top:14px;padding-top:6px;border-top:1px solid #e3e3e3;':'font-weight:400;color:#111;margin-top:6px;',grp?m[0].slice(3):m[0]); man.appendChild(h); man.appendChild(el('div','',m[1])); });
