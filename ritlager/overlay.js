@@ -2238,14 +2238,14 @@
       {id:'colour',n:'Colour',colour:true,p:['M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z','M13.5 6.5h.01','M17.5 10.5h.01','M6.5 12.5h.01','M8.5 7.5h.01']}
     ];
     function addIcon(b,paths){ if(!b||!b.querySelector||b.querySelector('svg')) return; var sv=svgOf(paths,15); sv.style.flex='none'; b.insertBefore(sv,b.firstChild); b.style.display='inline-flex'; b.style.alignItems='center'; b.style.gap='5px'; if(b.parentNode===r2){ b.style.flexDirection='column'; b.style.justifyContent='center'; b.style.gap='3px'; b.style.padding='6px 2px'; b.style.fontSize='11px'; b.style.minWidth='0'; } }
-    var DEF=['draw','move','eraser','undo','redo','save','trash','pen','brush','air','text','pip','size','nib'];
+    var DEF=['draw','move','eraser','undo','redo','save','trash','pen','brush','air','text','pip','colour','size','nib'];
     (function(){ var SB={pen:bPen,brush:bBrush,air:bAir,line:bLine,text:bTxt,dodge:bDodge,burn:bBurn,blur:bBlurT,sharp:bSharpT,smudge:bSmudgeT,clone:bCloneT,selrect:bRect,sellasso:bLas,cutrect:bCutR,cutlasso:bCutL};
       Q.forEach(function(q){ if(SB[q.id]) addIcon(SB[q.id],q.p); if(q.id==='eraser') addIcon(bEr,q.p); if(q.id==='move'){ addIcon(bPick,q.p); addIcon(bSel0,q.p); } });
       bSel0.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('↖ ',''); });
       [bRect,bCutR].forEach(function(b){ b.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('▭ ',''); }); });
       bPick.childNodes.forEach(function(n){ if(n.nodeType===3) n.nodeValue=n.nodeValue.replace('↖ ',''); }); })();
-    var st={on:DEF.slice(),open:true,v:2};
-    try{ var s0=JSON.parse(localStorage.getItem(KEY)); if(s0&&s0.on){ if(!s0.v){ s0.v=2; ['size','nib'].forEach(function(k){ if(s0.on.indexOf(k)<0) s0.on.push(k); }); s0.on=s0.on.filter(function(k){ return k!=='line'; }); } st=s0; } else { var s1=JSON.parse(localStorage.getItem('ritlager-quick')); if(s1&&s1.on) st={on:DEF.slice(0,7).concat(s1.on,['size','nib']),open:s1.open!==false,v:2}; } }catch(e){}
+    var st={on:DEF.slice(),open:true,v:3};
+    try{ var s0=JSON.parse(localStorage.getItem(KEY)); if(s0&&s0.on){ if(s0.v===2){ s0.v=3; if(s0.on.indexOf('colour')<0) s0.on.push('colour'); } if(!s0.v){ s0.v=3; s0.on.push('colour'); ['size','nib'].forEach(function(k){ if(s0.on.indexOf(k)<0) s0.on.push(k); }); s0.on=s0.on.filter(function(k){ return k!=='line'; }); } st=s0; } else { var s1=JSON.parse(localStorage.getItem('ritlager-quick')); if(s1&&s1.on) st={on:DEF.slice(0,7).concat(s1.on,['colour','size','nib']),open:s1.open!==false,v:3}; } }catch(e){}
     function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
     function svgOf(paths,sz){ var sv=document.createElementNS(NS,'svg'); sv.setAttribute('width',sz); sv.setAttribute('height',sz); sv.setAttribute('viewBox','0 0 24 24'); sv.setAttribute('fill','none'); sv.setAttribute('stroke','currentColor'); sv.setAttribute('stroke-width','2'); sv.setAttribute('stroke-linecap','round'); sv.setAttribute('stroke-linejoin','round'); paths.forEach(function(d){ var pa=document.createElementNS(NS,'path'); pa.setAttribute('d',d); sv.appendChild(pa); }); return sv; }
     var strip=el('button','display:flex;align-items:center;justify-content:center;width:100%;height:16px;border:0;border-radius:6px;background:#efefef;color:#777;cursor:pointer;padding:0;margin-top:-2px;'); strip.type='button'; strip._tip='Show or hide your shortcuts';
@@ -2319,7 +2319,7 @@
     qEdit.appendChild(qPs);
     var done=btn('Done',function(){ qEdit.style.display='none'; }); qEdit.appendChild(done);
     strip.addEventListener('click',function(){ st.open=!st.open; save(); applyOpen(); });
-    bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qPre,qRow.nextSibling); bar.insertBefore(qNb,qPre.nextSibling); bar.insertBefore(qSz,qNb.nextSibling); bar.insertBefore(qCol,qSz.nextSibling); bar.insertBefore(qEdit,qCol.nextSibling); qEnd=qEdit;
+    bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qNb,qRow.nextSibling); bar.insertBefore(qSz,qNb.nextSibling); bar.insertBefore(qPre,qSz.nextSibling); bar.insertBefore(qCol,qPre.nextSibling); bar.insertBefore(qEdit,qCol.nextSibling); qEnd=qEdit;
     build(); qPreDraw(); applyOpen();
   })();
 
