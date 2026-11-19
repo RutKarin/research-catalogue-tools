@@ -1595,9 +1595,9 @@
     txSize.style.cssText+='width:54px;margin-left:auto;'; rCol.appendChild(txSize);
     setInterval(function(){ all.forEach(function(x){ x._mk(); }); },700);
   })();
-  sec('Text style'); [rTt,rCol,rText,rT8,rTw,rTf,rT3,rT4,rT5,rT12].forEach(function(r){ bar.appendChild(r); });
+  sec('Text style'); [rTt,rCol,rText,rT8,rTw,rTf,rTc,rT3,rT4,rT5,rT12].forEach(function(r){ bar.appendChild(r); });
   sec('Shape and direction'); [rShpB,rDirB,rBnd,rSide,rSta,rSkw,rRot].forEach(function(r){ bar.appendChild(r); });
-  sec('Text effects'); [rFxT,rTc,rTb,rO0,rT6,rTa,rTd,rTe,rGr,rGra,rT7,rShc,rShd,rSha,rSho,rT9,rT10,rBs,rBo,rT11].forEach(function(r){ bar.appendChild(r); });
+  sec('Text effects'); [rFxT,rTb,rO0,rT6,rTa,rTd,rTe,rGr,rGra,rT7,rShc,rShd,rSha,rSho,rT9,rT10,rBs,rBo,rT11].forEach(function(r){ bar.appendChild(r); });
   syncVis();
 
 
