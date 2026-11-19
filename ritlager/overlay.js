@@ -2841,6 +2841,9 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
     var cnt={}; hs.forEach(function(h){ var g=GROUP[h._t]||'More'; cnt[g]=(cnt[g]||0)+1; });
     hs.forEach(function(h){ if(cnt[GROUP[h._t]||'More']===1||GROUP[h._t]==='Text'){ h._flat=true; h._open=true; } });
     hs.forEach(applySec); gs.forEach(applyGrp);
+    // order of the menus follows the work: draw, layers, edit, effects, then text, animate, export, connect
+    (function(){ var ORD=['Draw','Layers','Edit','Effects','Text','Animate','Export and save','Connect']; if(!gs.length) return; var mk=document.createElement('span'); mk.style.display='none'; bar.insertBefore(mk,gs[0]);
+      gs.slice().sort(function(a,b){ var i=ORD.indexOf(a._t), j=ORD.indexOf(b._t); return (i<0?99:i)-(j<0?99:j); }).forEach(function(g){ bar.insertBefore(g,mk); bar.insertBefore(g._wrap,mk); }); mk.remove(); })();
     var allBtn=el('button','display:block;width:100%;height:16px;line-height:14px;border:0;border-radius:6px;background:#efefef;color:#777;font:300 10.5px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;padding:0;margin-top:2px;','Collapse all menus'); allBtn.type='button';
     function anyOpenNow(){ return gs.some(function(g){ return g._open; }); }
     function allLabel(){ allBtn.textContent=anyOpenNow()?'Collapse all menus':'Expand all menus'; }
