@@ -1939,6 +1939,79 @@
   bar.appendChild(rV3);
   fillVers();
 
+  // ---- Connect (beta): spara bilden direkt i Research Catalogue (Simple Media) ----
+  sec('Connect (beta)');
+  var rC1=row();
+  rC1.appendChild(btn('Export and send to RC',function(){ exportPng('rc'); },'Makes the image with your export settings and opens the form to send it to Research Catalogue (Simple Media). Beta.'));
+  rC1.appendChild(btn('Send last export',function(){ rcDialog(lastBlob,lastName); },'Sends the latest exported file (for example a GIF) to Research Catalogue. Beta.'));
+  bar.appendChild(rC1);
+  bar.appendChild(el('div','font-size:11px;color:#777;line-height:1.35;','Beta: works on a Research Catalogue editor page. If it fails, the file is downloaded instead.'));
+
+  var RC_KEY='ritlager-rc';
+  function rcPrefs(){ try{ return JSON.parse(localStorage.getItem(RC_KEY))||{}; }catch(e){ return {}; } }
+  function rcPutPrefs(o){ try{ localStorage.setItem(RC_KEY,JSON.stringify(o)); }catch(e){} }
+  function rcIds(){ var m=location.pathname.match(/\/editor\/(\d+)\/(\d+)/); return /(^|\.)researchcatalogue\.net$/.test(location.hostname)&&m?{research:m[1],weave:m[2]}:null; }
+  function rcFormFrom(html){
+    var d=new DOMParser().parseFromString(html,'text/html'), fs=[].slice.call(d.querySelectorAll('form'));
+    for(var i=0;i<fs.length;i++){ if(fs[i].querySelector('[name="form[image][media]"]')) return fs[i]; }
+    return null;
+  }
+  function rcDialog(bl,name){
+    if(!bl){ msg('Nothing to send yet – press Export and send to RC first'); return; }
+    var ids=rcIds();
+    if(!ids){ msg('Open Ritlager on a Research Catalogue editor page to send there. Downloading the file instead.',6000); saveBlob(bl,name,''); return; }
+    if(!/^image\//.test(bl.type)){ msg('Beta: only images (PNG, JPG, GIF, WebP) can be sent so far. Downloading instead.',6000); saveBlob(bl,name,''); return; }
+    var url='/researches/'+ids.research+'/simple-medias/new', pr=rcPrefs();
+    var ov=el('div','position:fixed;inset:0;z-index:'+(Z+5)+';background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px;');
+    var box=el('div','background:#fff;color:#111;border-radius:12px;padding:16px;width:min(420px,92vw);max-height:92vh;display:flex;flex-direction:column;gap:9px;font:300 14px/1.4 '+FONT+';overflow:auto;');
+    box.appendChild(el('div','font-weight:400;','Send to Research Catalogue (beta)'));
+    var st=el('div','font-size:12px;color:#666;','Asking Research Catalogue for its form…'); box.appendChild(st);
+    var IN='font:inherit;font-size:13px;border:1px solid #c9c9c9;border-radius:6px;padding:5px 8px;width:100%;box-sizing:border-box;';
+    function field(t,node){ var w=el('label','display:flex;flex-direction:column;gap:2px;font-size:12px;color:#666;',t); w.appendChild(node); box.appendChild(w); return node; }
+    var d=new Date(), pad=function(n){ return (n<10?'0':'')+n; };
+    var nameIn=field('Name',el('input',IN)); nameIn.type='text'; nameIn.value='Ritlager drawing '+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+'-'+pad(d.getMinutes());
+    var cpIn=field('Copyright holder',el('input',IN)); cpIn.type='text'; cpIn.value=pr.copyright||'';
+    var licSel=field('License',el('select',IN)); licSel.disabled=true;
+    var altIn=field('Alt text (describes the image for screen readers)',el('input',IN)); altIn.type='text';
+    var dsIn=field('Description',el('textarea',IN+'min-height:54px;resize:vertical;'));
+    var row2=el('div','display:flex;gap:6px;flex-wrap:wrap;');
+    var send=btn('Send to Research Catalogue',function(){ go(); }); send.disabled=true; send.style.background='#111'; send.style.color='#fff'; send.style.borderColor='#111';
+    var dl=btn('Download instead',function(){ ov.remove(); saveBlob(bl,name,''); });
+    var cl=btn('Cancel',function(){ ov.remove(); });
+    row2.appendChild(send); row2.appendChild(dl); row2.appendChild(cl); box.appendChild(row2);
+    ov.appendChild(box); ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); }); de.appendChild(ov);
+    var rcForm=null;
+    function fail(why){ st.style.color='#b00020'; st.textContent=why+' You can download the file instead.'; send.disabled=true; }
+    // Steg 1: välj medietyp "image" – RC svarar med själva filformuläret
+    var f1=new FormData(); f1.append('form[type][type]','image'); f1.append('form[_token_placeholder]',''); f1.append('form[_buttons][next]','');
+    fetch(url,{method:'POST',body:f1,credentials:'same-origin'}).then(function(r){ return r.text().then(function(t){ return {ok:r.ok,status:r.status,text:t}; }); }).then(function(r){
+      rcForm=r.ok?rcFormFrom(r.text):null;
+      if(!rcForm){ fail('Research Catalogue did not give the expected form (status '+r.status+').'); return; }
+      var ls=rcForm.querySelector('[name="form[image][license]"]');
+      if(ls&&ls.tagName==='SELECT'){ licSel.innerHTML=''; [].slice.call(ls.options).forEach(function(o){ var x=el('option',null,o.textContent.trim()); x.value=o.value; if(o.selected) x.selected=true; licSel.appendChild(x); }); if(pr.license&&[].some.call(licSel.options,function(o){ return o.value===pr.license; })) licSel.value=pr.license; licSel.disabled=false; }
+      else if(ls){ licSel.innerHTML=''; var x=el('option',null,ls.value||'(default)'); x.value=ls.value; licSel.appendChild(x); licSel.disabled=false; }
+      var cp=rcForm.querySelector('[name="form[image][copyrightHolder]"]'); if(cp&&!cpIn.value) cpIn.value=cp.value||'';
+      st.textContent='Ready. File: '+name+' ('+Math.round(bl.size/1024)+' kB). Goes to Simple Media in this exposition.'; send.disabled=false;
+    }).catch(function(e){ fail('Could not reach Research Catalogue ('+(e&&e.message?e.message:e)+').'); });
+    function go(){
+      if(!rcForm) return; send.disabled=true; st.style.color='#666'; st.textContent='Sending…';
+      var fd=new FormData();
+      [].slice.call(rcForm.elements).forEach(function(e){
+        if(!e.name||e.type==='file'||e.type==='submit'||e.type==='button') return;
+        if((e.type==='checkbox'||e.type==='radio')&&!e.checked) return;
+        fd.append(e.name,e.value);
+      });
+      fd.set('form[image][name]',nameIn.value||name); fd.set('form[image][copyrightHolder]',cpIn.value); fd.set('form[image][license]',licSel.value); fd.set('form[image][ariaLabel]',altIn.value); fd.set('form[image][description]',dsIn.value);
+      fd.set('form[image][media]',new File([bl],name,{type:bl.type}));
+      fetch(url,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){ return r.text().then(function(t){ return {ok:r.ok,status:r.status,text:t}; }); }).then(function(r){
+        if(!r.ok){ fail('Research Catalogue answered with an error (status '+r.status+').'); send.disabled=false; return; }
+        if(rcFormFrom(r.text)){ fail('Research Catalogue showed the form again, so the image was probably not accepted. Check the fields.'); send.disabled=false; return; }
+        rcPutPrefs({copyright:cpIn.value,license:licSel.value});
+        ov.remove(); msg('Sent to Simple Media as "'+(nameIn.value||name)+'". Open the Media tab in RC and refresh the list to see it.',8000);
+      }).catch(function(e){ fail('Sending failed ('+(e&&e.message?e.message:e)+').'); send.disabled=false; });
+    }
+  }
+
   var dbg=el('div','font-size:11px;color:#888;','Device: –'); bar.appendChild(dbg);
   var info=el('div','font-size:11px;color:#777;line-height:1.35;','Autosaved here. Save a project file to edit later.');
   bar.appendChild(info);
@@ -2158,6 +2231,7 @@
       if(mode==='copy'){
         try{ navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(function(){msg('Image copied');},function(){msg('Copying was denied – use Export PNG');}); }
         catch(e){ msg('Copying is not supported here – use Export PNG'); }
+      } else if(mode==='rc'){ rcDialog(bl,lastName);
       } else {
         saveBlob(bl,lastName,'('+out.width+' × '+out.height+' px'+(bgSel.value==='shot2'?', drawing only':isShot()?', with screenshot':(bgValue()||fmt==='jpg')?'':', transparent')+')');
       }
@@ -2241,7 +2315,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.3', RL_VERSION='202611191240', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191330', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
@@ -2488,7 +2562,7 @@ var IC2={dd:['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8','M12 2v2','M12 20v2','m4.93 4.
   (function(){
     var OK='ritlager-sections', st={}; try{ st=JSON.parse(localStorage.getItem(OK))||{}; }catch(e){}
     var closedDefault={'Pressure and stabilising':1,'Underlay (old PNG)':1,'Layout':1,'Outline':1,'Shadow':1,'Box':1,'Fonts and convert':1};
-    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Size and hardness':'Draw','Pen style':'Draw','Details':'Draw','Pressure and stabilising':'Draw','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Brush effects':'Effects','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save'};
+    var GROUP={'Drawing tools':'Draw','Presets':'Draw','Colour':'Draw','Size and hardness':'Draw','Pen style':'Draw','Details':'Draw','Pressure and stabilising':'Draw','Select tool':'Edit','Type':'Text','Layout':'Text','Outline':'Text','Shadow':'Text','Box':'Text','Fonts and convert':'Text','Effect tools':'Edit','Import images':'Edit','Cut out':'Edit','Brush effects':'Effects','Dodge and burn':'Effects','Retouch':'Effects','Layer effects':'Effects','Layers':'Layers','Animate':'Animate','Export (image)':'Export and save','Underlay (old PNG)':'Export and save','Save and open (editable)':'Export and save','Connect (beta)':'Connect'};
     var hs=[], gs=[], curH=null, wrap=null, curG=null, gw=null;
     function saveSt(){ try{ localStorage.setItem(OK,JSON.stringify(st)); }catch(e){} }
     function applyGrp(g){ g.textContent=(g._open?'▾ ':'▸ ')+g._t; g._wrap.style.display=g._open?'flex':'none'; }
