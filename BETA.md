@@ -1,8 +1,15 @@
 # Ritlager beta (not published)
 
-The beta lives on the `beta` branch. It adds **Connect (beta)**: send your drawing straight to
-Research Catalogue (Simple Media) and place it on the page at the drawn position and size.
-It does not touch the normal Ritlager bookmark.
+The beta lives on the `beta` branch. It does not touch the normal Ritlager bookmark.
+
+## What the beta adds
+
+- **Connect (beta):** send your drawing (PNG, JPG, WebP or an animated GIF) straight to Research Catalogue (Simple Media) and place it on the page at the drawn position and size.
+- **Fill (G):** a paint bucket that fills a closed area on the active layer, closes small gaps, and adds the fill as a new object below your lines.
+- **More styles:** Brush (Dry, Soft, Flat, Wash, Fan) and Airbrush (Spray, Speckle, Grain, Stipple, Cloud). Pen styles are four tabs (Basic, Natural, Pattern, Effects).
+- **Shape tool (O)** with a corner radius for Rounded; **pen eraser end** erases; brush size up to 5000 px.
+- **Tool menus:** the Draw shortcut shows only the options of the chosen tool. Styles is one menu named after the tool; Pen behaviour is a small fold-out inside it.
+- **Research Catalogue editor:** the drawing is tied to the page area, so it follows when you zoom or resize the window.
 
 ## Try it
 
