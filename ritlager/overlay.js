@@ -1180,6 +1180,26 @@
   var rPn=row(); var preName=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:6px;padding:4px 8px;flex:1;min-width:0;box-sizing:border-box;'); preName.type='text'; preName.placeholder='Name, e.g. Fine ink'; rPn.appendChild(preName);
   rPn.appendChild(btn('+ Save',function(){ var n=(preName.value||'').trim().slice(0,24)||('Preset '+(loadPre().length+1)); var a=loadPre(); a.push({n:n,s:getSettings(false)}); savePre(a); preName.value=''; drawPre(); msg('Saved preset "'+n+'"'); },'Saves the current tool, colour, thickness and pen settings as a one-click preset'));
   bar.appendChild(rPn);
+  var rPf=row(); var preFile=el('input','display:none;'); preFile.type='file'; preFile.accept='.json,application/json';
+  rPf.appendChild(btn('Save presets to file',function(){
+    try{ var data={ritlager:1,presets:loadPre(),colours:custom.slice()}, bl=new Blob([JSON.stringify(data,null,1)],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download='ritlager-presets.json'; a.style.display='none'; (document.body||de).appendChild(a); a.click(); setTimeout(function(){ a.remove(); },500); msg('Saved ritlager-presets.json (presets and My colours) in your Downloads folder',5000); }catch(e){ msg('Could not save the file'); }
+  },'Saves your presets and My colours to a file so you can use them on another page, browser or computer'));
+  rPf.appendChild(btn('Load presets from file',function(){ preFile.value=''; preFile.click(); },'Adds the presets and colours from a saved file. Nothing you already have is removed'));
+  preFile.addEventListener('change',function(){
+    var f=preFile.files&&preFile.files[0]; if(!f) return;
+    var rd=new FileReader(); rd.onload=function(){
+      try{
+        var d=JSON.parse(rd.result); if(!d||d.ritlager!==1) throw 0;
+        var a=loadPre(), seen={}; a.forEach(function(p){ seen[p.n+'|'+JSON.stringify(p.s)]=1; }); var np=0, nc=0;
+        (d.presets||[]).forEach(function(p){ if(p&&p.n&&p.s&&!seen[p.n+'|'+JSON.stringify(p.s)]){ a.push({n:String(p.n).slice(0,24),s:p.s,h:p.h}); np++; } });
+        savePre(a); drawPre();
+        (d.colours||[]).forEach(function(c){ if(/^#[0-9a-f]{6}$/i.test(c)&&custom.indexOf(c)<0&&custom.length<MAXC){ custom.push(c); addSw(c,true); nc++; } });
+        saveCustom();
+        msg('Loaded '+np+' new presets and '+nc+' new colours',5000);
+      }catch(e){ msg('That does not look like a Ritlager presets file',5000); }
+    }; rd.readAsText(f);
+  });
+  rPf.appendChild(preFile); bar.appendChild(rPf);
 
   var rTt=row(); rTt.appendChild(bTxt);
   var rText=row(); lab(rText,'Font');
