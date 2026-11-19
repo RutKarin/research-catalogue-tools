@@ -1468,7 +1468,7 @@
  
   var rTw=row(); lab(rTw,'Weight'); var txWt=slider(rTw,100,900,300,100); txWt.step=100; txWt.title='Thinner ← → thicker. Works with fonts that have several weights (e.g. Avenir, Helvetica)';
   var rTf=row(); lab(rTf,'Thicken'); var txFat=slider(rTf,0,12,0,100); txFat.title='Makes any font thicker by adding to its outline';
-  var rShpB, rDirB, rFxT, rAlS=el('div','display:flex;gap:4px;margin-right:4px;'); var rT3=row(); lab(rT3,'Align'); var txAl=el('select',BTN+'padding:3px 6px;'); [['left','Left'],['center','Centre'],['right','Right']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txAl.appendChild(op); }); rT3.appendChild(txAl);
+  var rShpB, rDirB, rFxT, rNum, rAlS=el('div','display:flex;gap:4px;margin-right:4px;'); var rT3=row(); lab(rT3,'Align'); var txAl=el('select',BTN+'padding:3px 6px;'); [['left','Left'],['center','Centre'],['right','Right']].forEach(function(o){ var op=el('option',null,o[1]); op.value=o[0]; txAl.appendChild(op); }); rT3.appendChild(txAl);
   lab(rT3,'Wrap'); var txBw=el('input',INP+'width:60px;'); txBw.type='number'; txBw.min=0; txBw.max=3000; txBw.value=0; txBw.title='Line width in px where the text wraps to a new line. 0 = no wrapping'; rT3.appendChild(txBw); lab(rT3,'px (0 = off)');
  
   var rT4=row(); lab(rT4,'Letter spacing'); var txLs=slider(rT4,-5,40,0,110);
@@ -1595,7 +1595,18 @@
     txSize.style.cssText+='width:54px;margin-left:auto;'; rCol.appendChild(txSize);
     setInterval(function(){ all.forEach(function(x){ x._mk(); }); },700);
   })();
-  sec('Text style'); [rTt,rCol,rText,rT8,rTw,rTf,rTc,rTb,rT3,rT4,rT5,rT12].forEach(function(r){ bar.appendChild(r); });
+  rNum=el('div','display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;');
+  [['Weight',txWt,100,900,100],['Thicken',txFat,0,12,1],['Letters',txLs,-5,40,1],['Lines',txLh,80,250,5]].forEach(function(o){
+    var c=el('div','display:flex;align-items:center;gap:6px;min-width:0;'), l=el('span','font-size:12.5px;color:#777;cursor:ns-resize;user-select:none;touch-action:none;',o[0]), n=el('input',INP+'width:60px;flex:none;'); n.type='number'; n.min=o[2]; n.max=o[3]; n.step=o[4]; n.value=o[1].value; n.title=o[1].title||''; l.title='Drag up or down to change, or type a number';
+    function setV(v){ v=Math.max(o[2],Math.min(o[3],Math.round(v/o[4])*o[4])); n.value=v; o[1].value=v; o[1].dispatchEvent(new Event('input',{bubbles:true})); }
+    n.addEventListener('input',function(){ if(n.value!=='') { o[1].value=Math.max(o[2],Math.min(o[3],+n.value)); o[1].dispatchEvent(new Event('input',{bubbles:true})); } });
+    n.addEventListener('change',function(){ if(n.value==='') n.value=o[1].value; o[1].dispatchEvent(new Event('change',{bubbles:true})); });
+    n.addEventListener('keydown',function(e){ e.stopPropagation(); },true);
+    l.addEventListener('pointerdown',function(e){ e.preventDefault(); var y0=e.clientY, v0=+o[1].value, range=o[3]-o[2]; l.setPointerCapture(e.pointerId); function mv(ev){ setV(v0+(y0-ev.clientY)*Math.max(o[4],range/150)); } function up(){ l.removeEventListener('pointermove',mv); l.removeEventListener('pointerup',up); o[1].dispatchEvent(new Event('change',{bubbles:true})); } l.addEventListener('pointermove',mv); l.addEventListener('pointerup',up); });
+    setInterval(function(){ if(document.activeElement!==n&&String(n.value)!==String(o[1].value)) n.value=o[1].value; },500);
+    c.appendChild(l); c.appendChild(n); rNum.appendChild(c); });
+  [].slice.call(rT3.querySelectorAll('span')).forEach(function(s){ if(/0 = off/.test(s.textContent)) s.textContent='px'; });
+  sec('Text style'); [rTt,rCol,rText,rT8,rNum,rTc,rTb,rT3,rT12].forEach(function(r){ bar.appendChild(r); });
   sec('Shape and direction'); [rShpB,rDirB,rBnd,rSide,rSta,rSkw,rRot].forEach(function(r){ bar.appendChild(r); });
   sec('Text effects'); [rFxT,rO0,rT6,rTa,rTd,rTe,rGr,rGra,rT7,rShc,rShd,rSha,rSho,rT9,rT10,rBs,rBo,rT11].forEach(function(r){ bar.appendChild(r); });
   syncVis();
