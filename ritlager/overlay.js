@@ -1131,12 +1131,12 @@
   nibSel.title='Round: soft round tip. Square: tip with corners. Flat: calligraphy nib, thin in one direction. Pencil: grainy, like pencil on paper. Marker: transparent highlighter. Ink: soft ink pen with drops and tapering ends. Watercolour: transparent wash with darker edges and pigment grain.';
   rNib.appendChild(nibSel); bar.appendChild(rNib);
   var NIBT=[], NIBPREV={round:'#222',square:'#222',flat:'#222',ink:'#222',marker:'#e6b800',pencil:'#333',charcoal:'#222',chalk:'#555',crayon:'#c0392b',water:'#1f5fd1',dotted:'#222',dashed:'#222',stars:'#e6a800',hearts:'#d6285b',leaves:'#2a9d4a',glow:'#ff2d95',fuzzy:'#7a5230',flare:'#ff9a3c',cloud:'#9fb4cc',smoke:'#888',nebula:'#8a4fd8',glitter:'#e6b800',rainbow:'#222',thermal:'#222',glitch:'#222'}, NIBDARK={glow:1,flare:1,nebula:1,glitter:1,smoke:0};
-  function nibGrid(host,keys){
-    host.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:4px;';
+  function nibGrid(host,keys,opt){
+    host.style.cssText='display:grid;grid-template-columns:repeat('+((opt&&opt.cols)||3)+',1fr);gap:4px;';
     keys.forEach(function(k){
       var b=el('button','display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;min-width:0;'); b.type='button'; b._tip=NIBL[k]; b.setAttribute('data-nib',k);
-      var cv2=el('canvas','width:100%;height:24px;border-radius:5px;display:block;'); cv2.width=200; cv2.height=48; b.appendChild(cv2);
-      b.appendChild(el('span','font-size:9.5px;color:#444;line-height:1.1;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;',NIBL[k]));
+      var cv2=el('canvas','width:100%;height:'+((opt&&opt.small)?'18px':'24px')+';border-radius:5px;display:block;'); cv2.width=200; cv2.height=(opt&&opt.small)?36:48; b.appendChild(cv2);
+      if(!(opt&&opt.small)) b.appendChild(el('span','font-size:9.5px;color:#444;line-height:1.1;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;',NIBL[k]));
       b.addEventListener('click',function(){ nibSel.value=k; nibSel.dispatchEvent(new Event('change',{bubbles:true})); setDrawing(true); if(tool!=='pen') setTool('pen'); nibMark(); });
       host.appendChild(b); NIBT.push([b,cv2,k]);
     });
@@ -1144,8 +1144,8 @@
   function nibMark(){ NIBT.forEach(function(t){ var on=nibSel.value===t[2]; t[0].style.borderColor=on?'#111':'#ccc'; t[0].style.boxShadow=on?'0 0 0 1px #111':'none'; }); }
   function nibPrev(t){
     try{
-      var k=t[2], g=t[1].getContext('2d'); g.save(); g.scale(2,2); g.fillStyle=NIBDARK[k]?'#1d1d2b':'#fafafa'; g.fillRect(0,0,100,24);
-      var pts=[],i; for(i=0;i<=22;i++){ var u=i/22; pts.push({x:10+u*80,y:12+5.5*Math.sin(u*Math.PI*2),p:0.5}); }
+      var k=t[2], g=t[1].getContext('2d'); var hh=t[1].height/2; g.save(); g.scale(2,2); g.fillStyle=NIBDARK[k]?'#1d1d2b':'#fafafa'; g.fillRect(0,0,100,hh);
+      var pts=[],i; for(i=0;i<=22;i++){ var u=i/22; pts.push({x:10+u*80,y:hh/2+(hh*0.23)*Math.sin(u*Math.PI*2),p:0.5}); }
       var big={cloud:1,smoke:1,nebula:1,flare:1,glow:1,fuzzy:1};
       render(g,{tool:'pen',nib:k,color:NIBPREV[k]||'#222',size:big[k]?7:5,ink:1,hair:false,soft:0,dry:0,pressure:false,sens:0.5,pts:pts}); g.restore();
     }catch(e){}
@@ -2283,6 +2283,14 @@
     var qMc=row(); qMc.style.gap='4px'; qMc.style.flexWrap='nowrap'; qMc.style.alignItems='center'; var qMs=scroller(), qMl=arrow('‹',qMs,-1), qMr=arrow('›',qMs,1); qMs.addEventListener('scroll',function(){ pagerUpd(qMs,qMl,qMr,custom.length); });
     qMcDraw=function(){ qMc.textContent=''; qMs.textContent=''; custom.forEach(function(c){ var b=el('button','width:22px;height:22px;border-radius:50%;border:1px solid #888;padding:0;cursor:pointer;background:'+c+';'); b.type='button'; b.setAttribute('aria-label','My colour '+c); b.style.flex='none'; b.style.scrollSnapAlign='start'; b.addEventListener('click',function(){ setColor(c); }); qMs.appendChild(b); }); qMc.appendChild(qMl); qMc.appendChild(qMs); qMc.appendChild(qMr); var pl2=el('button','width:22px;height:22px;border-radius:50%;border:1px dashed #999;background:#fff;color:#555;cursor:pointer;padding:0;font-size:14px;line-height:18px;'); pl2.type='button'; pl2.textContent='+'; pl2.setAttribute('aria-label','Save colour (quick)'); pl2._tip='Save the current colour in My colours'; pl2.style.flex='none'; pl2.addEventListener('click',function(){ plusBtn.click(); }); qMc.appendChild(pl2); setTimeout(function(){ pagerUpd(qMs,qMl,qMr,custom.length); },80); qMc.style.display=(st.open&&st.on.indexOf('mycol')>=0)?'flex':'none'; qMcSync(); };
     function qMcSync(){ Array.prototype.forEach.call(qMs.children,function(b){ var on=b.getAttribute('aria-label')==='My colour '+color; b.style.outline=on?'2px solid #111':'none'; b.style.outlineOffset='2px'; }); }
+    var qFly=el('div','display:none;flex-direction:column;gap:4px;padding:6px;border:1px solid #e4e4e4;border-radius:8px;background:#fff;');
+    var qFlyG=el('div'); qFly.appendChild(el('div','font-size:11px;color:#777;','Pen style')); qFly.appendChild(qFlyG);
+    nibGrid(qFlyG,Object.keys(NIBL),{cols:5,small:true});
+    function flyClose(){ qFly.style.display='none'; }
+    qFly.addEventListener('click',function(){ setTimeout(flyClose,60); });
+    document.addEventListener('pointerdown',function(e){ if(qFly.style.display!=='none'&&!qFly.contains(e.target)&&!(e.target.closest&&e.target.closest('[data-fly]'))) flyClose(); },true);
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') flyClose(); });
+    function flyOpen(){ qFly.style.display='flex'; nibMark(); }
     var qSz=row(); qSz.style.flexWrap='nowrap'; qSz.style.gap='6px'; qSz.style.alignItems='center';
     var qSr=el('input','flex:1 1 auto;min-width:0;accent-color:#111;'); qSr.type='range'; qSr.min=0; qSr.max=100; qSr.step=0.25; qSr.title='Size'; qSr.setAttribute('aria-label','Size (quick)');
     var qSv=el('span','font-size:11px;color:#555;width:42px;text-align:right;flex:none;'); qSz.appendChild(qSr); qSz.appendChild(qSv);
@@ -2294,7 +2302,8 @@
     function applyOpen(){ strip.textContent=''; strip.appendChild(svgOf(st.open?['m18 15-6-6-6 6']:['m6 9 6 6 6-6'],12)); qRow.style.display=st.open?'flex':'none'; qPre.style.display=st.open?'flex':'none'; qSz.style.display=(st.open&&st.on.indexOf('size')>=0)?'flex':'none'; qNb.style.display=(st.open&&st.on.indexOf('nib')>=0)?'flex':'none'; qMc.style.display=(st.open&&st.on.indexOf('mycol')>=0)?'flex':'none'; nibSync(); if(!st.open){ qEdit.style.display='none'; qCol.style.display='none'; } }
     function build(){
       qRow.textContent=''; items=[];
-      Q.forEach(function(q){ if(q.slider||st.on.indexOf(q.id)<0) return; var b=iconBtn(q.n+' (quick)',q.p,function(){ if(q.colour){ } else if(q.go) q.go(); else q.real.click(); },q.n); if(q.colour){ var sv0=b.querySelector('svg'); if(sv0) b.removeChild(sv0); qColDot=el('span','display:block;width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.4);background:'+(color||'#111')+';'); b.appendChild(qColDot); qColBtn=b; b.style.position='relative'; var ci=el('input','position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;'); ci.type='color'; ci.value=(color&&color.length===7)?color:'#111111'; ci.setAttribute('aria-label','Pick any colour'); ci.addEventListener('input',function(){ setColor(ci.value); }); b.appendChild(ci); qColIn=ci; } b.style.flex='0 0 calc((100% - 18px)/7)'; b.style.justifyContent='center'; b.style.minWidth='0'; b.style.boxSizing='border-box'; b.style.padding='5px 0'; qRow.appendChild(b); items.push({b:b,real:q.sync||q.real}); });
+      Q.forEach(function(q){ if(q.slider||st.on.indexOf(q.id)<0) return; var b=iconBtn(q.n+' (quick)',q.p,function(){ if(q.colour){ } else if(q.go) q.go(); else q.real.click(); },q.n); if(q.id==='pen'||q.id==='brush'){ b.setAttribute('data-fly','1'); b._tip=q.n+'. Hold or right-click for pen styles'; var lp=null; b.addEventListener('contextmenu',function(e){ e.preventDefault(); flyOpen(); }); b.addEventListener('pointerdown',function(e){ if(e.button>0) return; b._lp=false; clearTimeout(lp); lp=setTimeout(function(){ b._lp=true; flyOpen(); },450); }); ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ b.addEventListener(ev,function(){ clearTimeout(lp); }); }); b.addEventListener('click',function(e){ if(b._lp){ e.stopImmediatePropagation(); e.preventDefault(); b._lp=false; } },true); }
+      if(q.colour){ var sv0=b.querySelector('svg'); if(sv0) b.removeChild(sv0); qColDot=el('span','display:block;width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.4);background:'+(color||'#111')+';'); b.appendChild(qColDot); qColBtn=b; b.style.position='relative'; var ci=el('input','position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;'); ci.type='color'; ci.value=(color&&color.length===7)?color:'#111111'; ci.setAttribute('aria-label','Pick any colour'); ci.addEventListener('input',function(){ setColor(ci.value); }); b.appendChild(ci); qColIn=ci; } b.style.flex='0 0 calc((100% - 18px)/7)'; b.style.justifyContent='center'; b.style.minWidth='0'; b.style.boxSizing='border-box'; b.style.padding='5px 0'; qRow.appendChild(b); items.push({b:b,real:q.sync||q.real}); });
       var e=iconBtn('Choose quick tools',['M21 4h-7','M10 4H3','M21 12h-9','M8 12H3','M21 20h-5','M12 20H3','M14 2v4','M8 10v4','M16 18v4'],function(){ qEdit.style.display=qEdit.style.display==='none'?'flex':'none'; },'Edit your shortcuts'); e.style.flex='0 0 calc((100% - 18px)/7)'; e.style.boxSizing='border-box'; e.style.marginLeft='auto'; e.style.padding='5px 0'; e.style.justifyContent='center'; e.style.background='#efefef'; e.style.color='#777'; e.style.borderColor='#efefef'; qRow.appendChild(e);
       qSz.style.display=(st.open&&st.on.indexOf('size')>=0)?'flex':'none'; qNb.style.display=(st.open&&st.on.indexOf('nib')>=0)?'flex':'none'; qMc.style.display=(st.open&&st.on.indexOf('mycol')>=0)?'flex':'none'; nibSync(); qSizeSync();
       if(st.on.indexOf('colour')<0){ qCol.style.display='none'; qColDot=null; }
@@ -2335,7 +2344,7 @@
     qEdit.appendChild(qPs);
     var done=btn('Done',function(){ qEdit.style.display='none'; }); qEdit.appendChild(done);
     strip.addEventListener('click',function(){ st.open=!st.open; save(); applyOpen(); });
-    bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qNb,qRow.nextSibling); bar.insertBefore(qSz,qNb.nextSibling); bar.insertBefore(qMc,qSz.nextSibling); bar.insertBefore(qPre,qMc.nextSibling); bar.insertBefore(qCol,qPre.nextSibling); bar.insertBefore(qEdit,qCol.nextSibling); qEnd=qEdit;
+    bar.insertBefore(strip,r1.nextSibling); bar.insertBefore(qRow,strip.nextSibling); bar.insertBefore(qFly,qRow.nextSibling); bar.insertBefore(qNb,qFly.nextSibling); bar.insertBefore(qSz,qNb.nextSibling); bar.insertBefore(qMc,qSz.nextSibling); bar.insertBefore(qPre,qMc.nextSibling); bar.insertBefore(qCol,qPre.nextSibling); bar.insertBefore(qEdit,qCol.nextSibling); qEnd=qEdit;
     build(); qPreDraw(); qMcDraw(); applyOpen();
   })();
 
@@ -2431,6 +2440,7 @@
     var MANUAL=[
       ['## Pen styles and brush effects','Under Look there is a grid of pen styles with a small preview of each: basic (Round, Square, Flat, Ink, Marker), natural (Pencil, Charcoal, Chalk, Crayon, Watercolour) and pattern pens (Dotted, Dashed, Stars, Hearts, Leaves). Under Effects, Brush effects has Glow, Fuzzy fur, Lens flare, Clouds, Smoke, Nebula, Glitter, Rainbow, Thermal and Glitch. Click a tile to use that style with the pen. The Pen style menu in your shortcuts shows the same choice. Bigger Size makes the stamps and clouds bigger. Lens flare puts the light at the end of the stroke.'],
       ['## My colours','Under Colour, My colours is your own colour row. Pick a colour and press + to save it (up to 14). The pencil next to My colours switches on delete mode: click a colour with a cross to remove it. The seven standard colours can be hidden with the Standard colours box. In Your shortcuts you can also show the first seven of My colours as dots under Size.'],
+      ['## Quick pen styles','In your shortcuts, hold the Pen or Brush button for half a second, or right-click it, to open a small window with all pen styles. Click one to use it. It closes by itself, or press Esc.'],
       ['## Shortcuts','Like Photoshop where possible. On a Mac, use Cmd instead of Ctrl.'],
       ['Tools','V select and move · H use the page (scroll and click) · D switch between draw and click · B pen · P brush · A airbrush · L line · E eraser · T text · I pipette'],
       ['Brush and colour','[ and ] thinner and thicker · 1–9 and 0 set opacity to 10–100% · X swap to the previous colour'],
