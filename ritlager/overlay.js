@@ -1816,7 +1816,7 @@
       var bmS=el('select',BTN+'padding:3px 6px;flex:1;min-width:0;'); bmS.title='How this layer mixes with the layers below it (and with a screenshot background when exporting)';
       BLENDS.forEach(function(o){ var op2=el('option',null,o[1]); op2.value=o[0]; bmS.appendChild(op2); }); bmS.value=L.bm||'source-over';
       bmS.addEventListener('change',function(){ L.bm=bmS.value; sumUp(); rebuild(); }); r3.appendChild(bmS);
-      more.appendChild(r2); more.appendChild(r3); sumUp(); d.appendChild(r1); d.appendChild(sumEl); d.appendChild(more);
+      more.appendChild(r2); more.appendChild(r3); sumUp(); var r1b=row(); r1b.style.cssText+='flex-wrap:nowrap;align-items:center;gap:6px;'; var evw=eye.parentNode===r1?eye:eye.parentNode; r1b.appendChild(evw); r1b.appendChild(upB); r1b.appendChild(dnB); r1b.appendChild(sumEl); nm.style.minWidth='70px'; d.appendChild(r1); d.appendChild(r1b); d.appendChild(more);
       d.addEventListener('pointerdown',function(e){ if(e.target.tagName==='BUTTON') return; act=L.id; markLayers(); });
       layerBox.appendChild(d);
     })(layers[i],i);
