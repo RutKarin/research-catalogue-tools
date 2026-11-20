@@ -2892,7 +2892,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, rlAuto=null, RL_LABEL='1.0', RL_VERSION='202611200018', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, rlAuto=null, RL_LABEL='1.0', RL_VERSION='202611200020', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
@@ -3417,16 +3417,15 @@ var IC2={ct:['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0','M12 3v18'],dd:['M12 16a4 4 
     }
     tg.addEventListener('click',function(){ showPanel('info'); });
     tm.addEventListener('click',function(){ showPanel('man'); });
-    var lr=el('div','display:flex;justify-content:space-between;align-items:baseline;gap:8px;'); lr.appendChild(tg); lr.appendChild(tm); d.appendChild(lr);
+    var lr=el('div','display:flex;justify-content:space-between;align-items:baseline;gap:8px;'); lr.appendChild(tg); lr.appendChild(tm);
     if(rlNote){
-      var lr2=el('div','display:flex;justify-content:space-between;align-items:center;gap:8px;'); lr2.appendChild(el('span','display:none;'));
-      var au=el('label','display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#111;margin-top:9px;cursor:pointer;user-select:none;'); var aui=el('input'); aui.type='checkbox'; aui.style.cssText='position:absolute;opacity:0;width:0;height:0;'; try{ aui.checked=localStorage.getItem('ritlager-autoupd')==='1'; }catch(e){}
-      var sw=el('span','position:relative;display:inline-block;width:26px;height:14px;border-radius:7px;flex:none;transition:background .15s;'), kn=el('span','position:absolute;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .15s;'); sw.appendChild(kn);
-      function swMk(){ sw.style.background=aui.checked?'#111':'#c4c4c4'; kn.style.left=aui.checked?'14px':'2px'; } swMk();
-      au.appendChild(aui); au.appendChild(sw); au.appendChild(document.createTextNode('Auto update')); au.title='When a new version is published, Ritlager loads it by itself the next time you open it (needs internet). Your drawing is kept. Off: you update by dragging the bookmark again from the install page.'; au._tip=au.title;
-      aui.addEventListener('change',function(){ swMk(); try{ localStorage.setItem('ritlager-autoupd',aui.checked?'1':'0'); localStorage.removeItem('ritlager-autoupd-failed'); }catch(e){} msg(aui.checked?'Ritlager will update itself when a new version is published':'Automatic updates are off'); if(aui.checked){ try{ var c=JSON.parse(localStorage.getItem('ritlager-latest')||'null'); if(c&&c.v&&String(c.v)>RL_VERSION&&rlAuto) rlAuto(c.v); }catch(e){} } });
-      lr2.replaceChild(au,lr2.firstChild); lr2.appendChild(rlNote); d.appendChild(lr2); }
-    d.appendChild(more); d.appendChild(man); bar.appendChild(d);
+      var au=el('label','display:inline-flex;align-items:center;cursor:pointer;user-select:none;margin-top:9px;align-self:flex-end;'); var aui=el('input'); aui.type='checkbox'; aui.setAttribute('aria-label','Auto update'); aui.style.cssText='position:absolute;opacity:0;width:0;height:0;'; try{ aui.checked=localStorage.getItem('ritlager-autoupd')==='1'; }catch(e){}
+      var sw=el('span','position:relative;display:inline-block;width:20px;height:11px;border-radius:6px;flex:none;transition:background .15s;'), kn=el('span','position:absolute;top:2px;width:7px;height:7px;border-radius:50%;background:#fff;transition:left .15s;'); sw.appendChild(kn);
+      function swMk(){ sw.style.background=aui.checked?'#111':'#c4c4c4'; kn.style.left=aui.checked?'11px':'2px'; } swMk();
+      au.appendChild(aui); au.appendChild(sw); au.title='Auto update: when a new version is published, Ritlager loads it by itself the next time you open it (needs internet, your drawing is kept). Off: you update by dragging the bookmark again from the install page.'; au._tip=au.title;
+      aui.addEventListener('change',function(){ swMk(); try{ localStorage.setItem('ritlager-autoupd',aui.checked?'1':'0'); localStorage.removeItem('ritlager-autoupd-failed'); }catch(e){} msg(aui.checked?'Auto update on: Ritlager will update itself when a new version is published':'Auto update is off'); if(aui.checked){ try{ var c=JSON.parse(localStorage.getItem('ritlager-latest')||'null'); if(c&&c.v&&String(c.v)>RL_VERSION&&rlAuto) rlAuto(c.v); }catch(e){} } });
+      var rg=el('div','display:inline-flex;align-items:baseline;gap:6px;'); rg.appendChild(au); rg.appendChild(rlNote); lr.appendChild(rg); }
+    d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   // On a Mac the hover tips and the manual say ⌘ and ⌥ instead of Ctrl and Alt
