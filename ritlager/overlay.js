@@ -2892,7 +2892,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, rlAuto=null, RL_LABEL='1.0', RL_VERSION='202611200020', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, rlAuto=null, RL_LABEL='1.0', RL_VERSION='202611200022', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
@@ -3420,8 +3420,8 @@ var IC2={ct:['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0','M12 3v18'],dd:['M12 16a4 4 
     var lr=el('div','display:flex;justify-content:space-between;align-items:baseline;gap:8px;'); lr.appendChild(tg); lr.appendChild(tm);
     if(rlNote){
       var au=el('label','display:inline-flex;align-items:center;cursor:pointer;user-select:none;margin-top:9px;align-self:flex-end;'); var aui=el('input'); aui.type='checkbox'; aui.setAttribute('aria-label','Auto update'); aui.style.cssText='position:absolute;opacity:0;width:0;height:0;'; try{ aui.checked=localStorage.getItem('ritlager-autoupd')==='1'; }catch(e){}
-      var sw=el('span','position:relative;display:inline-block;width:20px;height:11px;border-radius:6px;flex:none;transition:background .15s;'), kn=el('span','position:absolute;top:2px;width:7px;height:7px;border-radius:50%;background:#fff;transition:left .15s;'); sw.appendChild(kn);
-      function swMk(){ sw.style.background=aui.checked?'#111':'#c4c4c4'; kn.style.left=aui.checked?'11px':'2px'; } swMk();
+      var sw=document.createElementNS('http://www.w3.org/2000/svg','svg'); sw.setAttribute('width',15); sw.setAttribute('height',15); sw.setAttribute('viewBox','0 0 24 24'); sw.setAttribute('fill','none'); sw.setAttribute('stroke','currentColor'); sw.setAttribute('stroke-width','2.2'); sw.setAttribute('stroke-linecap','round'); sw.setAttribute('stroke-linejoin','round'); sw.style.cssText='flex:none;transition:color .15s;'; sw.innerHTML='<path d="M20 11a8.1 8.1 0 0 0-15.5-2m-.5-4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>';
+      function swMk(){ sw.style.color=aui.checked?'#17d600':'#aaa'; sw.style.filter=aui.checked?'drop-shadow(0 0 2px rgba(57,255,20,.6))':'none'; } swMk();
       au.appendChild(aui); au.appendChild(sw); au.title='Auto update: when a new version is published, Ritlager loads it by itself the next time you open it (needs internet, your drawing is kept). Off: you update by dragging the bookmark again from the install page.'; au._tip=au.title;
       aui.addEventListener('change',function(){ swMk(); try{ localStorage.setItem('ritlager-autoupd',aui.checked?'1':'0'); localStorage.removeItem('ritlager-autoupd-failed'); }catch(e){} msg(aui.checked?'Auto update on: Ritlager will update itself when a new version is published':'Auto update is off'); if(aui.checked){ try{ var c=JSON.parse(localStorage.getItem('ritlager-latest')||'null'); if(c&&c.v&&String(c.v)>RL_VERSION&&rlAuto) rlAuto(c.v); }catch(e){} } });
       var rg=el('div','display:inline-flex;align-items:baseline;gap:6px;'); rg.appendChild(au); rg.appendChild(rlNote); lr.appendChild(rg); }
