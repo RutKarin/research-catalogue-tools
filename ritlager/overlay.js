@@ -2892,7 +2892,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.4 beta', RL_VERSION='202611191625', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, RL_LABEL='1.0', RL_VERSION='202611200010', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
