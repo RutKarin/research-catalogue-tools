@@ -2892,7 +2892,7 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, rlAuto=null, RL_LABEL='1.0', RL_VERSION='202611200028', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, rlAuto=null, RL_LABEL='1.0', RL_VERSION='202611200029', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
@@ -2915,7 +2915,7 @@
     function show(v,l){ if(v&&String(v)>RL_VERSION){ autoSwap(v); note.style.cssText=NS2; note.textContent='New update ↗'; note.href=RL_UPDATE_URL; note.setAttribute('aria-label','New update available. Open the install page to update'); note._tip=(l?'Version '+l+' is available. ':'A new version is available. ')+'Open the install page and drag the bookmark again'; } }
     var CK='ritlager-latest', cached=null; try{ cached=JSON.parse(localStorage.getItem(CK)||'null'); }catch(e){}
     if(cached&&cached.v) show(cached.v,cached.l);
-    if(!cached||!cached.t||Date.now()-cached.t>30*60*1000){
+    if(!cached||!cached.t||autoOn()||Date.now()-cached.t>30*60*1000){
       try{ fetch('https://raw.githubusercontent.com/RutKarin/research-catalogue-tools/main/version.json',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){ if(j&&j.version){ show(j.version,j.label); try{ localStorage.setItem(CK,JSON.stringify({v:j.version,l:j.label,t:Date.now()})); }catch(e){} } }).catch(function(){}); }catch(e){}
     }
   })();
