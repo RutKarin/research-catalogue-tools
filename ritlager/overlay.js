@@ -2892,13 +2892,27 @@
   }
   drawPre();
   // ---- quiet "new version available" notice (shown only when a newer version has been published) ----
-  var rlNote=null, RL_LABEL='1.0', RL_VERSION='202611200010', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
+  var rlNote=null, rlAuto=null, RL_LABEL='1.0', RL_VERSION='202611200010', RL_UPDATE_URL='https://claude.ai/artifact/3V9GpkxB5MqWJtiC3XD3NY';
   (function(){
     var isExt=false; try{ isExt=!!(typeof chrome!=='undefined'&&chrome.runtime&&chrome.runtime.id); }catch(e){}
     if(isExt) return;
     var NS1='color:#111;text-decoration:underline;cursor:pointer;display:inline-block;margin-top:9px;', NS2='font-weight:600;color:#17d600;text-shadow:0 0 5px rgba(57,255,20,.7);text-decoration:underline;cursor:pointer;display:inline-block;margin-top:9px;';
     var note=el('a',NS1,'v'+RL_LABEL+' ↗'); note.href='https://github.com/RutKarin/research-catalogue-tools'; note.target='_blank'; note.rel='noopener'; note.setAttribute('aria-label','Ritlager version '+RL_LABEL+' on GitHub'); note._tip='Ritlager v'+RL_LABEL+' on GitHub'; rlNote=note;
-    function show(v,l){ if(v&&String(v)>RL_VERSION){ note.style.cssText=NS2; note.textContent='New update ↗'; note.href=RL_UPDATE_URL; note.setAttribute('aria-label','New update available. Open the install page to update'); note._tip=(l?'Version '+l+' is available. ':'A new version is available. ')+'Open the install page and drag the bookmark again'; } }
+    var AU='ritlager-autoupd', AUF='ritlager-autoupd-failed';
+    function autoOn(){ try{ return localStorage.getItem(AU)==='1'; }catch(e){ return false; } }
+    function autoSwap(v){
+      if(!autoOn()||window.__ritlagerRemote) return;
+      try{ if(localStorage.getItem(AUF)===String(v)) return; }catch(e){}
+      window.__ritlagerRemote=true;
+      fetch('https://raw.githubusercontent.com/RutKarin/research-catalogue-tools/main/ritlager/overlay.min.js?v='+encodeURIComponent(v),{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(c){
+        if(c.indexOf('"'+v+'"')<0&&c.indexOf("'"+v+"'")<0) throw 0;
+        try{ if(window.__ritlager&&window.__ritlager.destroy) window.__ritlager.destroy(); }catch(e){}
+        var sc=document.createElement('script'); sc.textContent=c; document.documentElement.appendChild(sc); sc.remove();
+        setTimeout(function(){ if(!window.__ritlager){ try{ localStorage.setItem(AUF,String(v)); }catch(e){} try{ alert('Ritlager could not update itself on this page. Click your Ritlager bookmark again to start it, or update from the install page.'); }catch(e){} } },1500);
+      }).catch(function(){ window.__ritlagerRemote=false; });
+    }
+    rlAuto=autoSwap;
+    function show(v,l){ if(v&&String(v)>RL_VERSION){ autoSwap(v); note.style.cssText=NS2; note.textContent='New update ↗'; note.href=RL_UPDATE_URL; note.setAttribute('aria-label','New update available. Open the install page to update'); note._tip=(l?'Version '+l+' is available. ':'A new version is available. ')+'Open the install page and drag the bookmark again'; } }
     var CK='ritlager-latest', cached=null; try{ cached=JSON.parse(localStorage.getItem(CK)||'null'); }catch(e){}
     if(cached&&cached.v) show(cached.v,cached.l);
     if(!cached||!cached.t||Date.now()-cached.t>30*60*1000){
@@ -3362,7 +3376,7 @@ var IC2={ct:['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0','M12 3v18'],dd:['M12 16a4 4 
     more.appendChild(document.createTextNode('Designed by Rut Karin Zettergren. A browser tool for drawing over web pages, for creating freehand drawings and visuals that can be exported for use on any webpage or Research Catalogue page. Free to use, change and share. Your drawing is autosaved in this browser, for the page it is activated on only. When you export, the file is saved to your computer. Ritlager itself does not upload anything. Autosave can disappear if you clear your browser data, so save a project file (Save project) to keep your work.'));
     more.appendChild(document.createTextNode(' ')); more.appendChild(lnk('Ritlager on GitHub',REPO));
     var MANUAL=[
-      ['## Version','You are running Ritlager version '+RL_LABEL+' (build '+RL_VERSION+'). If a newer version has been published, the version link (for example v1.1) at the bottom, next to User manual, opens the GitHub page and turns into a green “New update” link; open it and drag the bookmark again. Ritlager checks for new versions at most every half hour. The extension updates by itself.'],
+      ['## Version','You are running Ritlager version '+RL_LABEL+' (build '+RL_VERSION+'). Tick Update automatically at the bottom of the panel and a newer version is loaded by itself when you open Ritlager (needs internet; your drawing is kept). If a newer version has been published, the version link (for example v1.1) at the bottom, next to User manual, opens the GitHub page and turns into a green “New update” link; open it and drag the bookmark again. Ritlager checks for new versions at most every half hour. The extension updates by itself.'],
       ['## Draw menu','The Draw menu holds everything for drawing: the tools, the styles of the tool you use (for pen, brush or airbrush), size and hardness, and presets. Pen: four tabs, each with a small preview of every style. Basic (Round, Square, Flat, Ink, Marker), Natural (Pencil, Charcoal, Chalk, Crayon, Watercolour), Pattern (Dotted, Dashed, Stars, Hearts, Leaves) and Effects (Glow, Fuzzy fur, Lens flare, Clouds, Smoke, Nebula, Glitter, Rainbow, Thermal, Glitch). Brush: Dry (streaky, runs out of paint), Soft, Flat (a wide flat head at an angle), Wash (wide and transparent) and Fan (a few separate hairs). Airbrush: Spray, Speckle, Grain (fine dots), Stipple (larger dots) and Cloud. Click a tile to use that style; with strokes selected, the click changes them too. Bigger Size makes stamps and clouds bigger. Lens flare puts the light at the end of the stroke.'],
       ['## Quick tool options','In your shortcuts, hold the Draw button for half a second, or right-click it, to open a small window. Choose Pen, Brush, Airbrush, Line, Shape or Fill, and under it you see only what belongs to that tool: Pen the style tabs, Brush its styles and dryness, Airbrush its styles, hardness and build-up, Line the arrowhead, Shape the shapes, fill and (for Rounded) corner radius, Fill how large a gap it closes. Click outside it or press Esc to close.'],
       ['## Shortcuts','Like Photoshop where possible. On a Mac, use Cmd instead of Ctrl.'],
@@ -3403,7 +3417,9 @@ var IC2={ct:['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0','M12 3v18'],dd:['M12 16a4 4 
     }
     tg.addEventListener('click',function(){ showPanel('info'); });
     tm.addEventListener('click',function(){ showPanel('man'); });
-    var lr=el('div','display:flex;justify-content:space-between;align-items:baseline;gap:8px;'); lr.appendChild(tg); lr.appendChild(tm); if(rlNote) lr.appendChild(rlNote); d.appendChild(lr); d.appendChild(more); d.appendChild(man); bar.appendChild(d);
+    var lr=el('div','display:flex;justify-content:space-between;align-items:baseline;gap:8px;'); lr.appendChild(tg); lr.appendChild(tm); if(rlNote) lr.appendChild(rlNote); d.appendChild(lr);
+    if(rlNote){ var au=el('label','display:flex;align-items:center;gap:6px;font-size:12px;color:#111;margin-top:7px;cursor:pointer;'); var aui=el('input'); aui.type='checkbox'; try{ aui.checked=localStorage.getItem('ritlager-autoupd')==='1'; }catch(e){} au.appendChild(aui); au.appendChild(document.createTextNode('Update automatically')); au.title='When a new version is published, Ritlager loads it by itself the next time you open it (needs internet). Your drawing is kept. Off: you update by dragging the bookmark again from the install page.'; au._tip=au.title;
+      aui.addEventListener('change',function(){ try{ localStorage.setItem('ritlager-autoupd',aui.checked?'1':'0'); localStorage.removeItem('ritlager-autoupd-failed'); }catch(e){} msg(aui.checked?'Ritlager will update itself when a new version is published':'Automatic updates are off'); if(aui.checked){ try{ var c=JSON.parse(localStorage.getItem('ritlager-latest')||'null'); if(c&&c.v&&String(c.v)>RL_VERSION&&rlAuto) rlAuto(c.v); }catch(e){} } }); d.appendChild(au); } d.appendChild(more); d.appendChild(man); bar.appendChild(d);
   })();
   placeCanvas(); de.appendChild(bar); de.appendChild(note);
   // On a Mac the hover tips and the manual say ⌘ and ⌥ instead of Ctrl and Alt
