@@ -1769,7 +1769,7 @@
   fxShow();
 
   sec('Layers');
-  var layerBox=el('div','display:flex;flex-direction:column;gap:5px;'); bar.appendChild(layerBox);
+  var layerBox=el('div','display:flex;flex-direction:column;gap:3px;'); bar.appendChild(layerBox);
   var BLENDS=[['source-over','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['soft-light','Soft light'],['hard-light','Hard light'],['darken','Darken'],['lighten','Lighten'],['color-dodge','Colour dodge'],['color-burn','Colour burn'],['difference','Difference'],['exclusion','Exclusion'],['hue','Hue'],['saturation','Saturation'],['color','Colour'],['luminosity','Luminosity']];
   var lRaf=0; function lRebuild(){ cancelAnimationFrame(lRaf); lRaf=requestAnimationFrame(rebuild); }
   function markLayers(){ Array.prototype.forEach.call(layerBox.children,function(d){ d.style.background = (+d.getAttribute('data-id')===act) ? '#e9e9e9' : '#fff'; d.style.borderColor = (+d.getAttribute('data-id')===act) ? '#111' : '#d4d4d4'; }); }
@@ -1777,11 +1777,11 @@
     layerBox.innerHTML='';
     if(typeof fxUpdate==='function'&&typeof fxName!=='undefined'&&fxName) try{ fxUpdate(); }catch(e){}
     for(var i=layers.length-1;i>=0;i--) (function(L,idx){
-      var d=el('div','border:1px solid #d4d4d4;border-radius:7px;padding:4px 5px;display:flex;flex-direction:column;gap:4px;background:#fff;'); d.setAttribute('data-id',L.id);
+      var d=el('div','border:1px solid #d4d4d4;border-radius:7px;padding:3px 5px;display:flex;flex-direction:column;gap:2px;background:#fff;'); d.setAttribute('data-id',L.id);
       var r1=row(); r1.style.flexWrap='nowrap';
       var more=el('div','display:'+(L.open?'flex':'none')+';flex-direction:column;gap:4px;');
       var tg=btn(L.open?'▾':'▸',function(){ L.open=!L.open; more.style.display=L.open?'flex':'none'; tg.textContent=L.open?'▾':'▸'; },'Show or hide this layer’s opacity and blend mode'); tg.style.padding='3px 6px';
-      var sumEl=el('span','font-size:10.5px;color:#666;white-space:nowrap;cursor:pointer;align-self:stretch;margin-top:-4px;margin-left:30px;margin-right:72px;text-align:center;box-sizing:border-box;padding:1px 7px;border:1px solid #ddd;border-radius:10px;background:#fafafa;user-select:none;'); function sumUp(){ var bn=''; BLENDS.forEach(function(o){ if(o[0]===(L.bm||'source-over')) bn=o[1]; }); sumEl.textContent=L.op+'% · '+bn+(L.open?'  ▴':'  ▾'); } sumEl.title='Click to change this layer’s opacity and blend mode'; sumEl._tip='Click to change this layer’s opacity (how see-through it is) and blend mode (how it mixes with the layers below)'; sumEl.addEventListener('click',function(){ L.open=!L.open; more.style.display=L.open?'flex':'none'; sumUp(); });
+      var sumEl=el('span','font-size:10.5px;color:#666;white-space:nowrap;cursor:pointer;align-self:stretch;margin-top:-2px;margin-left:30px;margin-right:72px;text-align:center;box-sizing:border-box;padding:0 7px;line-height:15px;border:1px solid #ddd;border-radius:10px;background:#fafafa;user-select:none;'); function sumUp(){ var bn=''; BLENDS.forEach(function(o){ if(o[0]===(L.bm||'source-over')) bn=o[1]; }); sumEl.textContent=L.op+'% · '+bn+(L.open?'  ▴':'  ▾'); } sumEl.title='Click to change this layer’s opacity and blend mode'; sumEl._tip='Click to change this layer’s opacity (how see-through it is) and blend mode (how it mixes with the layers below)'; sumEl.addEventListener('click',function(){ L.open=!L.open; more.style.display=L.open?'flex':'none'; sumUp(); });
       var nm=el('input','font:inherit;font-size:12.5px;border:1px solid #c9c9c9;border-radius:5px;padding:3px 6px;flex:1;min-width:0;box-sizing:border-box;'); nm.type='text'; nm.value=L.name; nm.maxLength=30;
       nm.addEventListener('focus',function(){ act=L.id; markLayers(); }); nm.addEventListener('input',function(){ L.name=nm.value; persist(); });
       var eye=chk(r1,'Show',L.vis); r1.insertBefore(nm,r1.firstChild);
@@ -1802,7 +1802,7 @@
       var bmS=el('select',BTN+'padding:3px 6px;flex:1;min-width:0;'); bmS.title='How this layer mixes with the layers below it (and with a screenshot background when exporting)';
       BLENDS.forEach(function(o){ var op2=el('option',null,o[1]); op2.value=o[0]; bmS.appendChild(op2); }); bmS.value=L.bm||'source-over';
       bmS.addEventListener('change',function(){ L.bm=bmS.value; sumUp(); rebuild(); }); r3.appendChild(bmS);
-      more.appendChild(r2); more.appendChild(r3); sumUp(); var ar=el('div','display:flex;flex-direction:column;gap:1px;flex:none;'); var plain='padding:0 6px;font-size:11px;line-height:14px;height:16px;border:none;background:transparent;box-shadow:none;color:#111;'; upB.style.cssText+=plain; dnB.style.cssText+=plain; ar.appendChild(upB); ar.appendChild(dnB);
+      more.appendChild(r2); more.appendChild(r3); sumUp(); var ar=el('div','display:flex;flex-direction:column;gap:1px;flex:none;'); var plain='padding:0 6px;font-size:10px;line-height:12px;height:13px;border:none;background:transparent;box-shadow:none;color:#111;'; upB.style.cssText+=plain; dnB.style.cssText+=plain; ar.appendChild(upB); ar.appendChild(dnB);
       var evw=eye.parentNode; evw.textContent=''; evw.appendChild(eye); eye.style.cssText='position:absolute;opacity:0;width:0;height:0;'; var NSe='http://www.w3.org/2000/svg'; var esv=document.createElementNS(NSe,'svg'); esv.setAttribute('width',20); esv.setAttribute('height',16); esv.setAttribute('viewBox','0 0 20 16'); esv.setAttribute('fill','none'); esv.setAttribute('stroke','currentColor'); esv.setAttribute('stroke-width','1.6'); esv.setAttribute('stroke-linecap','round'); esv.innerHTML='<path d="M1.5 8C4 3.5 7 2 10 2s6 1.5 8.5 6C16 12.5 13 14 10 14S4 12.5 1.5 8Z"/><circle cx="10" cy="8" r="2.6" fill="currentColor"/><path class="sl" d="M3 15L17 1"/>'; evw.appendChild(esv); evw.style.cssText+='position:relative;flex:none;padding:4px 6px;border:1px solid #ccc;border-radius:7px;background:#fff;color:#111;';
       function eyeMk(){ evw.style.opacity=eye.checked?'1':'.45'; esv.querySelector('.sl').style.display=eye.checked?'none':''; } eye.addEventListener('change',eyeMk); eyeMk(); evw.title='Show or hide this layer'; evw._tip='Show or hide this layer';
       r1.insertBefore(ar,r1.firstChild); r1.insertBefore(evw,r1.lastChild); nm.style.minWidth='70px'; d.appendChild(r1); d.appendChild(sumEl); d.appendChild(more);
